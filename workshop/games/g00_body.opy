@@ -31,6 +31,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-12, 0, -15)
 #!define HOME_FACING vect(1, 0, 0)
+#!define STOPS 1
 
 #!include "common.opy"
 

@@ -61,56 +61,59 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: padL
-        32: padR
-        33: Vt
-        34: gi
-        35: gsweep
-        36: gp
-        37: pl
-        38: nStar
-        39: pStar
-        40: planText
-        41: acc
-        42: belief
-        43: nLat
-        44: hidden
-        45: roundN
-        46: score
-        47: pingCount
-        48: nSaidL
-        49: nSaidR
-        50: lastSaid
-        51: pingReq
-        52: fArmed
-        53: deciding
-        54: roomsOpen
-        55: barShown
-        56: barText
-        57: hudRound
-        58: hudPings
-        59: hudKeys
-        60: hudKeys2
-        61: enterNow
-        62: pingQ
-        63: pBefore
-        64: reading
-        65: firstReading
-        66: roundDone
-        67: room
-        68: roomEv
-        69: reward
-        70: autoStyle
-        71: autoRoom
-        72: onPad
-        73: fx
-        74: sombraFx
-        75: sombraTx
-        76: gain50
-        77: gain94
-        78: perfectV
-        79: nGood
-        80: debrief
+        31: stopNo
+        32: titleLine
+        33: padL
+        34: padR
+        35: Vt
+        36: gi
+        37: gsweep
+        38: gp
+        39: pl
+        40: nStar
+        41: pStar
+        42: planText
+        43: acc
+        44: belief
+        45: nLat
+        46: hidden
+        47: roundN
+        48: score
+        49: pingCount
+        50: nSaidL
+        51: nSaidR
+        52: lastSaid
+        53: pingReq
+        54: fArmed
+        55: deciding
+        56: roomsOpen
+        57: barShown
+        58: barText
+        59: hudRound
+        60: hudPings
+        61: hudKeys
+        62: hudKeys2
+        63: hudNext
+        64: enterNow
+        65: pingQ
+        66: pBefore
+        67: reading
+        68: firstReading
+        69: roundDone
+        70: room
+        71: roomEv
+        72: reward
+        73: autoStyle
+        74: autoRoom
+        75: onPad
+        76: fx
+        77: sombraFx
+        78: sombraTx
+        79: gain50
+        80: gain94
+        81: perfectV
+        82: nGood
+        83: debrief
     player:
         0: fellCount
         1: fell
@@ -144,6 +147,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM"));
         Set Global Variable(padL, Vector(9, 0, 6));
         Set Global Variable(padR, Vector(-9, 0, 6));
         Set Global Variable(Vt, Empty Array);
@@ -162,6 +166,7 @@ rule ("Initialize global variables") {
         Set Global Variable(hudPings, Custom String(""));
         Set Global Variable(hudKeys, Custom String(""));
         Set Global Variable(hudKeys2, Custom String(""));
+        Set Global Variable(hudNext, Custom String(""));
         Set Global Variable(roundDone, False);
         Set Global Variable(onPad, False);
         Set Global Variable(debrief, Array(Custom String(""), Custom String(""), Custom String("")));
@@ -421,6 +426,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,11,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,11,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -432,7 +438,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 11: SOMBRA'S ROOM"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -545,14 +551,15 @@ rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his
         Set Global Variable(barText, Custom String("chance Sombra is in the LEFT room: 50%"));
         Set Global Variable(hudPings, Custom String("pings this round: none yet"));
         Set Global Variable(hudRound, Custom String("round {0} of 5   score {1}   the ping is right {2}% of the time", Global.roundN, Global.score, Round To Integer(Multiply(Global.acc, 100), To Nearest)));
+        "The coach line keeps the last result (stops: he may be on the page). What to do now goes in its own row."
         If(Compare(Global.roundN, ==, 1));
-            Set Global Variable(coach, Custom String("Round 1. Press F to ping. The rooms open after two pings."));
+            Set Global Variable(hudNext, Custom String("Press F to ping. The rooms open after two pings."));
         Else If(Compare(Global.roundN, ==, 2));
-            Set Global Variable(coach, Custom String("Round 2. She has moved. Press F to ping. The rooms open after one ping."));
+            Set Global Variable(hudNext, Custom String("She has moved. Press F to ping. The rooms open after one ping."));
         Else If(Compare(Global.roundN, ==, 5));
-            Set Global Variable(coach, Custom String("Last round. The ping is now always right, like Widowmaker's infra-sight. Ping, or walk in."));
+            Set Global Variable(hudNext, Custom String("The ping is now always right, like Widowmaker's infra-sight. Ping, or walk in."));
         Else;
-            Set Global Variable(coach, Custom String("Round {0}. Your call: ping with F, or walk onto the pad of the room you think is empty.", Global.roundN));
+            Set Global Variable(hudNext, Custom String("Your call: ping with F, or walk onto the pad of the room you think is empty."));
         End;
         "The stand-in's plan for each round: 0 follow the best plan, 1 enter after one ping (the gamble at 80%)."
         Set Global Variable(autoStyle, If-Then-Else(Or(Compare(Global.roundN, ==, 3), Compare(Global.roundN, ==, 5)), 1, 0));
@@ -591,7 +598,10 @@ rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his
                         Set Global Variable(qWhy, Custom String("Before it you were 50/50, so the ping's own accuracy is the answer: 80%."));
                         Call Subroutine(ask);
                         Set Global Variable(barShown, True);
-                        Set Global Variable(coach, Custom String("The bar is your belief: one number, moved by one rule after each ping. Press F again."));
+                        Set Global Variable(stopNo, 2);
+                        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+                        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
+                        Set Global Variable(hudNext, Custom String("The bar on the right is your belief: one number moved by one rule. Press F again."));
                     Else If(And(Compare(Global.roundN, ==, 1), Compare(Global.pingCount, ==, 2)));
                         Set Global Variable(qId, 2);
                         Set Global Variable(qText, Custom String("Second ping: {0}. How sure now that she is {0}?", Global.lastSaid));
@@ -602,7 +612,7 @@ rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his
                         Call Subroutine(ask);
                         Set Global Variable(barShown, True);
                         Set Global Variable(roomsOpen, True);
-                        Set Global Variable(coach, Custom String("Rooms open. Ping more with F, or walk onto the pad of the room you think is EMPTY."));
+                        Set Global Variable(hudNext, Custom String("Rooms open. Ping more with F, or walk onto the pad of the room you think is EMPTY."));
                     Else If(And(Compare(Global.roundN, ==, 2), Compare(Global.pingCount, ==, 1)));
                         Set Global Variable(qId, 3);
                         Set Global Variable(qText, Custom String("80% sure she is {0}. Enter the other room, or ping again?", Global.lastSaid));
@@ -614,7 +624,7 @@ rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his
                         Call Subroutine(ask);
                         Set Global Variable(barShown, True);
                         Set Global Variable(roomsOpen, True);
-                        Set Global Variable(coach, Custom String("At these prices 80% is not sure enough: one wrong room costs three right ones. Your call."));
+                        Set Global Variable(hudNext, Custom String("80% is not sure enough here: one wrong room costs three right ones. F or a pad."));
                     Else;
                         Set Global Variable(coach, Custom String("That ping was worth {0} on average; entering instead, {1}. {2}", Global.pingQ, Global.enterNow, If-Then-Else(Compare(Global.pingQ, >, Add(Global.enterNow, 0.0001)), Custom String("Worth its cost."), Custom String("Entering was the better bet."))));
                     End;
@@ -629,6 +639,7 @@ rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his
                     Modify Global Variable(nGood, Add, 1);
                 End;
                 Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,enter,{0},{1},{2}", Global.roundN, Global.room, Custom String("{0},{1},{2}", Global.hidden, Global.belief, Custom String("{0},{1},{2}", Global.roomEv, Global.enterNow, Custom String("{0},{1},{2}", Global.pingQ, Global.reward, Global.pingCount)))));
+                Set Global Variable(hudNext, Custom String(""));
                 Create Effect(All Players(All Teams), Sphere, Custom Color(210, 127, 243, 255), Add(If-Then-Else(Compare(Global.hidden, ==, 0), Global.padL, Global.padR), Up), 1.2, None);
                 Set Global Variable(sombraFx, Last Created Entity);
                 Create In-World Text(All Players(All Teams), Custom String("SOMBRA WAS HERE"), Add(If-Then-Else(Compare(Global.hidden, ==, 0), Global.padL, Global.padR), Vector(0, 2.8, 0)), 2, Do Not Clip, None, Custom Color(210, 127, 243, 255), Default Visibility);
@@ -640,7 +651,7 @@ rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his
                 Set Global Variable(coach, Custom String("She was in the {0} room. You walked into the {1}: {2}.", If-Then-Else(Compare(Global.hidden, ==, 0), Custom String("LEFT"), Custom String("RIGHT")), If-Then-Else(Compare(Global.room, ==, 0), Custom String("LEFT"), Custom String("RIGHT")), If-Then-Else(Compare(Global.reward, >, 0), Custom String("+10, empty"), Custom String("-30, hacked"))));
                 Set Global Variable(barShown, True);
                 Wait(1, Ignore Condition);
-                Set Global Variable(coach, Custom String("Chance that room was empty: {0}%, worth {1} on average. One more ping: {2}", Round To Integer(Multiply(100, If-Then-Else(Compare(Global.room, ==, 0), Subtract(1, Global.belief), Global.belief)), To Nearest), Global.roomEv, Custom String("{0}. {1}", Global.pingQ, If-Then-Else(Compare(Global.pingQ, >, Add(Global.roomEv, 0.0001)), Custom String("Pinging was the better bet."), Custom String("Entering was the better bet.")))));
+                Set Global Variable(coach, Custom String("{0}. Chance it was empty: {1}%, worth {2}", If-Then-Else(Compare(Global.reward, >, 0), Custom String("+10"), Custom String("-30")), Round To Integer(Multiply(100, If-Then-Else(Compare(Global.room, ==, 0), Subtract(1, Global.belief), Global.belief)), To Nearest), Custom String("{0} on average. One more ping: {1}. {2}", Global.roomEv, Global.pingQ, If-Then-Else(Compare(Global.pingQ, >, Add(Global.roomEv, 0.0001)), Custom String("Pinging was the better bet."), Custom String("Entering was the better bet.")))));
                 Wait(1, Ignore Condition);
                 Destroy Effect(Global.sombraFx);
                 Destroy In-World Text(Global.sombraTx);
@@ -726,9 +737,10 @@ rule ("Game 11: the screen (strings are rebuilt only when something changes)") {
     actions {
         Create HUD Text(All Players(All Teams), Null, Null, Global.hudRound, Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.hudPings, Left, 4, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, First Of(Global.debrief), Left, 5, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.debrief, 1), Left, 6, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.debrief, 2), Left, 7, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.hudNext, Left, 5, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, First Of(Global.debrief), Left, 6, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.debrief, 1), Left, 7, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.debrief, 2), Left, 8, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
         "Right block, the scoreboard (2026-11-22 layout pass: no TOP rows, right rows at most 58 characters)."
         Create Progress Bar HUD Text(If-Then-Else(Global.barShown, All Players(All Teams), Null), Multiply(Global.belief, 100), Global.barText, Right, 0, Custom Color(210, 127, 243, 255), Color(White), Visible To and Values, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.planText, Right, 1, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
@@ -745,6 +757,9 @@ rule ("Game 11: run") {
         Global.ready != False;
     }
     actions {
+        Set Global Variable(stopNo, 1);
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
         Set Global Variable(hudKeys, Custom String("F: ping, costs 1. Walk onto a pad: enter that room."));
         Set Global Variable(hudKeys2, Custom String("Empty room +10. Sombra's room -30."));
         Create Effect(All Players(All Teams), Ring, Color(White), Global.padL, 2, None);
@@ -816,13 +831,20 @@ rule ("Game 11: run") {
         "plan: threshold rung, its belief, best-plan value at 50%, 80%, 94%, and with a perfect ping at 50%"
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,plan,{0},{1},{2}", Global.nStar, Global.pStar, Custom String("{0},{1},{2}", Value In Array(Global.Vt, 10), Value In Array(Global.Vt, 11), Custom String("{0},{1}", Value In Array(Global.Vt, 12), Global.perfectV))));
         Set Global Variable(planText, Custom String("Best plan: ping between {0}% and {1}%, enter outside it.", Round To Integer(Multiply(100, Subtract(1, Global.pStar)), To Nearest), Round To Integer(Multiply(100, Global.pStar), To Nearest)));
-        Set Global Variable(coach, Custom String("Sombra hides, invisible, in one of two rooms. Walk through the EMPTY one: +10. Hers costs 30."));
-        Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("Your ping (F) is a sonic arrow, like Hanzo's: it names her room, right 8 times in 10. Each costs 1."));
-        Wait(1, Ignore Condition);
+        "The rules stay on screen (this line, and the right block) until his first ping: he may be on the page."
+        Set Global Variable(coach, Custom String("Sombra hides, unseen, in one of two rooms. Your ping is Hanzo's sonic arrow: right 8 times in 10."));
+        Wait(2, Ignore Condition);
         Call Subroutine(playRound);
+        Set Global Variable(stopNo, 3);
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
         Call Subroutine(playRound);
         "Two situations that look the same (lesson 11's hidden wall, lecture 7's look-alike squares)."
+        Set Global Variable(stopNo, 4);
+        "Two situations that look the same (lesson 11's hidden wall, lecture 7's look-alike squares)."
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+        "Two situations that look the same (lesson 11's hidden wall, lecture 7's look-alike squares)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("Two players: pings RIGHT, LEFT and LEFT, LEFT. Same bar?"));
         Set Global Variable(qOpts, Array(Custom String("same bar"), Custom String("different bars")));
@@ -831,6 +853,9 @@ rule ("Game 11: run") {
         Set Global Variable(qWhy, Custom String("Different: 50% and 94%. The latest reading is not a state, like the blind runner's square."));
         Call Subroutine(ask);
         Call Subroutine(playRound);
+        Set Global Variable(stopNo, 5);
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
         "The value of information (lecture 9): a ping is worth most where it can change what you do.\ngain50: how much the best plan at 50% (which pings) beats entering now.\ngain94: how much entering at 94% beats one more ping followed by the best plan."
         Set Global Variable(gain50, Subtract(Value In Array(Global.Vt, 10), -10));
         Set Global Variable(gp, 0.941176470588235);
@@ -846,6 +871,11 @@ rule ("Game 11: run") {
         Call Subroutine(ask);
         Call Subroutine(playRound);
         "A sensor that is always right: the island's single bump."
+        Set Global Variable(stopNo, 6);
+        "A sensor that is always right: the island's single bump."
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+        "A sensor that is always right: the island's single bump."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
         Set Global Variable(qId, 6);
         Set Global Variable(qText, Custom String("Next, the ping is never wrong. How many pings do you need?"));
         Set Global Variable(qOpts, Array(Custom String("one"), Custom String("two"), Custom String("three or more")));
@@ -854,6 +884,16 @@ rule ("Game 11: run") {
         Set Global Variable(qWhy, Custom String("One. A reading that cannot be wrong turns the belief into a fact: 100% or 0%."));
         Call Subroutine(ask);
         Call Subroutine(playRound);
+        "The debrief waits for F, so he can read its stop on the page first."
+        Set Global Variable(stopNo, 7);
+        "The debrief waits for F, so he can read its stop on the page first."
+        Set Global Variable(titleLine, Custom String("RL 11: SOMBRA'S ROOM    STOP {0} OF 7", Global.stopNo));
+        "The debrief waits for F, so he can read its stop on the page first."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,11,{0}", Global.stopNo));
+        Set Global Variable(hudNext, Custom String("Press F to see the debrief."));
+        Wait(0.5, Ignore Condition);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,go,7"));
+        Set Global Variable(hudNext, Custom String(""));
         "debrief: rounds won, score, predictions right, predictions asked"
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,score,{0},{1},{2}", Global.nGood, Global.score, Custom String("{0},{1}", Global.predRight, Global.predTotal)));
         Set Global Variable(hudKeys, Custom String(""));
@@ -865,8 +905,7 @@ rule ("Game 11: run") {
         Set Global Variable At Index(debrief, 1, Custom String("Its name: partial observability. The bar is a belief state; a ping buys information."));
         Wait(0.5, Ignore Condition);
         Set Global Variable At Index(debrief, 2, Custom String("In an agent: a lookup is a ping, cancelling is a room. Check what it was shown first."));
-        Set Global Variable(coach, Custom String("Score {0}, empty room {1} of 5 times. Predictions right: {2}", Global.score, Global.nGood, Custom String("{0} of {1}.", Global.predRight, Global.predTotal)));
-        Wait(1, Ignore Condition);
+        Set Global Variable(hudRound, Custom String("final score {0}   empty room {1} of 5 times", Global.score, Global.nGood));
         Set Global Variable(coach, Custom String("Simplified: two rooms, a ping of known accuracy, Sombra never moves. Real hidden states are too many to list."));
         Call Subroutine(finish);
     }

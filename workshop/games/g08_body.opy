@@ -43,6 +43,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-12, 0, 0)
 #!define HOME_FACING vect(1, 0, 0)
+#!define STOPS 6
 
 #!include "common.opy"
 
@@ -109,6 +110,7 @@ globalvar REPS = [0, 5, 20]
 globalvar pickI = 2
 globalvar usedR = -1
 globalvar picking = false
+globalvar goWait = false
 globalvar r1 = 0
 globalvar r2 = 0
 globalvar walking = false
@@ -199,6 +201,7 @@ subroutine freshTables
 subroutine runRace
 subroutine pickReplays
 subroutine raceSummary
+subroutine waitGo
 
 def drawMaze():
     @Name "Game 8: draw the pads (red balls are wall, blue is the start, green the goal)"
@@ -429,8 +432,10 @@ def pickReplays():
         wait(0.5)
         nRep = 0 if raceNo == 1 else 20
     else:
+        # Stops (2026-11-22): he may be reading the lecture's page when this opens, so it waits as long as he likes.
+        waitUntil(not learner.isHoldingButton(Button.RELOAD), 5)
         picking = true
-        waitUntil(not picking, 60)
+        waitUntil(not picking, 99999)
         picking = false
     raceHead = "Race {}: {} replays per real step. Steps per trip:".format(raceNo, nRep)
     ctrl = "Answer: left click, right click, melee."
@@ -446,6 +451,24 @@ rule "Game 8: F changes the replays":
         pickI = (pickI + 1) % 3
     nRep = REPS[pickI]
     raceHead = "Race {}: {} replays per real step. Steps per trip:".format(raceNo, nRep)
+
+def waitGo():
+    @Name "Game 8: wait for R (Reload) before a stop's automatic part; the stand-in goes by itself"
+    if AUTOPLAY:
+        wait(0.5)
+    else:
+        waitUntil(not learner.isHoldingButton(Button.RELOAD), 5)
+        goWait = true
+        waitUntil(not goWait, 99999)
+        goWait = false
+    LOG("RLG,E,{},go,{}".format(GAME_ID, stopNo))
+
+rule "Game 8: R goes on":
+    @Event eachPlayer
+    @Condition eventPlayer == learner
+    @Condition goWait
+    @Condition eventPlayer.isHoldingButton(Button.RELOAD)
+    goWait = false
 
 rule "Game 8: R starts the race":
     @Event eachPlayer
@@ -536,10 +559,9 @@ rule "Game 8: run":
     learner.disallowButton(Button.ABILITY_2)
     learner.disallowButton(Button.ULTIMATE)
 
-    # --- Round 1: the player walks the maze; his steps become the replaying bot's memory ---------------------------
-    coach = "Tracer's Recall rewinds her last steps. A learner can do that with its memories between real steps."
-    wait(1 if AUTOPLAY else 6)
-    coach = "Walk from the blue pad to the green one, pad by pad. Each step you take goes into one bot's memory."
+    # --- Stop 1: the player walks the maze; his steps become the replaying bot's memory ----------------------------
+    STOP(1)
+    coach = "Walk from blue to green, pad by pad. Like Tracer's Recall, a bot will keep your steps and replay them."
     ctrl = "WASD: walk onto a pad next to yours. Red balls are wall."
     putHome()
     walkCur = START
@@ -550,7 +572,7 @@ rule "Game 8: run":
         for autoI in range(len(autoPath)):
             learner.teleport(CELLPOS(autoPath[autoI]))
             wait(0.45)
-    waitUntil(walkDone == true, 20 if AUTOPLAY else 120)
+    waitUntil(walkDone == true, 20 if AUTOPLAY else 99999)
     walking = false
     LOG("RLG,E,{},walkend,{},{},{}".format(GAME_ID, len(walkK), walkBumps, 1 if walkDone else 0))
     coach = "{} Your {} steps are now the replaying bot's memory: its own copy of what each move does.".format("Goal." if walkDone else "Time.", len(walkK))
@@ -558,11 +580,12 @@ rule "Game 8: run":
     learner.teleport(VIEW)
     learner.setFacing(vect(0, 0, 1), Relativity.TO_WORLD)
 
-    # --- Round 2: race 1 -----------------------------------------------------------------------------------------
+    # --- Stop 2: race 1 ------------------------------------------------------------------------------------------
+    STOP(2)
     raceNo = 1
     gap = OLD_GAP
-    coach = "You are the coach. The plain bot learns from real steps only; the other replays memories after each."
     pickReplays()
+    coach = "You are the coach. The plain bot learns from real steps only; the other replays memories after each."
     r1 = nRep
     usedR = nRep
     # The race is worked out once, unseen, while the player answers; then the same dice run it in front of him.
@@ -603,15 +626,15 @@ rule "Game 8: run":
     raceSummary()
     LOG("RLG,E,{},pass,{},{},{},{},{},{}".format(GAME_ID, raceNo, sTotP, botP.total, sTotD, botD.total, nRep))
     coach = "Each real step costs both bots the same. The replaying bot gets more learning out of each one." if nRep > 0 else "0 replays: the second bot is the plain bot. Memory unused is memory wasted."
-    wait(2 if AUTOPLAY else 8)
+    wait(2 if AUTOPLAY else 1)
 
-    # --- Round 3: race 2, a different number of replays ------------------------------------------------------------
+    # --- Stop 3: race 2, a different number of replays -------------------------------------------------------------
+    STOP(3)
     raceNo = 2
-    coach = "Race 2: pick a different number. The plain bot rolls the same dice again: it is your yardstick."
     pickReplays()
     r2 = nRep
     showRace = false
-    coach = "Race 2 set: {} replays per real step.".format(nRep)
+    coach = "Race 2: {} replays per real step. The plain bot rolls the same dice again: it is your yardstick.".format(nRep)
     runRace()
     sTotP = botP.total
     sTotD = botD.total
@@ -633,9 +656,12 @@ rule "Game 8: run":
     raceSummary()
     LOG("RLG,E,{},pass,{},{},{},{},{},{}".format(GAME_ID, raceNo, sTotP, botP.total, sTotD, botD.total, nRep))
     coach = "Replay only spreads what it has seen: past a point, more thinking stops paying."
-    wait(2 if AUTOPLAY else 7)
+    wait(2 if AUTOPLAY else 1)
 
-    # --- Round 4: the gap moves -----------------------------------------------------------------------------------
+    # --- Stop 4: the gap moves (R moves it) -------------------------------------------------------------------------
+    STOP(4)
+    ctrl = "R (Reload): move the gap in the wall."
+    waitGo()
     raceNo = 3
     nRep = WALL_REPLAYS
     gap = NEW_GAP
@@ -667,6 +693,9 @@ rule "Game 8: run":
     else:
         qWhy = "Both had to stumble on the new gap: thinking cannot find what was never seen."
     ask()
+
+    # --- Stop 5: what fixes the replaying bot's memory, then race 3 --------------------------------------------------
+    STOP(5)
     qId = 5
     qText = "Its memory says the old gap is open. Which happens later?"
     qOpts = ["it fixes the old-gap memory", "it finds the new gap", "about the same time"]
@@ -692,9 +721,12 @@ rule "Game 8: run":
     LOG("RLG,E,{},pass,{},{},{},{},{},{}".format(GAME_ID, raceNo, sTotP, botP.total, sTotD, botD.total, nRep))
     LOG("RLG,E,{},wall,{},{},{}".format(GAME_ID, botD.stale, botD.fixStep, botD.throughStep))
     coach = "It replayed untrue memories {} times. A bump fixed the old gap at step {}; new gap found at step {}.".format(botD.stale, botD.fixStep if botD.fixStep >= 0 else "never", botD.throughStep if botD.throughStep >= 0 else "never")
-    wait(2 if AUTOPLAY else 9)
+    wait(2 if AUTOPLAY else 1)
 
-    # --- Debrief ---------------------------------------------------------------------------------------------------
+    # --- Stop 6: the debrief (R shows it, so the race result stays until he is back) ---------------------------------
+    STOP(6)
+    ctrl = "R (Reload): show the summary."
+    waitGo()
     ctrl = ""
     db1 = "You walked once and coached two bots: one learned from real steps, one also replayed."
     db2 = "That is Dyna-Q: learn a model (its copy of what moves do), then plan by replaying it."

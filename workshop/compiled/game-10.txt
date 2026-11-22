@@ -61,63 +61,67 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: payTab
-        32: leftPos
-        33: rightPos
-        34: widowPos
-        35: widow
-        36: spawnTry
-        37: phase
-        38: peekN
-        39: phasePeeks
-        40: pick
-        41: pickOpen
-        42: pickTxt
-        43: autoPicks
-        44: nL
-        45: nN
-        46: aL
-        47: aA
-        48: herBR
-        49: herQ
-        50: drawU
-        51: aim
-        52: pay
-        53: score
-        54: ev
-        55: evSum
-        56: phasePay
-        57: dieRoll
-        58: dieSays
-        59: followed
-        60: tmo
-        61: beam
-        62: barHer
-        63: barHim
-        64: barHerTxt
-        65: barHimTxt
-        66: scoreTxt
-        67: infoTxt
-        68: mA
-        69: mB
-        70: mC
-        71: mD
-        72: mDen
-        73: gVal
-        74: gP
-        75: gQ
-        76: spT
-        77: spNL
-        78: spN
-        79: spML
-        80: spM
-        81: spTr
-        82: spWi
-        83: spLast
-        84: spFlips
-        85: spPay
-        86: spSnap
-        87: spI
+        31: stopNo
+        32: titleLine
+        33: payTab
+        34: leftPos
+        35: rightPos
+        36: widowPos
+        37: widow
+        38: spawnTry
+        39: phase
+        40: peekN
+        41: phasePeeks
+        42: pick
+        43: pickOpen
+        44: pickTxt
+        45: goOpen
+        46: goTxt
+        47: autoPicks
+        48: nL
+        49: nN
+        50: aL
+        51: aA
+        52: herBR
+        53: herQ
+        54: drawU
+        55: aim
+        56: pay
+        57: score
+        58: ev
+        59: evSum
+        60: phasePay
+        61: dieRoll
+        62: dieSays
+        63: followed
+        64: tmo
+        65: beam
+        66: barHer
+        67: barHim
+        68: barHerTxt
+        69: barHimTxt
+        70: scoreTxt
+        71: infoTxt
+        72: mA
+        73: mB
+        74: mC
+        75: mD
+        76: mDen
+        77: gVal
+        78: gP
+        79: gQ
+        80: spT
+        81: spNL
+        82: spN
+        83: spML
+        84: spM
+        85: spTr
+        86: spWi
+        87: spLast
+        88: spFlips
+        89: spPay
+        90: spSnap
+        91: spI
     player:
         0: fellCount
         1: fell
@@ -132,6 +136,7 @@ subroutines {
     5: peek
     6: redraw
     7: selfPlay
+    8: waitGo
 }
 
 rule ("Initialize global variables") {
@@ -151,6 +156,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK"));
         Set Global Variable(payTab, Array(-1, 1, 3, -2));
         Set Global Variable(leftPos, Vector(7, 0, -2));
         Set Global Variable(rightPos, Vector(-7, 0, -2));
@@ -158,6 +164,8 @@ rule ("Initialize global variables") {
         Set Global Variable(pick, -1);
         Set Global Variable(pickOpen, False);
         Set Global Variable(pickTxt, Custom String(""));
+        Set Global Variable(goOpen, False);
+        Set Global Variable(goTxt, Custom String(""));
         Set Global Variable(autoPicks, Array(1, 1, 1, 1, 1, 0, 0, 1, 0));
         Set Global Variable(aL, 1);
         Set Global Variable(aA, 2);
@@ -344,7 +352,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
         Set Global Variable(qShown, Total Time Elapsed);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,10,{0}", Global.qId));
-        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        "2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading\nthe page when a question comes up. (It gave up after 90 seconds.)"
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 99999);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
         Destroy In-World Text(Global.qTxtLow);
@@ -419,6 +428,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,10,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,10,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -430,7 +440,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 10: THE PEEK"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -502,7 +512,8 @@ rule ("Game 10: one peek. Both choose at once, then the result shows in the worl
         Set Global Variable(tmo, 0);
         Set Global Variable(pickTxt, Custom String("PEEK {0} OF 14: LEFT CLICK left, RIGHT CLICK right", Global.peekN));
         Set Global Variable(pickOpen, True);
-        Wait Until(Or(Compare(Global.pick, >=, 0), Global.gameOver), 120);
+        "The game is played beside the lecture page: the peek waits for him for as long as he likes."
+        Wait Until(Or(Compare(Global.pick, >=, 0), Global.gameOver), 99999);
         Set Global Variable(pickOpen, False);
         If(Compare(Global.pick, <, 0));
             Set Global Variable(pick, 0);
@@ -603,6 +614,20 @@ rule ("Game 10: two learners play 300 peeks (fictitious play: each answers the o
     }
 }
 
+rule ("Game 10: wait for Interact (F) before an automatic part, then log go with the stop number") {
+    event {
+        Subroutine;
+        waitGo;
+    }
+    actions {
+        Wait Until(Not(Is Button Held(Global.learner, Button(Interact))), 99999);
+        Set Global Variable(goOpen, True);
+        Wait Until(Or(Is Button Held(Global.learner, Button(Interact)), Global.gameOver), 99999);
+        Set Global Variable(goOpen, False);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,10,go,{0}", Global.stopNo));
+    }
+}
+
 rule ("Game 10: left click and right click choose the corner (outside questions)") {
     event {
         Ongoing - Each Player;
@@ -653,6 +678,7 @@ rule ("Game 10: the screen") {
         Create HUD Text(If-Then-Else(Compare(Global.phase, >=, 1), All Players(All Teams), Null), Null, Null, Global.infoTxt, Right, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
         "The peek prompt is a row of the left block: a row at the top centre ran over the title and the right panel."
         Create HUD Text(If-Then-Else(Global.pickOpen, All Players(All Teams), Null), Global.pickTxt, Null, Null, Left, 3, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.goOpen, All Players(All Teams), Null), Global.goTxt, Null, Null, Left, 3, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("1. You peeked a fixed Widowmaker, then a learning one, then by a 2-in-7 die."), Left, 3, Color(White), Color(White), Color(White), Visible To, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("2. Answering a habit is a best response. The die is the minimax mix nobody can exploit."), Left, 4, Color(White), Color(White), Color(White), Visible To, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("3. An agent trained against one fixed simulated user learns that user, not the task."), Left, 5, Color(White), Color(White), Color(White), Visible To, Default Visibility);
@@ -667,6 +693,12 @@ rule ("Game 10: run") {
         Global.ready != False;
     }
     actions {
+        "Stop 1: the corners, a fixed Widowmaker, and his best answer to her."
+        Set Global Variable(stopNo, 1);
+        "Stop 1: the corners, a fixed Widowmaker, and his best answer to her."
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    STOP {0} OF 6", Global.stopNo));
+        "Stop 1: the corners, a fixed Widowmaker, and his best answer to her."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,10,{0}", Global.stopNo));
         "2026-11-22: right click picks the right corner, and on Tracer right click is also Blink. Nothing here needs\nBlink or Recall (the game moves him to his corner), so both are off for the whole game."
         Disallow Button(Global.learner, Button(Ability 1));
         Disallow Button(Global.learner, Button(Ability 2));
@@ -758,9 +790,10 @@ rule ("Game 10: run") {
         Set Facing(Global.learner, Forward, To World);
         Set Global Variable(coach, Custom String("You are Tracer peeking a Widowmaker. You pick a corner, she picks one to hold. Both at once."));
         Wait(5, Ignore Condition);
-        Set Global Variable(coach, Custom String("LEFT: +3 if she is not there, -2 if she is. RIGHT: +1 or -1. Whatever you win, she loses."));
-        Wait(6, Ignore Condition);
         Set Global Variable(coach, Custom String("LEFT CLICK peeks left, RIGHT CLICK peeks right. Questions use the same buttons, at the top."));
+        Wait(6, Ignore Condition);
+        "The payoffs are the line that stays up while the first question waits for him."
+        Set Global Variable(coach, Custom String("LEFT: +3 if she is not there, -2 if she is. RIGHT: +1 or -1. Whatever you win, she loses."));
         Wait(5, Ignore Condition);
         "Phase 1: a fixed opponent. She always holds right."
         Set Global Variable(phase, 1);
@@ -782,6 +815,11 @@ rule ("Game 10: run") {
         Set Global Variable(coach, Custom String("A fixed opponent is part of the map: one best answer, no dice needed. That is a best response."));
         Wait(6, Ignore Condition);
         "Phase 2: a Widowmaker who learns his habits."
+        Set Global Variable(stopNo, 2);
+        "Phase 2: a Widowmaker who learns his habits."
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    STOP {0} OF 6", Global.stopNo));
+        "Phase 2: a Widowmaker who learns his habits."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,10,{0}", Global.stopNo));
         Set Global Variable(qId, 2);
         Set Global Variable(qText, Custom String("A new Widowmaker studies your habits. If you peeked LEFT every time, what is her best answer?"));
         Set Global Variable(qOpts, Array(Custom String("aim left every time"), Custom String("aim right"), Custom String("half and half")));
@@ -803,7 +841,12 @@ rule ("Game 10: run") {
         Call Subroutine(putHome);
         Set Global Variable(coach, Custom String("When you changed, her answer changed. Against a learner the target moves."));
         Wait(6, Ignore Condition);
-        "Back to lecture 7, then the safe mix and its value."
+        "Back to lecture 7, then the safe mix."
+        Set Global Variable(stopNo, 3);
+        "Back to lecture 7, then the safe mix."
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    STOP {0} OF 6", Global.stopNo));
+        "Back to lecture 7, then the safe mix."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,10,{0}", Global.stopNo));
         Set Global Variable(qId, 3);
         Set Global Variable(qText, Custom String("Lecture 7, rock paper scissors: is there a FIXED peek pattern she cannot learn and punish?"));
         Set Global Variable(qOpts, Array(Custom String("yes, the better corner"), Custom String("no, it must be random")));
@@ -818,6 +861,9 @@ rule ("Game 10: run") {
         Set Global Variable(qAuto, 0);
         Set Global Variable(qWhy, Custom String("Less: 2 in 7. Then both her aims pay her the same, so reading you gains her nothing."));
         Call Subroutine(ask);
+        Set Global Variable(stopNo, 4);
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    STOP {0} OF 6", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,10,{0}", Global.stopNo));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("Against a PERFECT Widowmaker, what is the most you can expect to win per peek?"));
         Set Global Variable(qOpts, Array(Custom String("nothing, 0"), Custom String("1 point per 7 peeks"), Custom String("1 point a peek")));
@@ -843,6 +889,11 @@ rule ("Game 10: run") {
         Set Global Variable(coach, Custom String("Over many peeks the mix earns 1/7 each whatever she does: the minimax value of the game."));
         Wait(6, Ignore Condition);
         "Phase 4: self-play. Two learners, each answering the other's habit counts."
+        Set Global Variable(stopNo, 5);
+        "Phase 4: self-play. Two learners, each answering the other's habit counts."
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    STOP {0} OF 6", Global.stopNo));
+        "Phase 4: self-play. Two learners, each answering the other's habit counts."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,10,{0}", Global.stopNo));
         Set Global Variable(qId, 6);
         Set Global Variable(qText, Custom String("Two learners now play 300 peeks, each answering the other's habits. What do they settle into?"));
         Set Global Variable(qOpts, Array(Custom String("one corner forever"), Custom String("averages near the safe mix"), Custom String("nothing settles")));
@@ -850,6 +901,8 @@ rule ("Game 10: run") {
         Set Global Variable(qAuto, 2);
         Set Global Variable(qWhy, Custom String("Their choices keep flipping, but their averages settle near 29% and 57%. Watch the bars."));
         Call Subroutine(ask);
+        Set Global Variable(goTxt, Custom String("PRESS F (INTERACT) TO START THE 300-PEEK SELF-PLAY"));
+        Call Subroutine(waitGo);
         Set Global Variable(phase, 4);
         Set Global Variable(coach, Custom String("Self-play: a learning Tracer against a learning Widowmaker, 300 peeks, shown every 20."));
         Set Global Variable(infoTxt, Custom String("Each answers the other's average, so the averages settle."));
@@ -868,7 +921,14 @@ rule ("Game 10: run") {
         Wait(6, Ignore Condition);
         Set Global Variable(coach, Custom String("That pair of mixes is a Nash equilibrium: neither side gains by changing alone."));
         Wait(6, Ignore Condition);
-        "Debrief."
+        "Debrief. Stop 6 opens on a wait, so the Nash line stays up until he asks for the debrief."
+        Set Global Variable(stopNo, 6);
+        "Debrief. Stop 6 opens on a wait, so the Nash line stays up until he asks for the debrief."
+        Set Global Variable(titleLine, Custom String("RL 10: THE PEEK    STOP {0} OF 6", Global.stopNo));
+        "Debrief. Stop 6 opens on a wait, so the Nash line stays up until he asks for the debrief."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,10,{0}", Global.stopNo));
+        Set Global Variable(goTxt, Custom String("PRESS F (INTERACT) FOR THE DEBRIEF"));
+        Call Subroutine(waitGo);
         Set Global Variable(phase, 5);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,10,end,{0},{1},{2}", Global.score, Global.evSum, Custom String("{0},{1},{2}", Global.followed, Global.nL, Global.nN)));
         Set Global Variable(coach, Custom String("Predictions right: {0} of {1}. Your points: {2} in 14 peeks.", Global.predRight, Global.predTotal, Global.score));

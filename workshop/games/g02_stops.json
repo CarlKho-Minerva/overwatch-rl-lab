@@ -1,0 +1,81 @@
+{
+ "game": 2,
+ "stops": [
+  {
+   "n": 1,
+   "after": "13:08",
+   "title": "Lock the dial, then call her pack.",
+   "silver": "Silver adds rewards and a discount: the return is every future reward added up, each one shrunk by the discount once for every step it waits.",
+   "do": "The game is waiting on the dial at the right of the screen. Press F to turn it to a setting and R to lock it in. Then answer with left click for the mini or right click for the mega.",
+   "predict": "Before you lock it, decide which pack a Tracer who discounts that much walks to: 15 three pads away, or 50 ten pads away.",
+   "saw": "Above each pack you saw what it is worth to her from the start: its worth times the dial once per pad, so 15 x dial^3 against 50 x dial^10. The bot Tracer walked to the bigger number. The dial is the discount factor, gamma: what one step later is worth compared with now.",
+   "agent": "An agent's discount decides whether it answers now or keeps calling tools for a better answer later."
+  },
+  {
+   "n": 2,
+   "after": "13:08",
+   "title": "Try a second setting.",
+   "silver": "A return is one run's total, and with a discount below 1 a reward far away adds very little to it.",
+   "do": "Press F until the dial shows a setting you have not tried, then R to lock it. Answer with left click for the mini or right click for the mega.",
+   "predict": "Say whether this setting is more patient or less patient than the last one, and whether that flips her choice.",
+   "saw": "Both worths moved, and the far mega moved more, because it is shrunk ten times and the mini only three. What she collects, each reward shrunk by gamma once per step of delay and added up, is her return. Her return here holds one reward, so it is that pack's shrunk worth."
+  },
+  {
+   "n": 3,
+   "after": "23:19",
+   "title": "Find where her choice flips.",
+   "silver": "A state's value is the return you get from it on average, and his example shows one state worth far more once the discount lets a big reward ahead count.",
+   "do": "Turn the dial with F to a third setting and lock it with R. Answer with left click for the mini or right click for the mega.",
+   "predict": "Pick her pack, and guess whether the start is worth more or less to her than at your last setting.",
+   "saw": "Nothing about the row changed, only gamma, and the best pack can change with it. Below a discount of about 0.84 the mini is worth more; above it, the mega. In words: 15 x gamma^3 equals 50 x gamma^10 when gamma^7 is 0.3. The best policy, the rule for choosing, depends on the discount."
+  },
+  {
+   "n": 4,
+   "after": "23:19",
+   "title": "Lock the last setting.",
+   "silver": "With a discount near 1 a state's value counts the big reward ahead almost in full; with a discount of 0 it counts only the next reward.",
+   "do": "One setting is left. Press R to lock it (F has nothing new to turn to), then answer with left click for the mini or right click for the mega.",
+   "predict": "You have three answers already; say what the last one is, and why, before you click.",
+   "saw": "With all four settings tried, the mini won at 0.5 and 0.8 and the mega at 0.9 and 1. The coach line then gives Silver's reasons to discount: the far future is less certain, sums over endless steps stay finite, and sooner is usually worth more. A discount of 1 is safe here because every walk ends at a pack."
+  },
+  {
+   "n": 5,
+   "after": "46:15",
+   "title": "Say what her state must hold.",
+   "silver": "A policy looks only at the current state, and that is enough when the state carries everything about the past that matters.",
+   "do": "A question floats in front of you. Left click: yes, both. Right click: here yes, match no. Melee: no, not here.",
+   "predict": "Decide whether knowing only her pad tells you all you need about what comes next, on this island and in a real match.",
+   "saw": "Here nothing changes but where she stands, so the pad is a Markov state: once you know it, the past adds nothing. In a real match a taken pack comes back on a timer, so two Tracers on the same pad can face different futures. The fix from lecture 1, which Silver repeats with a counter, is to put the timer into the state.",
+   "agent": "An agent that sees only the last message is in the same spot; it has to carry the history, or a summary of it."
+  },
+  {
+   "n": 6,
+   "after": "50:49",
+   "title": "Fill the pads, then walk them.",
+   "silver": "Under a fixed policy, a state's value is the next step's reward plus the discounted value of where that step leads, averaged over the choices and the dice.",
+   "do": "Press F to fill the pads. Each step now costs 1 and the discount is 0.9. Three pads get numbers, then a question asks for the pad marked ?: left click, right click or melee. Then walk the row to the mega with WASD.",
+   "predict": "Work out the ? pad from the pad ahead of it before you click.",
+   "saw": "Each number is that pad's value if she always walks to the mega: minus 1 for the step, plus 0.9 times the pad ahead, starting from 50 at the mega. The line on the right checked it on every pad you stood on, down to 10.92 at the start. That one-step look ahead is the Bellman expectation equation.",
+   "agent": "An estimate of whether a task will pass from here obeys the same rule: one more tool call's cost, plus the discounted estimate after it."
+  },
+  {
+   "n": 7,
+   "after": "1:07:57",
+   "title": "Switch her rule to the mini.",
+   "silver": "The optimal value of a state is the most any policy at all can get from it, and once you know it you take the action that reaches it.",
+   "do": "You are back on the start pad. The question asks whether the start pad is worth more or less than 10.92 if she always walks to the mini instead: left click for more, right click for less.",
+   "predict": "Decide which way the number moves when only her way of walking changes.",
+   "saw": "The start pad is worth 8.23 walking to the mini, against 10.92 walking to the mega: the same pad has another value under another policy. The pads then redraw for the mini walk, and one pad behind the start the mini walk wins, 10.25 against 8.83. The best policy takes, pad by pad, whichever walk is worth more."
+  },
+  {
+   "n": 8,
+   "after": "1:21:47",
+   "title": "Read the debrief.",
+   "silver": "The best values obey the same one-step look ahead with a maximum over your own choices, which is why they are found by repeated sweeps instead of one matrix inverse.",
+   "do": "Press F for the debrief. Three lines appear on the left, and your prediction score sits under the title.",
+   "predict": "Before you press, count how many of the seven predictions you think you got right.",
+   "saw": "The lines name what you did: the discount, the return as a discounted sum, value under a policy, and the Bellman equation. The game left out the dice: every step lands where it aims, so the average over next states has one term. In Silver's examples a chance node puts a probability-weighted average there.",
+   "agent": "A low discount makes an agent answer from what it already has; a high one lets it spend more tool calls on a better answer."
+  }
+ ]
+}

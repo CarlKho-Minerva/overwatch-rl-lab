@@ -48,6 +48,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -5)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 6
 
 #!include "common.opy"
 
@@ -275,6 +276,8 @@ rule "Game 6: the screen":
 
 rule "Game 6: run":
     @Condition ready
+    # Stop 1: scout six pads (the page: tables stop working when states cannot all be visited).
+    STOP(1)
     for pi in range(NPADS):
         padPos[pi] = vect(PAD_X0 + PAD_SP * pi, 0, PAD_Z)
     descS = descT
@@ -351,16 +354,17 @@ rule "Game 6: run":
             drawPads()
             PAUSE(1.2)
             learner.setHealth(learner.getMaxHealth())
-    stepsLine = "Scouting done: {} calls.".format(BUDGET)
 
-    # ---------------- Prediction 1: which map is closest after 6 calls ----------------
+    # ---------------- Stop 2. Prediction 1: which map is closest after 6 calls ----------------
+    # Each stop's opening words go in the yellow row, so the last result stays on the coach line until he acts.
+    STOP(2)
+    stepsLine = "Scouting done. A callout like 'mid is hot' covers 4 pads; three maps kept your 6 calls."
     uPad = sPad
     uVal = sVal
     stageNo = 6
     fitThree()
     m6 = [missE, missT, missW]
-    coach = "A callout like 'mid is hot' covers four pads at once. Your team kept three maps from your 6 calls."
-    PAUSE(5)
+    PAUSE(2)
     qId = 1
     qText = "Your 6 calls fed three maps. Which is closest to the truth on all 12 pads now?"
     qOpts = ["EXACT, 12 numbers", "THIRDS, 3 numbers", "ONE WORD, 1 number"]
@@ -384,7 +388,9 @@ rule "Game 6: run":
     coach = "THIRDS shares: one call moves the number for 4 pads. Learning spread to similar pads is generalisation."
     PAUSE(7)
 
-    # ---------------- Round 2: 54 more calls; draw them first, log them, then ask ----------------
+    # ---------------- Stop 3. Round 2: 54 more calls; draw them first, log them, then ask ----------------
+    STOP(3)
+    stepsLine = "The team scouts on: 54 more calls, every pad 4 or 5 times, each off by up to 1."
     for kk in range(EXTRA):
         callPad = kk % NPADS
         drawCall()
@@ -395,8 +401,7 @@ rule "Game 6: run":
     stageNo = 60
     fitThree()
     m60 = [missE, missT, missW]
-    coach = "Now the team keeps scouting: 54 more calls, every pad read 4 or 5 times, each read off by up to 1."
-    PAUSE(5)
+    PAUSE(2)
     qId = 2
     qText = "After all 60 calls, which map will be closest to the truth?"
     qOpts = ["EXACT", "THIRDS", "ONE WORD"]
@@ -411,6 +416,19 @@ rule "Game 6: run":
     qAuto = 1
     qWhy = "Small, not zero: 4 or 5 reads off by up to 1 average near the truth, not onto it. The Monte Carlo way."
     ask()
+    # The 54 calls play as a sequence: he starts it with F, so it never runs while he is reading the page.
+    stepsLine = "Press F to bring in the 54 calls."
+    scoutReq = false
+    waitUntil(not learner.isHoldingButton(Button.INTERACT), 3)
+    scoutOpen = true
+    if AUTOPLAY:
+        wait(0.5)
+        scoutReq = true
+    waitUntil(scoutReq == true, 99999)
+    scoutOpen = false
+    scoutReq = false
+    LOG("RLG,E,{},go,3".format(GAME_ID))
+    stepsLine = "60 calls in."
     coach = "Watch the 54 calls come in."
     for kk in range(EXTRA):
         playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.SKY_BLUE, padPos[sPad[BUDGET + kk]], 0.6)
@@ -425,7 +443,10 @@ rule "Game 6: run":
     coach = "Same method, three descriptions: average per group. EXACT has one group per pad: a table is the special case."
     PAUSE(7)
 
-    # ---------------- Prediction 4 and 5: the floor of a coarse description ----------------
+    # ---------------- Stop 4. Prediction 4 and 5: the floor of a coarse description ----------------
+    STOP(4)
+    stepsLine = "Now picture scouting forever: every pad read endlessly."
+    PAUSE(2)
     qId = 4
     qText = "Scout forever, every pad read endlessly. Which maps can never get every pad right?"
     qOpts = ["EXACT", "THIRDS and ONE WORD", "none, all get there"]
@@ -458,9 +479,9 @@ rule "Game 6: run":
     coach = "Forever: EXACT {}, THIRDS {}, ONE WORD {}. A coarser map learns faster and has a floor.".format(mInf[0], mInf[1], mInf[2])
     PAUSE(8)
 
-    # ---------------- Round 3: he chooses the description ----------------
-    coach = "Your call now: give ONE pad its own number on top of THIRDS. Stand in its ring and press F."
-    stepsLine = "Pick one pad for its own number."
+    # ---------------- Stop 5. Round 3: he chooses the description ----------------
+    STOP(5)
+    stepsLine = "Your call: give ONE pad its own number on top of THIRDS. Stand in its ring, press F."
     pickPad = -1
     while pickPad < 0:
         scoutReq = false
@@ -514,11 +535,10 @@ rule "Game 6: run":
     rowS = "YOURS, 4 numbers:   {}  /  {}  /  {}".format(mS[0], mS[1], mS[2])
     coach = "Choosing the description is most of the work. Here you chose it by hand; a network learns its own."
     PAUSE(8)
-    coach = "Honest note: the mildest form, fixed hand-made groups and plain averages, not a learned network."
-    PAUSE(7)
 
-    # ---------------- Debrief ----------------
-    stepsLine = ""
+    # ---------------- Stop 6. Debrief ----------------
+    STOP(6)
+    stepsLine = "Honest note: the mildest form, fixed hand-made groups and plain averages, no network."
     deb1 = "You scouted 6 pads; three maps learned from the same calls: 12 numbers, 3, and 1."
     deb2 = "Called value function approximation: features share a sighting across similar states."
     deb3 = "A language model: sensible on new prompts, sure but wrong when look-alikes differ."

@@ -61,68 +61,71 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: evV
-        32: evLane
-        33: evEps
-        34: evStep
-        35: evGoal
-        36: evFall
-        37: evOut
-        38: evSweeps
-        39: evSweep
-        40: evK
-        41: evD
-        42: evDelta
-        43: evSum
-        44: evP
-        45: evPol
-        46: evR2
-        47: evC2
-        48: evS2
-        49: evX
-        50: vEdge0
-        51: vIn0
-        52: vEdge
-        53: vIn
-        54: fEdge
-        55: fIn
-        56: fQuick
-        57: crossing
-        58: lane
-        59: laneActive
-        60: laneChoice
-        61: laneHead
-        62: boopsOn
-        63: curCell
-        64: seenCell
-        65: newCell
-        66: roll
-        67: mv
-        68: r2
-        69: c2
-        70: stepR
-        71: ret
-        72: steps
-        73: boops
-        74: outcome
-        75: edgeSteps
-        76: tStart
-        77: tgtPos
-        78: realFall
-        79: lucio
-        80: autoLanes
-        81: dirName
-        82: laneName
-        83: outName
-        84: hudRun
-        85: hudRes
-        86: hudModel
-        87: hudModel2
-        88: db1
-        89: db2
-        90: db3
-        91: db4
-        92: fxI
+        31: stopNo
+        32: titleLine
+        33: evV
+        34: evLane
+        35: evEps
+        36: evStep
+        37: evGoal
+        38: evFall
+        39: evOut
+        40: evSweeps
+        41: evSweep
+        42: evK
+        43: evD
+        44: evDelta
+        45: evSum
+        46: evP
+        47: evPol
+        48: evR2
+        49: evC2
+        50: evS2
+        51: evX
+        52: vEdge0
+        53: vIn0
+        54: vEdge
+        55: vIn
+        56: fEdge
+        57: fIn
+        58: fQuick
+        59: crossing
+        60: lane
+        61: laneActive
+        62: laneChoice
+        63: laneHead
+        64: row4
+        65: boopsOn
+        66: curCell
+        67: seenCell
+        68: newCell
+        69: roll
+        70: mv
+        71: r2
+        72: c2
+        73: stepR
+        74: ret
+        75: steps
+        76: boops
+        77: outcome
+        78: edgeSteps
+        79: tStart
+        80: tgtPos
+        81: realFall
+        82: lucio
+        83: autoLanes
+        84: dirName
+        85: laneName
+        86: outName
+        87: hudRun
+        88: hudRes
+        89: hudModel
+        90: hudModel2
+        91: db1
+        92: db2
+        93: db3
+        94: db4
+        95: fxI
     player:
         0: fellCount
         1: fell
@@ -155,10 +158,12 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS"));
         Set Global Variable(evV, Empty Array);
         Set Global Variable(laneActive, False);
         Set Global Variable(laneChoice, -1);
         Set Global Variable(laneHead, Custom String(""));
+        Set Global Variable(row4, Custom String(""));
         Set Global Variable(boopsOn, False);
         Set Global Variable(autoLanes, Array(0, 0, 1, 1));
         Set Global Variable(dirName, Array(Custom String("forward"), Custom String("back"), Custom String("inland"), Custom String("toward the drop")));
@@ -428,6 +433,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,5,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,5,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -439,7 +445,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 5: SLIPPERY BOOTS"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -503,10 +509,12 @@ rule ("Game 5: the player picks a lane (left click edge, right click inland)") {
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Wait(0.4, Ignore Condition);
+        Set Global Variable(row4, Global.laneHead);
         Set Global Variable(laneActive, True);
         Wait(1, Ignore Condition);
         Set Global Variable(laneChoice, Value In Array(Global.autoLanes, Subtract(Global.crossing, 1)));
         Set Global Variable(laneActive, False);
+        Set Global Variable(row4, Custom String(""));
         If(Compare(Global.laneChoice, <, 0));
             Set Global Variable(laneChoice, 1);
         End;
@@ -566,6 +574,7 @@ rule ("Game 5: one crossing, start ring to goal ring, with or without boops") {
         Set Global Variable(realFall, 0);
         Set Global Variable(hudRun, Custom String("Now: {0} lane, 0 steps, 0 boops, return 0", Value In Array(Global.laneName, Global.lane)));
         Set Global Variable(coach, Custom String("GO. Walk the {0} lane to the green ring. Each pad you step onto costs 1.", Value In Array(Global.laneName, Global.lane)));
+        "The crossing's clock starts at his first step, not when the crossing opens (he may still be on the page).\nThe stand-in keeps its clock from the start."
         Set Global Variable(tStart, Total Time Elapsed);
         While(Compare(Global.outcome, ==, 0));
             Wait(0.1, Ignore Condition);
@@ -578,11 +587,14 @@ rule ("Game 5: one crossing, start ring to goal ring, with or without boops") {
                 Modify Global Variable(ret, Add, -100);
                 Set Global Variable(realFall, 1);
                 Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,5,selffall,{0},{1},{2}", Global.crossing, Global.steps, Global.curCell));
-            Else If(Or(Compare(Subtract(Total Time Elapsed, Global.tStart), >, 40), Compare(Global.steps, >=, 40)));
+            Else If(Or(And(Compare(Global.tStart, >=, 0), Compare(Subtract(Total Time Elapsed, Global.tStart), >, 40)), Compare(Global.steps, >=, 40)));
                 Set Global Variable(outcome, 3);
             Else;
                 Set Global Variable(seenCell, Add(Multiply(Min(Max(Round To Integer(Divide(Subtract(Z Component Of(Position Of(Global.learner)), -19.5), 2), Down), 0), 3), 12), Min(Max(Round To Integer(Divide(Subtract(X Component Of(Position Of(Global.learner)), -12), 2), Down), 0), 11)));
                 If(Compare(Global.seenCell, !=, Global.curCell));
+                    If(Compare(Global.tStart, <, 0));
+                        Set Global Variable(tStart, Total Time Elapsed);
+                    End;
                     "One step. Draw first, log the draw, then use it."
                     Set Global Variable(roll, Random Integer(1, 10));
                     Set Global Variable(mv, Random Integer(0, 3));
@@ -651,7 +663,7 @@ rule ("Game 5: the screen (lane choice, controls, results)") {
     actions {
         "Left block: title, coach, predictions (the core), then controls, the lane prompt while choosing, the debrief.\nRight block, kept narrow: this crossing, the four results, the long-run averages."
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk.  LEFT CLICK / RIGHT CLICK / MELEE: answer and choose.  Abilities are off."), Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.laneActive, All Players(All Teams), Null), Null, Global.laneHead, Null, Left, 4, Color(White), Color(Yellow), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Global.row4, Null, Left, 4, Color(White), Color(Yellow), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.hudRun, Right, 1, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, First Of(Global.hudRes), Right, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.hudRes, 1), Right, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
@@ -674,6 +686,12 @@ rule ("Game 5: run") {
         Global.ready != False;
     }
     actions {
+        "Stop 1: the calm crossing (question 1, lane, crossing 1)."
+        Set Global Variable(stopNo, 1);
+        "Stop 1: the calm crossing (question 1, lane, crossing 1)."
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 1: the calm crossing (question 1, lane, crossing 1)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,5,{0}", Global.stopNo));
         Disallow Button(Global.learner, Button(Ability 1));
         Disallow Button(Global.learner, Button(Ability 2));
         Disallow Button(Global.learner, Button(Ultimate));
@@ -767,6 +785,7 @@ rule ("Game 5: run") {
         Set Global Variable(crossing, 1);
         Set Global Variable(boopsOn, False);
         Set Global Variable(coach, Custom String("Crossing 1. No Lucio yet. The edge lane is 11 steps, the inland lane 13."));
+        Set Global Variable(row4, Custom String("Each pad you step onto costs 1, the goal pays 50, a fall costs 100. Edge lane 11 steps, inland 13."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 1);
         Set Global Variable(qText, Custom String("No boops. Each step costs 1, the goal pays 50. Which lane pays more?"));
@@ -779,7 +798,12 @@ rule ("Game 5: run") {
         Call Subroutine(crossOnce);
         Set Global Variable(coach, Custom String("Crossing 1 done. Return {0}. That was the player you wish you were: nobody pushing.", Global.ret));
         Wait(0.4, Ignore Condition);
-        "Lucio arrives."
+        "Stop 2: Lucio arrives (question 2, lane, crossing 2). The last result stays on the coach line."
+        Set Global Variable(stopNo, 2);
+        "Stop 2: Lucio arrives (question 2, lane, crossing 2). The last result stays on the coach line."
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 2: Lucio arrives (question 2, lane, crossing 2). The last result stays on the coach line."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,5,{0}", Global.stopNo));
         Create Dummy Bot(Hero(Lúcio), Team 2, -1, Vector(-11, 0, -11), Backward);
         Wait(1, Ignore Condition);
         If(Compare(Count Of(Filtered Array(All Players(Team 2), Is Dummy Bot(Current Array Element))), >, 0));
@@ -792,7 +816,7 @@ rule ("Game 5: run") {
         Set Global Variable(boopsOn, True);
         "Crossing 2: the boops start."
         Set Global Variable(crossing, 2);
-        Set Global Variable(coach, Custom String("Lucio is here. On one step in ten he boops you one pad in a random direction instead."));
+        Set Global Variable(row4, Custom String("Lucio is here. On one step in ten he boops you one pad in a random direction instead."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 2);
         Set Global Variable(qText, Custom String("You step off an edge pad. What is the chance this step ends over the drop?"));
@@ -805,7 +829,12 @@ rule ("Game 5: run") {
         Call Subroutine(crossOnce);
         Set Global Variable(coach, Custom String("Return {0}. In the lecture the random move is the learner's own: it keeps her trying things.", Global.ret));
         Wait(0.4, Ignore Condition);
-        "Crossing 3."
+        "Stop 3: how often the edge lane ends in a fall (question 3, lane, crossing 3)."
+        Set Global Variable(stopNo, 3);
+        "Stop 3: how often the edge lane ends in a fall (question 3, lane, crossing 3)."
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 3: how often the edge lane ends in a fall (question 3, lane, crossing 3)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,5,{0}", Global.stopNo));
         Set Global Variable(crossing, 3);
         Set Global Variable(qId, 3);
         Set Global Variable(qText, Custom String("Walk the whole edge lane with boops. How often do you fall before the goal?"));
@@ -818,7 +847,12 @@ rule ("Game 5: run") {
         Call Subroutine(crossOnce);
         Set Global Variable(coach, Custom String("Return {0}. One crossing is luck. The game can work out the long run instead.", Global.ret));
         Wait(0.4, Ignore Condition);
-        "Crossing 4: the reveal comes before it, so the last choice can use it."
+        "Stop 4: the long run (question 4 and its reveal, lane, crossing 4)."
+        Set Global Variable(stopNo, 4);
+        "Stop 4: the long run (question 4 and its reveal, lane, crossing 4)."
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 4: the long run (question 4 and its reveal, lane, crossing 4)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,5,{0}", Global.stopNo));
         Set Global Variable(crossing, 4);
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("With boops, over many crossings, which lane earns more on average?"));
@@ -833,8 +867,13 @@ rule ("Game 5: run") {
         Call Subroutine(crossOnce);
         Set Global Variable(coach, Custom String("Return {0}. Your four crossings are on the right; the long-run averages under them.", Global.ret));
         Wait(0.4, Ignore Condition);
-        "Naming it."
-        Set Global Variable(coach, Custom String("On-policy: learn about the way you really act. Off-policy: learn about the best way, acting another."));
+        "Stop 5: naming it (question 5 and its reveal)."
+        Set Global Variable(stopNo, 5);
+        "Stop 5: naming it (question 5 and its reveal)."
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 5: naming it (question 5 and its reveal)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,5,{0}", Global.stopNo));
+        Set Global Variable(row4, Custom String("On-policy: learn about the way you really act. Off-policy: learn about the best way, acting another."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("TD (lecture 4): move a guess toward the reward plus the NEXT guess. Which learner prefers EDGE?"));
@@ -843,15 +882,21 @@ rule ("Game 5: run") {
         Set Global Variable(qAuto, 0);
         Set Global Variable(qWhy, Custom String("The best next move is never a boop: Q-learning rates the edge {0}. SARSA counts boops: {1}.", Round To Integer(Global.vEdge0, To Nearest), Global.vEdge));
         Call Subroutine(ask);
+        Set Global Variable(row4, Custom String(""));
         Set Global Variable(coach, Custom String("SARSA learns the lane for the booped player you are: inland. Q-learning, the never-booped one: edge."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("Honest note: the boop stands in for your own random move. A boop from the world, Q-learning counts too."));
         Wait(0.4, Ignore Condition);
+        "Stop 6: the debrief."
+        Set Global Variable(stopNo, 6);
+        "Stop 6: the debrief."
+        Set Global Variable(titleLine, Custom String("RL 5: SLIPPERY BOOTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 6: the debrief."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,5,{0}", Global.stopNo));
         Set Global Variable(db1, Custom String("You did: four crossings beside a drop, boops on. Long run: edge {0}, inland {1}.", Global.vEdge, Global.vIn));
         Set Global Variable(db2, Custom String("It is called: SARSA learns on-policy, Q-learning off-policy. By a drop they disagree."));
         Set Global Variable(db3, Custom String("In an agent: judge a plan by what it will really do, slips included, not a perfect run."));
         Set Global Variable(db4, Custom String("Your predictions: {0} right of {1}.", Global.predRight, Global.predTotal));
-        Set Global Variable(coach, Custom String("Debrief. The game is over."));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,5,debrief,{0},{1}", Global.predRight, Global.predTotal));
         Call Subroutine(finish);
     }

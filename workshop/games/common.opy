@@ -8,6 +8,7 @@ A game file defines, BEFORE including this file:
     #!define LEARNER_HERO Hero.TRACER        the hero the player is given
     #!define HOME_POS vect(-12, 0, -17)      where the player starts and is put back after a fall
     #!define HOME_FACING vect(0, 0, 1)       the way he looks when he is put there: toward the game's board
+    #!define STOPS 6                         how many numbered stops the game has (the lecture's page has the same ones)
 and AUTOPLAY (true or false) comes from the two-line wrapper files gNN.opy and gNN_auto.opy.
 
 What this file gives every game:
@@ -16,6 +17,9 @@ What this file gives every game:
     ready              true once the learner exists and stands at HOME_POS
     LOG(text)          a log line (queued, written once a second: the game's recorder stops if lines are written freely)
     CHECK(name, expected, got)   a self-test line; the game's arithmetic checks itself when it starts
+    STOP(k)            the start of stop k. The game is played beside its lecture's page: he reads a stop there, tabs
+                       into the game, and the game is waiting at the same stop. STOP shows "STOP k OF n" beside the title
+                       and logs it. Every wait for the person inside a stop waits for as long as he likes.
     ASK                a prediction question: set qId, qText, qOpts, qCorrect, qWhy (and qAuto, the stand-in's answer),
                        then call ask(). The player answers with left click, right click or melee. The answer is logged.
     coach              one line of plain words on screen; set it whenever something worth saying happens
@@ -27,6 +31,7 @@ a deadly drop on every side.
 Log lines (docs/games.md):
     RLG,M,<game>,<version>,<autoplay>
     RLG,T,<game>,<name>,<expected>,<got>,<ok>
+    RLG,G,<game>,<stop>                                          (a numbered stop begins)
     RLG,Q,<game>,<question id>                                   (the question is on screen)
     RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
     RLG,E,<game>,<event name>,<numbers...>          (each game's own events)
@@ -72,6 +77,8 @@ globalvar loadPeakStart = 0
 globalvar qTxtTop = null
 globalvar qTxtLow = null
 globalvar qShown = 0
+globalvar stopNo = 0
+globalvar titleLine = GAME_TITLE
 playervar fellCount = 0
 playervar fell = false
 
@@ -82,6 +89,11 @@ subroutine putHome
 
 macro LOG(s):
     logQ.append(s)
+
+macro STOP(m_stop):
+    stopNo = m_stop
+    titleLine = "{}    STOP {} OF {}".format(GAME_TITLE, stopNo, STOPS)
+    LOG("RLG,G,{},{}".format(GAME_ID, stopNo))
 
 macro CHECK(name, expected, got):
     chkName = name
@@ -213,7 +225,9 @@ def ask():
         wait(1.2)
         qAnswer = qAuto
     else:
-        waitUntil(qAnswer >= 0 or gameOver, 90)
+        # 2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading
+        # the page when a question comes up. (It gave up after 90 seconds.)
+        waitUntil(qAnswer >= 0 or gameOver, 99999)
     qActive = false
     destroyInWorldText(qTxtTop)
     destroyInWorldText(qTxtLow)
@@ -254,12 +268,13 @@ rule "Core: melee answers the third option":
 def finish():
     @Name "Core: end the game and write the closing line"
     gameOver = true
+    titleLine = "{}    FINISHED".format(GAME_TITLE)
     # Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds
     # sampled, the mean over the whole game, the highest peak. Written by both builds.
     LOG("RLG,L,{},{},{},{},{}".format(GAME_ID, loadSamples, round(loadSumRun / max(loadSamples, 1)), round(loadPeakRun), round(loadPeakStart)))
     LOG("RLG,X,{},{},{},{},{},{}".format(GAME_ID, NOW, predRight, predTotal, selfOk, selfBad))
 
 rule "Core: the screen":
-    hudText(getAllPlayers(), GAME_TITLE, null, null, HudPosition.LEFT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), titleLine, null, null, HudPosition.LEFT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, coach, null, HudPosition.LEFT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, "predictions right: {} of {}".format(predRight, predTotal), HudPosition.LEFT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)

@@ -79,3 +79,25 @@ def test_game_01_log():
     # Question 2 ("will your total change?") is right exactly when the late bill came in round 1.
     q2 = [a for a in log["A"] if a["qid"] == 2][0]
     assert q2["correct"] == rounds[1][2]
+
+
+def test_stops_file_matches_game_and_page():
+    """One page entry per stop, each after a real part of the lecture page, in page order."""
+    import json
+    import re
+    from pathlib import Path
+
+    games_dir = Path(__file__).resolve().parents[2] / "workshop" / "games"
+    n_stops = int(re.search(r"#!define STOPS (\d+)", (games_dir / "g01_body.opy").read_text()).group(1))
+    body = (games_dir / "g01_body.opy").read_text()
+    assert [int(k) for k in re.findall(r"STOP\((\d+)\)", body)] == list(range(1, n_stops + 1))
+    stops = json.loads((games_dir / "g01_stops.json").read_text())["stops"]
+    assert [s["n"] for s in stops] == list(range(1, n_stops + 1))
+    page = Path(__file__).resolve().parents[2] / "course" / "lecture-01.md"
+    if page.exists():
+        stamps = re.findall(r"^### \[([0-9:]+)\]", page.read_text(), flags=re.M)
+        where = [stamps.index(s["after"]) for s in stops]
+        assert where == sorted(where)
+    for s in stops:
+        for k in ("title", "silver", "do", "predict", "saw"):
+            assert s[k] and len(s[k]) < 420 and "\u2014" not in s[k] and "\u2013" not in s[k] and "!" not in s[k]

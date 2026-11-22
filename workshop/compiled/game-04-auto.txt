@@ -61,40 +61,42 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: ringPos
-        32: ringName
-        33: vMc
-        34: vTd
-        35: rB
-        36: rO
-        37: tB
-        38: tO
-        39: legState
-        40: mud
-        41: legT
-        42: ret
-        43: counts
-        44: picks
-        45: walk
-        46: leg
-        47: nLegs
-        48: fullIdx
-        49: t0
-        50: tLeg
-        51: old
-        52: tgt
-        53: gSum
-        54: ii
-        55: histB
-        56: histO
-        57: swingIn
-        58: swingOut
-        59: swingB
-        60: swingO
-        61: board
-        62: status
-        63: deb
-        64: showDeb
+        31: stopNo
+        32: titleLine
+        33: ringPos
+        34: ringName
+        35: vMc
+        36: vTd
+        37: rB
+        38: rO
+        39: tB
+        40: tO
+        41: legState
+        42: mud
+        43: legT
+        44: ret
+        45: counts
+        46: picks
+        47: walk
+        48: leg
+        49: nLegs
+        50: fullIdx
+        51: t0
+        52: tLeg
+        53: old
+        54: tgt
+        55: gSum
+        56: ii
+        57: histB
+        58: histO
+        59: swingIn
+        60: swingOut
+        61: swingB
+        62: swingO
+        63: board
+        64: status
+        65: deb
+        66: showDeb
     player:
         0: fellCount
         1: fell
@@ -128,6 +130,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN"));
         Set Global Variable(ringPos, Array(Vector(-14, 0, -14), Vector(-14, 0, -2), Vector(-2, 0, -2), Vector(-2, 0, 10), Vector(10, 0, 10), Vector(10, 0, -2)));
         Set Global Variable(ringName, Array(Custom String("SPAWN"), Custom String("RING 1"), Custom String("RING 2"), Custom String("RING 3"), Custom String("RING 4"), Custom String("THE POINT")));
         Set Global Variable(vMc, Empty Array);
@@ -148,7 +151,7 @@ rule ("Initialize global variables") {
         Set Global Variable(swingIn, Empty Array);
         Set Global Variable(board, Array(Custom String(""), Custom String(""), Custom String(""), Custom String(""), Custom String("")));
         Set Global Variable(status, Custom String(""));
-        Set Global Variable(deb, Array(Custom String(""), Custom String(""), Custom String("")));
+        Set Global Variable(deb, Array(Custom String("BLUE: at the point, each ring's guess moves halfway to the time the rest of that walk took."), Custom String("ORANGE: at each ring, the last ring's guess moves halfway to that leg's time plus ORANGE's guess here."), Custom String("Above each ring: two guesses of the seconds from there to the point. Both start at 3 s a leg.")));
         Set Global Variable(showDeb, False);
     }
 }
@@ -406,6 +409,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,4,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,4,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -417,7 +421,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 4: BACK FROM SPAWN"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -501,12 +505,18 @@ rule ("Game 4: one walk from spawn to the point (or to ring 2 on the cut walk)")
             Set Global Variable At Index(legState, Global.leg, If-Then-Else(Compare(Value In Array(Global.mud, Global.leg), ==, 1), 2, 1));
             Set Move Speed(Global.learner, If-Then-Else(Compare(Value In Array(Global.mud, Global.leg), ==, 1), 30, 100));
             Set Global Variable(status, Custom String("WALK {0} OF 5    LEG {1}: {2}", Add(Global.walk, 1), Add(Global.leg, 1), If-Then-Else(Compare(Value In Array(Global.mud, Global.leg), ==, 1), Custom String("MUD (slow)"), Custom String("clear"))));
-            If(Compare(Global.leg, ==, 0));
-                Set Global Variable(coach, Custom String("Walk {0} of 5. Leg 1 is {1}. The clock runs only between rings.", Add(Global.walk, 1), If-Then-Else(Compare(First Of(Global.mud), ==, 1), Custom String("MUD"), Custom String("clear"))));
+            If(And(Compare(Global.walk, ==, 0), Compare(Global.leg, ==, 1)));
+                Set Global Variable(stopNo, 2);
+                Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
             End;
             Start Throttle In Direction(Global.learner, Direction Towards(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), 1, To World, Replace existing throttle, None);
             Wait Until(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Global.leg)), >=, 1.5), 10);
             Set Global Variable(t0, Total Time Elapsed);
+            If(Compare(Global.leg, ==, 0));
+                "Set only once he has left the spawn ring: until then the last result and its reason stay on screen."
+                Set Global Variable(coach, Custom String("Walk {0} of 5. Leg 1 is {1}. The clock runs only between rings.", Add(Global.walk, 1), If-Then-Else(Compare(First Of(Global.mud), ==, 1), Custom String("MUD"), Custom String("clear"))));
+            End;
             While(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), >=, 1.5));
                 Wait Until(Or(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), <, 1.5), (Global.learner).fell), 15);
                 If((Global.learner).fell);
@@ -581,9 +591,9 @@ rule ("Game 4: the screen") {
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.board, 3), Right, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.board, 4), Right, 6, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk to the next ring. Answer with left click, right click or melee."), Left, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, First Of(Global.deb), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 1), Null, Left, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 2), Null, Left, 6, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, First Of(Global.deb), Null, Left, 4, Color(White), If-Then-Else(Global.showDeb, Color(White), Color(Sky Blue)), Color(White), Visible To String and Color, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Value In Array(Global.deb, 1), Null, Left, 5, Color(White), If-Then-Else(Global.showDeb, Color(White), Color(Orange)), Color(White), Visible To String and Color, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Value In Array(Global.deb, 2), Null, Left, 6, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
     }
 }
 
@@ -595,6 +605,9 @@ rule ("Game 4: run") {
         Global.ready != False;
     }
     actions {
+        Set Global Variable(stopNo, 1);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         "2026-11-22: the button rule, not the ability switch: the core turns the ability switch back on after each\nquestion (it switches Blink off while a question is up, because right click is also Blink)."
         Disallow Button(Global.learner, Button(Ability 1));
         Disallow Button(Global.learner, Button(Ability 2));
@@ -660,18 +673,14 @@ rule ("Game 4: run") {
             Create In-World Text(All Players(All Teams), Value In Array(Global.tO, Evaluate Once(Global.ii)), Add(Value In Array(Global.ringPos, Global.ii), Vector(0, 1.4, 0)), 1.6, Do Not Clip, Visible To and String, Color(Orange), Default Visibility);
         End;
         Set Global Variable(status, Custom String("BEFORE THE FIRST WALK"));
+        "Stop 1 opens on the first walk, which waits for him to leave the spawn ring. The two rules stay on the left rows\n(they were four timed lines, 27 seconds, gone by the time he came back from the page)."
         Set Global Variable(coach, Custom String("Back from spawn: walk the rings to the point, five times. Some legs are mud and slow you down."));
-        Wait(0.3, Ignore Condition);
-        Set Global Variable(coach, Custom String("Above each ring: two guesses of the seconds from there to the point. Both start at 3 s a leg."));
-        Wait(0.3, Ignore Condition);
-        Set Global Variable(coach, Custom String("BLUE: at the point, each guess moves halfway to the time the rest of that walk really took."));
-        Wait(0.3, Ignore Condition);
-        Set Global Variable(coach, Custom String("ORANGE: at each ring, the last ring's guess moves halfway to that leg's time plus ORANGE's guess here."));
-        Wait(0.3, Ignore Condition);
         Set Global Variable(walk, 0);
         Call Subroutine(doWalk);
-        Set Global Variable(coach, Custom String("BLUE is called Monte Carlo: it waits for the end and learns from the real total. No rules needed."));
-        Wait(0.3, Ignore Condition);
+        Set Global Variable At Index(deb, 2, Custom String("BLUE is called Monte Carlo: it waits for the end and learns from the real total. No rules needed."));
+        Set Global Variable(stopNo, 3);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         Set Global Variable(qId, 2);
         Set Global Variable(qText, Custom String("Lecture 2's Bellman rule: time from here = this leg + time from the next ring. Which guess is built so?"));
         Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE")));
@@ -679,10 +688,15 @@ rule ("Game 4: run") {
         Set Global Variable(qAuto, 1);
         Set Global Variable(qWhy, Custom String("ORANGE: a real leg plus its own next guess, a guess fixing a guess. BLUE uses only real times."));
         Call Subroutine(ask);
-        Set Global Variable(coach, Custom String("ORANGE is temporal-difference learning, TD. Fixing a guess with your next guess is bootstrapping."));
-        Wait(0.3, Ignore Condition);
+        Set Global Variable At Index(deb, 2, Custom String("ORANGE is temporal-difference learning, TD. Fixing a guess with your next guess is bootstrapping."));
+        Set Global Variable(stopNo, 4);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         Set Global Variable(walk, 1);
         Call Subroutine(doWalk);
+        Set Global Variable(stopNo, 5);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         Set Global Variable(qId, 3);
         Set Global Variable(qText, Custom String("By the last walk, whose spawn guess will have moved around more in total?"));
         Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE"), Custom String("about the same")));
@@ -692,6 +706,9 @@ rule ("Game 4: run") {
         Call Subroutine(ask);
         Set Global Variable(walk, 2);
         Call Subroutine(doWalk);
+        Set Global Variable(stopNo, 6);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("On walk 4 the round ends as you reach ring 2, and you go back. Who learns anything from that walk?"));
         Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE"), Custom String("neither")));
@@ -701,8 +718,10 @@ rule ("Game 4: run") {
         Call Subroutine(ask);
         Set Global Variable(walk, 3);
         Call Subroutine(doWalk);
-        Set Global Variable(coach, Custom String("TD learns before the end, and from walks that are cut short. Monte Carlo needs walks that finish."));
-        Wait(0.3, Ignore Condition);
+        Set Global Variable At Index(deb, 2, Custom String("TD learns before the end, and from walks that are cut short. Monte Carlo needs walks that finish."));
+        Set Global Variable(stopNo, 7);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("Lecture 3's planner found values without walking at all. What would it need to do that here?"));
         Set Global Variable(qOpts, Array(Custom String("only the map"), Custom String("each leg's mud odds and speeds"), Custom String("nothing more")));
@@ -710,8 +729,7 @@ rule ("Game 4: run") {
         Set Global Variable(qAuto, 1);
         Set Global Variable(qWhy, Custom String("Planning needs the rules: how likely and how slow mud is per leg. These two learn from walks."));
         Call Subroutine(ask);
-        Set Global Variable(coach, Custom String("Neither predictor was told the mud odds. Learning values from walks alone is model-free prediction."));
-        Wait(0.3, Ignore Condition);
+        Set Global Variable At Index(deb, 2, Custom String("Neither predictor was told the mud odds. Learning values from walks alone is model-free prediction."));
         Set Global Variable(walk, 4);
         Call Subroutine(doWalk);
         Set Global Variable(swingIn, Global.histB);
@@ -728,8 +746,11 @@ rule ("Game 4: run") {
         Set Global Variable(status, Custom String("ALL FIVE WALKS DONE"));
         Set Global Variable(coach, Custom String("Spawn guess, total movement: BLUE {0} s, ORANGE {1} s. {2}", Divide(Round To Integer(Multiply(Global.swingB, 10), To Nearest), 10), Divide(Round To Integer(Multiply(Global.swingO, 10), To Nearest), 10), If-Then-Else(Compare(Global.swingB, >, Global.swingO), Custom String("BLUE swung more."), Custom String("This time ORANGE did; usually BLUE does."))));
         Wait(0.3, Ignore Condition);
-        Set Global Variable(coach, Custom String("ORANGE is steadier but leans on its own guesses. If they start wrong, it stays wrong a while: bias."));
+        Set Global Variable At Index(deb, 2, Custom String("ORANGE is steadier but leans on its own guesses. If they start wrong, it stays wrong a while: bias."));
         Wait(0.3, Ignore Condition);
+        Set Global Variable(stopNo, 8);
+        Set Global Variable(titleLine, Custom String("RL 4: BACK FROM SPAWN    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,4,{0}", Global.stopNo));
         Set Global Variable(deb, Array(Custom String("What you did: walked back from spawn 5 times while two guesses of your time were fixed at each ring."), Custom String("Its name: BLUE is Monte Carlo (real totals, no bias, noisy). ORANGE is TD (a leg plus a guess, biased)."), Custom String("In an agent: judge each turn by the final score (Monte Carlo) or by how a value guess moved that turn (TD).")));
         Set Global Variable(showDeb, True);
         Set Global Variable(coach, Custom String("You got {0} of {1} predictions right. Simplified: fixed half steps, five walks, shuffled mud counts.", Global.predRight, Global.predTotal));

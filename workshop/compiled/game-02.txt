@@ -61,43 +61,47 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: dialVals
-        32: autoOrder
-        33: tried
-        34: dialIdx
-        35: dialJ
-        36: dialOpen
-        37: dialLocked
-        38: dialName
-        39: dialLine
-        40: ctrlLine
-        41: checkLine
-        42: debrief1
-        43: debrief2
-        44: debrief3
-        45: rnd
-        46: g
-        47: vMini
-        48: vMega
-        49: best
-        50: bot
-        51: walkDir
-        52: tgtPos
-        53: miniLbl
-        54: megaLbl
-        55: padOn
-        56: padV
-        57: vToMega
-        58: vToMini
-        59: loopI
-        60: txtI
-        61: padNow
-        62: padLast
-        63: walkN
-        64: walkOk
-        65: walkT0
-        66: ruleV
-        67: myTxt
+        31: stopNo
+        32: titleLine
+        33: dialVals
+        34: autoOrder
+        35: tried
+        36: dialIdx
+        37: dialJ
+        38: dialOpen
+        39: dialLocked
+        40: dialName
+        41: dialLine
+        42: ctrlLine
+        43: checkLine
+        44: debrief1
+        45: debrief2
+        46: debrief3
+        47: rnd
+        48: g
+        49: vMini
+        50: vMega
+        51: best
+        52: bot
+        53: walkDir
+        54: tgtPos
+        55: miniLbl
+        56: megaLbl
+        57: padOn
+        58: padV
+        59: vToMega
+        60: vToMini
+        61: loopI
+        62: txtI
+        63: padNow
+        64: padLast
+        65: walkN
+        66: walkOk
+        67: walkT0
+        68: ruleV
+        69: myTxt
+        70: goOpen
+        71: goPressed
     player:
         0: fellCount
         1: fell
@@ -130,6 +134,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA"));
         Set Global Variable(dialVals, Array(0.5, 0.8, 0.9, 1));
         Set Global Variable(autoOrder, Array(2, 0, 3, 1));
         Set Global Variable(tried, Array(False, False, False, False));
@@ -149,6 +154,8 @@ rule ("Initialize global variables") {
         Set Global Variable(vToMega, Empty Array);
         Set Global Variable(vToMini, Empty Array);
         Set Global Variable(myTxt, Empty Array);
+        Set Global Variable(goOpen, False);
+        Set Global Variable(goPressed, False);
     }
 }
 
@@ -324,7 +331,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
         Set Global Variable(qShown, Total Time Elapsed);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,2,{0}", Global.qId));
-        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        "2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading\nthe page when a question comes up. (It gave up after 90 seconds.)"
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 99999);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
         Destroy In-World Text(Global.qTxtLow);
@@ -399,6 +407,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,2,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,2,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -410,7 +419,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 2: MINI OR MEGA"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -498,6 +507,22 @@ rule ("Game 2: F turns the dial to the next setting not tried yet") {
     }
 }
 
+rule ("Game 2: F starts what a stop is waiting for") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.goOpen != False;
+        Is Button Held(Event Player, Button(Interact)) == True;
+    }
+    actions {
+        Set Global Variable(goPressed, True);
+    }
+}
+
 rule ("Game 2: R locks the dial") {
     event {
         Ongoing - Each Player;
@@ -539,6 +564,9 @@ rule ("Game 2: run") {
         Global.ready != False;
     }
     actions {
+        Set Global Variable(stopNo, 1);
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,2,{0}", Global.stopNo));
         Disallow Button(Global.learner, Button(Interact));
         Disallow Button(Global.learner, Button(Reload));
         Set Facing(Global.learner, Left, To World);
@@ -627,9 +655,13 @@ rule ("Game 2: run") {
                 Set Global Variable(dialIdx, Modulo(Add(Global.dialIdx, 1), 4));
             End;
             Call Subroutine(buildDial);
-            Set Global Variable(ctrlLine, Custom String("F: turn the dial    R: lock it in    then answer with a click"));
-            Set Global Variable(coach, If-Then-Else(Compare(Global.rnd, ==, 0), Custom String("The dial says how much a pack shrinks for every pad she must walk. Set it, then lock it."), Custom String("Next setting: {0} of 4. F to turn, R to lock.", Add(Global.rnd, 1))));
-            Wait Until(Compare(Global.dialLocked, ==, True), 90);
+            If(Compare(Global.rnd, >, 0));
+                Set Global Variable(stopNo, Add(1, Global.rnd));
+                Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    STOP {0} OF 8", Global.stopNo));
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,2,{0}", Global.stopNo));
+            End;
+            Set Global Variable(ctrlLine, If-Then-Else(Compare(Global.rnd, ==, 0), Custom String("The dial: what each pad walked multiplies a pack by. F: turn it, R: lock it."), Custom String("Round {0} of 4. F: turn the dial to a new setting, R: lock it.", Add(Global.rnd, 1))));
+            Wait Until(Compare(Global.dialLocked, ==, True), 99999);
             Set Global Variable(dialOpen, False);
             Set Global Variable(g, Value In Array(Global.dialVals, Global.dialIdx));
             Set Global Variable At Index(tried, Global.dialIdx, True);
@@ -669,8 +701,12 @@ rule ("Game 2: run") {
             Call Subroutine(drawTexts);
         End;
         "Interleaving: lecture 1's state and the Markov property."
-        Set Global Variable(ctrlLine, Custom String("Answer with a click or melee"));
-        Set Global Variable(coach, Custom String("A question from lecture 1: what does her state need to hold?"));
+        Set Global Variable(stopNo, 5);
+        "Interleaving: lecture 1's state and the Markov property."
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    STOP {0} OF 8", Global.stopNo));
+        "Interleaving: lecture 1's state and the Markov property."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,2,{0}", Global.stopNo));
+        Set Global Variable(ctrlLine, Custom String("A question from lecture 1, on what a state must hold. Click or melee to answer."));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("Is her pad enough to predict what comes next, here and in a match?"));
         Set Global Variable(qOpts, Array(Custom String("yes, both"), Custom String("here yes, match no"), Custom String("no, not here")));
@@ -680,6 +716,18 @@ rule ("Game 2: run") {
         Call Subroutine(ask);
         Wait(2, Ignore Condition);
         "---------------- Part 2: the one-step rule ----------------"
+        Set Global Variable(stopNo, 6);
+        "---------------- Part 2: the one-step rule ----------------"
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    STOP {0} OF 8", Global.stopNo));
+        "---------------- Part 2: the one-step rule ----------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,2,{0}", Global.stopNo));
+        Set Global Variable(ctrlLine, Custom String("Press F to fill the pads with values."));
+        Set Global Variable(goOpen, True);
+        Set Global Variable(goPressed, False);
+        Wait Until(Compare(Global.goPressed, ==, True), 99999);
+        Set Global Variable(goOpen, False);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,2,go,6"));
+        Set Global Variable(ctrlLine, Custom String("Answer with a click or melee"));
         If((Global.learner).fell);
             Call Subroutine(putHome);
         End;
@@ -725,7 +773,7 @@ rule ("Game 2: run") {
         Set Global Variable(walkOk, 0);
         Set Global Variable(padLast, -1);
         Set Global Variable(walkT0, Total Time Elapsed);
-        While(And(Compare(Global.padLast, !=, 13), Compare(Subtract(Total Time Elapsed, Global.walkT0), <, 120)));
+        While(And(Compare(Global.padLast, !=, 13), Compare(Subtract(Total Time Elapsed, Global.walkT0), <, 99999)));
             If((Global.learner).fell);
                 Call Subroutine(putHome);
                 Set Global Variable(padLast, -1);
@@ -754,9 +802,13 @@ rule ("Game 2: run") {
         Wait(7, Ignore Condition);
         Set Global Variable(checkLine, Custom String(""));
         "A value belongs to a pad and a way of walking."
+        Set Global Variable(stopNo, 7);
+        "A value belongs to a pad and a way of walking."
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    STOP {0} OF 8", Global.stopNo));
+        "A value belongs to a pad and a way of walking."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,2,{0}", Global.stopNo));
         Call Subroutine(putHome);
-        Set Global Variable(ctrlLine, Custom String("Answer with a click"));
-        Set Global Variable(coach, Custom String("Same start pad, same discount 0.9. Now she always walks to the MINI."));
+        Set Global Variable(ctrlLine, Custom String("Same pad, same 0.9, but she always walks to the MINI. Click to answer."));
         Set Global Variable(qId, 7);
         Set Global Variable(qText, Custom String("Walking to the MINI: start pad more or less than {0}?", Value In Array(Global.vToMega, 3)));
         Set Global Variable(qOpts, Array(Custom String("more"), Custom String("less")));
@@ -775,15 +827,25 @@ rule ("Game 2: run") {
         End;
         Set Global Variable(coach, Custom String("One pad behind the start, the mini is the better walk: {0} against {1}.", Value In Array(Global.vToMini, 2), Value In Array(Global.vToMega, 2)));
         Wait(7, Ignore Condition);
-        "Debrief."
-        Set Global Variable(ctrlLine, Custom String(""));
+        "Debrief, after he asks for it, so the last result stays on screen while he reads the page."
+        Set Global Variable(stopNo, 8);
+        "Debrief, after he asks for it, so the last result stays on screen while he reads the page."
+        Set Global Variable(titleLine, Custom String("RL 2: MINI OR MEGA    STOP {0} OF 8", Global.stopNo));
+        "Debrief, after he asks for it, so the last result stays on screen while he reads the page."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,2,{0}", Global.stopNo));
+        Set Global Variable(ctrlLine, Custom String("Press F for the debrief."));
+        Set Global Variable(goOpen, True);
+        Set Global Variable(goPressed, False);
+        Wait Until(Compare(Global.goPressed, ==, True), 99999);
+        Set Global Variable(goOpen, False);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,2,go,8"));
+        Set Global Variable(ctrlLine, Custom String("Simplified: one straight row and no dice. Here every step lands where it aims."));
         Set Global Variable(debrief1, Custom String("You did: set the discount, called her pack, walked a row checked one step at a time."));
         Set Global Variable(debrief2, Custom String("Called: discount, return (a discounted sum), value under a policy, Bellman equation."));
         Set Global Variable(debrief3, Custom String("In an agent: low gamma answers now, high gamma spends tool calls on a better answer."));
         Set Global Variable(coach, Custom String("Your predictions: {0} of {1} right.", Global.predRight, Global.predTotal));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,2,end,{0},{1}", Global.predRight, Global.predTotal));
         Wait(12, Ignore Condition);
-        Set Global Variable(coach, Custom String("Simplified: one straight row and no dice. The lecture averages over chance; here every step is certain."));
         Call Subroutine(finish);
     }
 }

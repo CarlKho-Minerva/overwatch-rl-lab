@@ -12,6 +12,20 @@ One Workshop mode per lecture, played by a person. The index, with each game's i
 - `workshop/games/gNN.md`: the design note. `analysis/tests/test_game_NN.py`: reference maths and the log check.
 - `workshop/compiled/game-NN.txt` is what a person pastes into a custom game; `game-NN-auto.txt` is the automatic check.
 
+## Played beside a page, stop by stop
+
+Each game is used together with the page for its lecture. The reader reads a part of the lecture, switches to the
+game, and the game is waiting at the same numbered stop to show what the lecturer meant; then he switches back.
+So a game is cut into 6 to 8 stops, and three things hold:
+
+- `STOP(k)` (in `common.opy`) starts stop k: it shows "STOP k OF n" beside the title and logs `RLG,G`.
+- At a stop the game waits for the person for as long as he likes. No wait for his input times out, a round's clock
+  starts at his first move, and anything that used to start by itself (a race, bots playing each other) now starts
+  on a button the game already uses, logged as `RLG,E,<game>,go,<stop>`.
+- `workshop/games/gNN_stops.json` holds the page's text for each stop: what the lecturer has just said, what to do
+  in the game, what to commit to first, and what was just seen. Its `after` field names the part of the lecture the
+  stop follows. `analysis/tests/test_games_play.py` checks that the stops a game announces are exactly these, in order.
+
 ## The automatic check
 
 In the `_auto` build a bot stands in for the player and makes a fixed sequence of choices, so the whole game runs in
@@ -39,6 +53,7 @@ learner.
 ```
 RLG,M,<game>,<version>,<autoplay>
 RLG,T,<game>,<name>,<expected>,<got>,<ok>
+RLG,G,<game>,<stop>
 RLG,Q,<game>,<question id>
 RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
 RLG,E,<game>,<event name>,<values...>

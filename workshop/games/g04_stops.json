@@ -1,0 +1,81 @@
+{
+ "game": 4,
+ "stops": [
+  {
+   "n": 1,
+   "after": "34:11",
+   "title": "Walk the mud leg to ring 1",
+   "silver": "Temporal-difference learning fixes a guess after every single step, aiming it at the reward just received plus its own guess for where it landed, so it never has to wait for the end.",
+   "do": "The game waits at the spawn ring. Walk with WASD to ring 1; leg 1 of the first walk is always mud, so you move at 30% speed. At ring 1 a question floats in front of you: left click for BLUE, right click for ORANGE, melee for both.",
+   "predict": "Before you click, decide which of the two guesses for the spawn ring could have changed already, when you have walked only one leg of five.",
+   "saw": "ORANGE's spawn guess moved, from 15 seconds toward the leg's time plus ORANGE's own guess for ring 1. BLUE stayed at 15, because its target is the time from spawn all the way to the point, and you have not got there. That is the difference in one leg: temporal-difference learning, TD, updates at each step; Monte Carlo waits for the end.",
+   "agent": "A value model that scores a half-finished conversation can update after every turn; a grader that reads only the final pass or fail cannot."
+  },
+  {
+   "n": 2,
+   "after": "39:50",
+   "title": "Finish the walk and watch BLUE",
+   "silver": "In the driving-home example, Monte Carlo waits until you arrive and then pulls every forecast you made on the way toward the real arrival time.",
+   "do": "Leave ring 1 when you are ready and walk to rings 2, 3 and 4 and the point with WASD. Each leg's line turns green for clear or red for mud as you start it. The clock runs only between rings, so you can stand in a ring and read.",
+   "predict": "Before you leave ring 1, guess which of the ten numbers on the right will change at each ring, and which will all change together at the point.",
+   "saw": "At each ring one ORANGE number moved: the guess for the ring you had just left. At the point all five BLUE numbers moved at once, each halfway to the time the rest of that walk really took from its ring. BLUE is Monte Carlo: it learns from real totals, so it had to wait for them. Nobody told either guess how likely mud was."
+  },
+  {
+   "n": 3,
+   "after": "39:50",
+   "title": "Say which guess leans on a guess",
+   "silver": "Temporal-difference learning moves the forecast made at one landmark toward the forecast made at the next, a guess updated toward a guess, until the arrival grounds the last one.",
+   "do": "A question floats in front of you. Left click for BLUE, right click for ORANGE.",
+   "predict": "Lecture 2's Bellman rule says the time from here is this leg plus the time from the next ring; decide which of the two guesses builds its target that way.",
+   "saw": "ORANGE does. Its target is the real time of the leg plus its own current guess for the next ring. Using one of your guesses inside the target of another is called bootstrapping. Lecture 2's rule uses the true time from the next ring, averaged over every way the leg can go; ORANGE uses one walked leg and a guess in its place.",
+   "agent": "Training a value model toward its own next-turn predictions is the same move, and it can copy its own errors forward the same way."
+  },
+  {
+   "n": 4,
+   "after": "47:31",
+   "title": "Walk again and compare the jumps",
+   "silver": "Monte Carlo's target is unbiased but noisy, because it carries the luck of a whole episode, while TD's target is biased by its own estimate but carries the luck of only one step.",
+   "do": "Walk the second route from the spawn ring to the point with WASD. The mud is drawn again for every walk, so this one will not match the first.",
+   "predict": "Before you leave spawn, decide whose spawn guess will jump further on this walk, BLUE's or ORANGE's.",
+   "saw": "Look at how far each spawn number moved on this walk. BLUE's moved halfway to this walk's total, mud and all, so a muddy walk drags it a long way. ORANGE's moved toward leg 1 plus its guess for ring 1, and that guess carries news from earlier walks, one ring further back each time. Less noise, but only as right as its own guesses: that is bias."
+  },
+  {
+   "n": 5,
+   "after": "47:31",
+   "title": "Bet on which guess swings more",
+   "silver": "Because each target carries a different amount of luck, the Monte Carlo estimate swings more from episode to episode than the TD estimate, which is steadier but leans on its own starting values.",
+   "do": "A question floats in front of you: left click for BLUE, right click for ORANGE, melee for about the same. Then walk the third route with WASD.",
+   "predict": "Commit to whose spawn guess will have moved more in total by the end of the fifth walk.",
+   "saw": "The total itself comes at stop 7. On this walk, compare its mud with the walk before: when the amount of mud changes a lot, BLUE's spawn number follows it and ORANGE's barely moves. The spread a guess picks up from luck is called variance, and Monte Carlo has more of it here."
+  },
+  {
+   "n": 6,
+   "after": "47:31",
+   "title": "Get cut off at ring 2",
+   "silver": "TD can learn from a sequence that never finishes, because each update needs only the next step, while Monte Carlo needs a complete return from start to end.",
+   "do": "A question floats in front of you: left click for BLUE, right click for ORANGE, melee for neither. Then walk the fourth route with WASD; at ring 2 the round ends and the walk stops there.",
+   "predict": "Commit to which guesses will learn anything from a walk that never reaches the point.",
+   "saw": "ORANGE changed its guesses for spawn and ring 1, one for each leg you walked. BLUE changed nothing: with no time to the point there is no total to move toward. The fight ended before you arrived, and only the guess that updates at each corner got anything out of the walk.",
+   "agent": "An agent run that times out halfway still trains a TD-style value model, while a pass-or-fail grader gets nothing from it."
+  },
+  {
+   "n": 7,
+   "after": "1:09:11",
+   "title": "Ask what a planner would need",
+   "silver": "Planning by dynamic programming bootstraps without sampling, because it is handed the rules and averages over every outcome; Monte Carlo samples without bootstrapping, and TD does both.",
+   "do": "A question floats in front of you: left click for only the map, right click for each leg's mud odds and speeds, melee for nothing more. Then walk the fifth and last route with WASD.",
+   "predict": "Lecture 3's planner filled in values without walking at all; decide what it would need to be told to do that here.",
+   "saw": "It would need the rules: how likely mud is on each leg and how slow it makes you. Neither BLUE nor ORANGE was told those; both learned from walks alone, which is model-free prediction. At the point, the coach line gives how far each spawn guess moved in total over the five walks. BLUE's total is usually the larger one."
+  },
+  {
+   "n": 8,
+   "after": "1:15:56",
+   "title": "Read what the walks showed",
+   "silver": "Between one-step TD and Monte Carlo sit n-step returns, a few real steps and then a guess, and lambda blends them all, so the two guesses you watched are the two ends of one dial.",
+   "do": "Nothing to press. Read the three lines on the left and your prediction score; then the game ends.",
+   "predict": "Before you read, say in one sentence which guess you would trust after five walks, and which after five hundred.",
+   "saw": "BLUE, Monte Carlo, used real totals: no bias, more noise, and nothing from the cut walk. ORANGE, TD, used one leg plus its own guess: steadier, bent by its guesses, and it learned before the end. Five walks with a fixed half step are far too few for either to settle, so read the numbers as a demonstration, not a result.",
+   "agent": "Judging each turn of an agent by the final score is Monte Carlo; judging it by how a value model's estimate moved across that turn is TD."
+  }
+ ]
+}

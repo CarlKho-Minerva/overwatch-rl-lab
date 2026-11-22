@@ -38,6 +38,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-8, 0, -4)
 #!define HOME_FACING vect(1, 0, 0)
+#!define STOPS 8
 
 #!include "common.opy"
 
@@ -95,6 +96,8 @@ globalvar walkOk
 globalvar walkT0
 globalvar ruleV
 globalvar myTxt = []
+globalvar goOpen = false
+globalvar goPressed = false
 
 subroutine drawTexts
 subroutine buildDial
@@ -148,6 +151,13 @@ rule "Game 2: F turns the dial to the next setting not tried yet":
             break
     buildDial()
 
+rule "Game 2: F starts what a stop is waiting for":
+    @Event eachPlayer
+    @Condition eventPlayer == learner
+    @Condition goOpen
+    @Condition eventPlayer.isHoldingButton(Button.INTERACT)
+    goPressed = true
+
 rule "Game 2: R locks the dial":
     @Event eachPlayer
     @Condition eventPlayer == learner
@@ -166,6 +176,7 @@ rule "Game 2: the screen":
 
 rule "Game 2: run":
     @Condition ready
+    STOP(1)
     learner.disallowButton(Button.INTERACT)
     learner.disallowButton(Button.RELOAD)
     learner.setFacing(vect(1, 0, 0), Relativity.TO_WORLD)
@@ -223,8 +234,9 @@ rule "Game 2: run":
                 break
             dialIdx = (dialIdx + 1) % 4
         buildDial()
-        ctrlLine = "F: turn the dial    R: lock it in    then answer with a click"
-        coach = "The dial says how much a pack shrinks for every pad she must walk. Set it, then lock it." if rnd == 0 else "Next setting: {} of 4. F to turn, R to lock.".format(rnd + 1)
+        if rnd > 0:
+            STOP(1 + rnd)
+        ctrlLine = "The dial: what each pad walked multiplies a pack by. F: turn it, R: lock it." if rnd == 0 else "Round {} of 4. F: turn the dial to a new setting, R: lock it.".format(rnd + 1)
         if AUTOPLAY:
             wait(0.5)
             dialIdx = autoOrder[rnd]
@@ -232,7 +244,7 @@ rule "Game 2: run":
             wait(0.5)
             dialLocked = true
         else:
-            waitUntil(dialLocked == true, 90)
+            waitUntil(dialLocked == true, 99999)
         dialOpen = false
         g = dialVals[dialIdx]
         tried[dialIdx] = true
@@ -271,8 +283,8 @@ rule "Game 2: run":
         drawTexts()
 
     # Interleaving: lecture 1's state and the Markov property.
-    ctrlLine = "Answer with a click or melee"
-    coach = "A question from lecture 1: what does her state need to hold?"
+    STOP(5)
+    ctrlLine = "A question from lecture 1, on what a state must hold. Click or melee to answer."
     qId = 5
     qText = "Is her pad enough to predict what comes next, here and in a match?"
     qOpts = ["yes, both", "here yes, match no", "no, not here"]
@@ -283,6 +295,18 @@ rule "Game 2: run":
     wait(0.5 if AUTOPLAY else 2)
 
     # ---------------- Part 2: the one-step rule ----------------
+    STOP(6)
+    ctrlLine = "Press F to fill the pads with values."
+    goOpen = true
+    goPressed = false
+    if AUTOPLAY:
+        wait(0.5)
+        goPressed = true
+    else:
+        waitUntil(goPressed == true, 99999)
+    goOpen = false
+    LOG("RLG,E,{},go,{}".format(GAME_ID, 6))
+    ctrlLine = "Answer with a click or melee"
     if learner.fell:
         putHome()
     dialLine = "DISCOUNT 0.9, EACH STEP COSTS 1"
@@ -328,7 +352,7 @@ rule "Game 2: run":
     if AUTOPLAY:
         wait(0.5)
         learner.startThrottleInDirection(vect(1, 0, 0), 1, Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.NONE)
-    while padLast != MEGA_I and NOW - walkT0 < (25 if AUTOPLAY else 120):
+    while padLast != MEGA_I and NOW - walkT0 < (25 if AUTOPLAY else 99999):
         if learner.fell:
             putHome()
             padLast = -1
@@ -353,9 +377,9 @@ rule "Game 2: run":
     checkLine = ""
 
     # A value belongs to a pad and a way of walking.
+    STOP(7)
     putHome()
-    ctrlLine = "Answer with a click"
-    coach = "Same start pad, same discount 0.9. Now she always walks to the MINI."
+    ctrlLine = "Same pad, same 0.9, but she always walks to the MINI. Click to answer."
     qId = 7
     qText = "Walking to the MINI: start pad more or less than {}?".format(vToMega[START_I])
     qOpts = ["more", "less"]
@@ -373,13 +397,23 @@ rule "Game 2: run":
     coach = "One pad behind the start, the mini is the better walk: {} against {}.".format(vToMini[START_I - 1], vToMega[START_I - 1])
     wait(1 if AUTOPLAY else 7)
 
-    # Debrief.
-    ctrlLine = ""
+    # Debrief, after he asks for it, so the last result stays on screen while he reads the page.
+    STOP(8)
+    ctrlLine = "Press F for the debrief."
+    goOpen = true
+    goPressed = false
+    if AUTOPLAY:
+        wait(0.5)
+        goPressed = true
+    else:
+        waitUntil(goPressed == true, 99999)
+    goOpen = false
+    LOG("RLG,E,{},go,{}".format(GAME_ID, 8))
+    ctrlLine = "Simplified: one straight row and no dice. Here every step lands where it aims."
     debrief1 = "You did: set the discount, called her pack, walked a row checked one step at a time."
     debrief2 = "Called: discount, return (a discounted sum), value under a policy, Bellman equation."
     debrief3 = "In an agent: low gamma answers now, high gamma spends tool calls on a better answer."
     coach = "Your predictions: {} of {} right.".format(predRight, predTotal)
     LOG("RLG,E,{},end,{},{}".format(GAME_ID, predRight, predTotal))
     wait(1 if AUTOPLAY else 12)
-    coach = "Simplified: one straight row and no dice. The lecture averages over chance; here every step is certain."
     finish()

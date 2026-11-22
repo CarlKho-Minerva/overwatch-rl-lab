@@ -41,6 +41,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -12)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 6
 
 #!include "common.opy"
 
@@ -65,6 +66,8 @@ globalvar phasePeeks = 0
 globalvar pick = -1
 globalvar pickOpen = false
 globalvar pickTxt = ""
+globalvar goOpen = false      # a stop that opens on an automatic sequence waits for Interact (F) first
+globalvar goTxt = ""
 # The stand-in's peeks in phases 1 and 2 (in phase 3 it follows the die).
 globalvar autoPicks = [1, 1, 1, 1, 1, 0, 0, 1, 0]
 globalvar nL = 0          # his left peeks so far (she sees them all, the fixed Widowmaker's phase included)
@@ -116,6 +119,7 @@ subroutine oddsNow
 subroutine peek
 subroutine redraw
 subroutine selfPlay
+subroutine waitGo
 
 def oddsNow():
     @Name "Game 10: her odds of aiming left this peek"
@@ -169,7 +173,8 @@ def peek():
         wait(0.4)
         pick = dieSays if phase == 3 else autoPicks[peekN - 1]
     else:
-        waitUntil(pick >= 0 or gameOver, 120)
+        # The game is played beside the lecture page: the peek waits for him for as long as he likes.
+        waitUntil(pick >= 0 or gameOver, 99999)
     pickOpen = false
     if pick < 0:
         pick = 0
@@ -252,6 +257,17 @@ def selfPlay():
         if spT % 10 == 0:
             wait()
 
+def waitGo():
+    @Name "Game 10: wait for Interact (F) before an automatic part, then log go with the stop number"
+    if AUTOPLAY:
+        wait(0.5)
+    else:
+        waitUntil(not learner.isHoldingButton(Button.INTERACT), 99999)
+        goOpen = true
+        waitUntil(learner.isHoldingButton(Button.INTERACT) or gameOver, 99999)
+        goOpen = false
+    LOG("RLG,E,{},go,{}".format(GAME_ID, stopNo))
+
 rule "Game 10: left click and right click choose the corner (outside questions)":
     @Event eachPlayer
     @Condition eventPlayer == learner
@@ -278,12 +294,15 @@ rule "Game 10: the screen":
     hudText(getAllPlayers() if phase >= 1 else null, null, null, infoTxt, HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     # The peek prompt is a row of the left block: a row at the top centre ran over the title and the right panel.
     hudText(getAllPlayers() if pickOpen else null, pickTxt, null, null, HudPosition.LEFT, 3, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if goOpen else null, goTxt, null, null, HudPosition.LEFT, 3, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if phase == 5 else null, null, null, "1. You peeked a fixed Widowmaker, then a learning one, then by a 2-in-7 die.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
     hudText(getAllPlayers() if phase == 5 else null, null, null, "2. Answering a habit is a best response. The die is the minimax mix nobody can exploit.", HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
     hudText(getAllPlayers() if phase == 5 else null, null, null, "3. An agent trained against one fixed simulated user learns that user, not the task.", HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
 
 rule "Game 10: run":
     @Condition ready
+    # Stop 1: the corners, a fixed Widowmaker, and his best answer to her.
+    STOP(1)
     # 2026-11-22: right click picks the right corner, and on Tracer right click is also Blink. Nothing here needs
     # Blink or Recall (the game moves him to his corner), so both are off for the whole game.
     learner.disallowButton(Button.ABILITY_1)
@@ -346,9 +365,10 @@ rule "Game 10: run":
     learner.setFacing(Vector.FORWARD, Relativity.TO_WORLD)
     coach = "You are Tracer peeking a Widowmaker. You pick a corner, she picks one to hold. Both at once."
     PAUSE(5)
-    coach = "LEFT: +3 if she is not there, -2 if she is. RIGHT: +1 or -1. Whatever you win, she loses."
-    PAUSE(6)
     coach = "LEFT CLICK peeks left, RIGHT CLICK peeks right. Questions use the same buttons, at the top."
+    PAUSE(6)
+    # The payoffs are the line that stays up while the first question waits for him.
+    coach = "LEFT: +3 if she is not there, -2 if she is. RIGHT: +1 or -1. Whatever you win, she loses."
     PAUSE(5)
 
     # Phase 1: a fixed opponent. She always holds right.
@@ -371,6 +391,7 @@ rule "Game 10: run":
     PAUSE(6)
 
     # Phase 2: a Widowmaker who learns his habits.
+    STOP(2)
     qId = 2
     qText = "A new Widowmaker studies your habits. If you peeked LEFT every time, what is her best answer?"
     qOpts = ["aim left every time", "aim right", "half and half"]
@@ -392,7 +413,8 @@ rule "Game 10: run":
     coach = "When you changed, her answer changed. Against a learner the target moves."
     PAUSE(6)
 
-    # Back to lecture 7, then the safe mix and its value.
+    # Back to lecture 7, then the safe mix.
+    STOP(3)
     qId = 3
     qText = "Lecture 7, rock paper scissors: is there a FIXED peek pattern she cannot learn and punish?"
     qOpts = ["yes, the better corner", "no, it must be random"]
@@ -407,6 +429,7 @@ rule "Game 10: run":
     qAuto = 0
     qWhy = "Less: 2 in 7. Then both her aims pay her the same, so reading you gains her nothing."
     ask()
+    STOP(4)
     qId = 5
     qText = "Against a PERFECT Widowmaker, what is the most you can expect to win per peek?"
     qOpts = ["nothing, 0", "1 point per 7 peeks", "1 point a peek"]
@@ -433,6 +456,7 @@ rule "Game 10: run":
     PAUSE(6)
 
     # Phase 4: self-play. Two learners, each answering the other's habit counts.
+    STOP(5)
     qId = 6
     qText = "Two learners now play 300 peeks, each answering the other's habits. What do they settle into?"
     qOpts = ["one corner forever", "averages near the safe mix", "nothing settles"]
@@ -440,6 +464,8 @@ rule "Game 10: run":
     qAuto = 2
     qWhy = "Their choices keep flipping, but their averages settle near 29% and 57%. Watch the bars."
     ask()
+    goTxt = "PRESS F (INTERACT) TO START THE 300-PEEK SELF-PLAY"
+    waitGo()
     phase = 4
     coach = "Self-play: a learning Tracer against a learning Widowmaker, 300 peeks, shown every 20."
     infoTxt = "Each answers the other's average, so the averages settle."
@@ -458,7 +484,10 @@ rule "Game 10: run":
     coach = "That pair of mixes is a Nash equilibrium: neither side gains by changing alone."
     PAUSE(6)
 
-    # Debrief.
+    # Debrief. Stop 6 opens on a wait, so the Nash line stays up until he asks for the debrief.
+    STOP(6)
+    goTxt = "PRESS F (INTERACT) FOR THE DEBRIEF"
+    waitGo()
     phase = 5
     LOG("RLG,E,{},end,{},{},{},{},{}".format(GAME_ID, score, evSum, followed, nL, nN))
     coach = "Predictions right: {} of {}. Your points: {} in {} peeks.".format(predRight, predTotal, score, N_PEEKS)

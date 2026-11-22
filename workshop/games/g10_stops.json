@@ -1,0 +1,63 @@
+{
+ "game": 10,
+ "stops": [
+  {
+   "n": 1,
+   "after": "08:01",
+   "title": "Peek a Widowmaker who never moves",
+   "silver": "Against an opponent who never changes, the best you can do is answer her habit: fold her into the world and solve it like any one-player problem.",
+   "do": "A question at the top asks which peek wins the most against a Widowmaker who always holds the right corner; answer with LEFT CLICK, RIGHT CLICK or MELEE. Then the game waits for 4 peeks: LEFT CLICK peeks the left corner, RIGHT CLICK the right one.",
+   "predict": "Against someone who always holds right, should you mix your peeks or take one corner every time?",
+   "saw": "She never looked left, so every left peek was clean and paid 3. Her habit made the problem one-sided, and one pure answer beats any mix against it. That answer is called a best response: the best plan against an opponent who stays fixed, who is then simply part of the map.",
+   "agent": "An agent tuned against one fixed simulated customer is learning a best response to that simulator."
+  },
+  {
+   "n": 2,
+   "after": "13:17",
+   "title": "Peek a Widowmaker who learns you",
+   "silver": "When both sides learn, each improvement changes the other side's problem, and the place where that chase comes to rest, if it does, is an equilibrium.",
+   "do": "A question asks for her best answer if you always peeked left. Then the game waits for 5 peeks, LEFT CLICK or RIGHT CLICK, against a new Widowmaker who watched your first 4. The red bar on the right shows her odds of aiming left before each peek.",
+   "predict": "If you peeked left every time, where should she aim?",
+   "saw": "Half the time she aims where your habit says you go; the other half she repeats her own past aims. If your first 4 peeks were left, her odds opened high on the left, so the habit that won stop 1 was the first thing she punished. Watch her red bar after you switch sides: when the opponent learns, the target you are aiming at moves.",
+   "agent": "A model trained hard against one user simulator learns that simulator's habits, and a different simulator can punish them."
+  },
+  {
+   "n": 3,
+   "after": "18:53",
+   "title": "Find the peek she cannot read",
+   "silver": "In some games part of the state is hidden, like the cards in a poker hand, and there a player whose choices can be predicted can be exploited.",
+   "do": "Two questions wait at the top. The first, through lecture 7's rock, paper, scissors, asks whether any fixed pattern of peeks is safe (LEFT CLICK or RIGHT CLICK). The second asks whether the safe mix peeks left more or less than half the time (LEFT CLICK, RIGHT CLICK or MELEE).",
+   "predict": "Left pays more when it works; does the safe mix use it more than half the time, or less?",
+   "saw": "Any fixed pattern can be counted and punished, so the safe plan is random on purpose, as lecture 7's policies were. It peeks left only 2 times in 7, the share at which both of her aims pay her the same, so studying you gains her nothing. A plan that rolls dice on purpose like this is called a mixed strategy."
+  },
+  {
+   "n": 4,
+   "after": "21:40",
+   "title": "Peek by the die",
+   "silver": "The minimax value is what a game is worth when each side plays its best against the other's best, and in a two-player game where one side's gain is the other's loss, the plans that reach it form an equilibrium.",
+   "do": "A question asks what you can expect per peek against a perfect Widowmaker. Then the game waits for 5 more peeks, LEFT CLICK or RIGHT CLICK, while the right side shows what a die says each time (LEFT 2 times in 7). Follow it or not.",
+   "predict": "Against a perfect Widowmaker, is the most you can expect per peek nothing, a little, or about a point?",
+   "saw": "With the 2 in 7 mix you win 1/7 of a point a peek on average, whatever she does, and a perfect Widowmaker can hold you to no more. That number is the minimax value of the game. Look at how often you followed the die rather than at your total: 5 peeks are far too few for 1/7 a peek to show through the luck."
+  },
+  {
+   "n": 5,
+   "after": "1:40:21",
+   "title": "Start two learners, watch the averages",
+   "silver": "In poker, search that chased the opponent's latest move went round in circles, and the fix was to answer her average behaviour so far, an idea called fictitious play.",
+   "do": "A question asks what two learners settle into (LEFT CLICK, RIGHT CLICK or MELEE). Then press F (INTERACT) to start 300 peeks of a learning Tracer bot against a learning Widowmaker, shown every 20 peeks on the two bars while the Widowmaker turns to the side she picks.",
+   "predict": "After 300 peeks of two learners answering each other, do they lock onto one corner, settle near the safe mix, or never settle?",
+   "saw": "Each bot plays the best answer to the other's average so far. Their actual choices kept flipping (the Tracer switched 12 times), yet the averages ended at 28% and 55% left, close to the safe 29% and 57%. A pair of plans where neither side gains by changing alone is a Nash equilibrium, and learning by playing a learning opponent is self-play.",
+   "agent": "Two models trained against each other can circle the same way, which is why averaging over past opponents is a common fix."
+  },
+  {
+   "n": 6,
+   "after": "1:47:03",
+   "title": "Read the debrief",
+   "silver": "Silver sums up the recipe behind the strong game programs (simple features, a learned value, self-play and search on top) and warns that search and knowledge trade off, so the assumptions deserve questioning.",
+   "do": "Press F (INTERACT) for the debrief. Three lines appear on the left, with your prediction score and your points for the 14 peeks.",
+   "predict": "Before you press, decide which of your three opponents taught you the most about the game itself, and which only about her.",
+   "saw": "You met three opponents: a fixed one, beaten by a best response; a learner, who punished your habits; and a perfect one, held off only by the minimax mix. This game is one two-by-two choice replayed, with no positions, no search tree and no learned value, which is where Silver's programs did their real work.",
+   "agent": "Testing an agent against one fixed simulated user measures how well it learned that user; a second, different simulator is the nearest thing to checking whether it can be exploited."
+  }
+ ]
+}

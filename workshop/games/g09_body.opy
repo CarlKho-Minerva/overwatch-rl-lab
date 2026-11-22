@@ -42,6 +42,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -8)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 8
 
 #!include "common.opy"
 
@@ -135,6 +136,9 @@ playervar nearPad
 # ---------------------------------------------------------------------------
 rule "Game 9: run":
     @Condition ready
+    # Played beside the lecture's page, stop by stop (g09_stops.json). Every stop opens on something that waits for
+    # the person: the opens (Interact, no time limit) or a question (no time limit since 2026-11-22).
+    STOP(1)
     odds = random.shuffle([0.2, 0.4, 0.55, 0.7])
     for gI in range(NBOX * BUDGET):
         payTab[gI] = 1 if random.uniform(0, 1) < odds[floor(gI / BUDGET)] else 0
@@ -177,12 +181,13 @@ rule "Game 9: run":
     refreshView()
     coach = "Four loot boxes. Each pays 1 with its own hidden chance. You get 30 opens: make them pay."
     wait(1 if AUTOPLAY else 6)
-    coach = "Stand on a yellow pad and press Interact to open that box. Opens 1 to 8."
+    coach = "Stand on a yellow pad and press Interact (F) to open that box. Opens 1 to 8."
     roundNo = 1
     roundEnd = 8
     openRound()
     roundSummary()
 
+    STOP(2)
     qId = 1
     qText = "A box paid 3 of its first 4 opens. Is it the best box, for sure?"
     qOpts = ["yes", "no, too few opens"]
@@ -191,6 +196,7 @@ rule "Game 9: run":
     qWhy = "A 0.4 box pays 3 or 4 of 4 about {}% of the time, a 0.55 box {}%. Four opens prove little.".format(round(100 * (4 * 0.4 * 0.4 * 0.4 * 0.6 + 0.4 * 0.4 * 0.4 * 0.4)), round(100 * (4 * 0.55 * 0.55 * 0.55 * 0.45 + 0.55 * 0.55 * 0.55 * 0.55)))
     ask()
 
+    STOP(3)
     qId = 2
     qText = "GREEDY opens the best average so far. COIN does too, but 1 open in 10 is random (lecture 5). Stuck forever?"
     qOpts = ["greedy", "the coin", "neither"]
@@ -202,6 +208,7 @@ rule "Game 9: run":
     wait(1 if AUTOPLAY else 6)
 
     # Round 2: the optimist's beams appear
+    STOP(4)
     beamsOn = true
     createBeam(getAllPlayers() if beamsOn else null, Beam.GOOD, padPos[0] + vect(0, 0, 2), beamEnd[0], Color.SKY_BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
     createBeam(getAllPlayers() if beamsOn else null, Beam.GOOD, padPos[1] + vect(0, 0, 2), beamEnd[1], Color.SKY_BLUE, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
@@ -214,12 +221,13 @@ rule "Game 9: run":
     refreshView()
     coach = "Blue beams: each box's best plausible case from YOUR opens. Average plus a bonus that shrinks as you open it."
     wait(1 if AUTOPLAY else 7)
-    coach = "That is optimism, the rule called UCB1: open the tallest beam. Opens 9 to 16, your choice."
+    coach = "That is optimism, the rule called UCB1: open the tallest beam, or not. Opens 9 to 16, your choice."
     roundNo = 2
     roundEnd = 16
     openRound()
     roundSummary()
 
+    STOP(5)
     qId = 3
     qText = "OPTIMIST opened a box once and it paid 0. What does it do with that box?"
     qOpts = ["never again", "opens it again later", "opens it every time"]
@@ -229,13 +237,14 @@ rule "Game 9: run":
     ask()
     coach = "Optimism in the face of uncertainty: what you barely know might be the best, so you look."
     wait(1 if AUTOPLAY else 5)
-    coach = "Opens 17 to 24."
+    coach = "Optimism in the face of uncertainty: what you barely know might be best, so look. Opens 17 to 24."
     roundNo = 3
     roundEnd = 24
     openRound()
     roundSummary()
 
     # Question 4 is answered by the replays, which have been running since the start
+    STOP(6)
     waitUntil(replayDone == true, 100)
     qId = 4
     qText = "Each strategy plays 20 games of 300 opens. Whose regret keeps climbing in a straight line?"
@@ -247,11 +256,12 @@ rule "Game 9: run":
     showRp = true
     coach = "Right side: regret added per 100 opens. Short games favour the coin; the optimist's line bends."
     wait(1 if AUTOPLAY else 9)
-    coach = "Opens 25 to 29."
+    coach = "Right side: the coin's bill never drops under {} per 100; the optimist's keeps shrinking. Opens 25 to 29.".format(round(10 * 100 * 0.1 * ((PMAX - 0.2) + (PMAX - 0.4) + (PMAX - 0.55)) / 4) / 10)
     roundNo = 4
     roundEnd = 29
     openRound()
 
+    STOP(7)
     qId = 5
     qText = "One open left. The box you know best, or a box you opened once that lost?"
     qOpts = ["the box I know", "the barely known box"]
@@ -261,12 +271,13 @@ rule "Game 9: run":
     ask()
     coach = "That is the value of information: an open is worth more when it could change what you do next."
     wait(1 if AUTOPLAY else 4)
-    coach = "Your last open."
+    coach = "Value of information: an open is worth more when it could change what you do next. Your last open."
     roundEnd = 30
     openRound()
     roundSummary()
 
     # Debrief
+    STOP(8)
     endLine[0] = "Odds were A {}, B {}, C {}, D {}. Your opens: A {}, B {}, C {}, D {}.".format(odds[0], odds[1], odds[2], odds[3], myN[0], myN[1], myN[2], myN[3])
     endLine[1] = "You: {} from 30 opens, regret {}. Same luck: greedy {}, coin {}, optimist {}.".format(myTot, myReg, sTot[0], sTot[1], sTot[2])
     endLine[2] = "Called: the explore-exploit dilemma, scored by regret. UCB1 explores where unsure."
@@ -446,12 +457,13 @@ rule "Game 9: replays":
 rule "Game 9: the screen":
     @Condition setupDone
     # Left block (the core's title, coach and score are rows 0 to 2): during play rows 3 to 6, at the end the five
-    # debrief rows take their place, so at most 8 rows show. Text rows stay under 88 characters, the right block's
+    # debrief rows take their place, so at most 8 rows show (row 12 explains the beams from round 2). Text rows stay under 88 characters, the right block's
     # under 58 (LAYOUT_BRIEF, 2026-11-22).
     hudText(getAllPlayers() if not showEnd else null, null, null, hudMine, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if not showEnd else null, null, null, hudStrat, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if not showEnd else null, null, null, hudReg, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if not showEnd else null, null, null, hudGreedy, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if beamsOn and not showEnd else null, null, null, "Blue beam: average plus a bonus that shrinks with each open. Tallest: least known.", HudPosition.LEFT, 12, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if showEnd else null, null, null, endLine[0], HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if showEnd else null, null, null, endLine[1], HudPosition.LEFT, 8, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if showEnd else null, null, null, endLine[2], HudPosition.LEFT, 9, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)

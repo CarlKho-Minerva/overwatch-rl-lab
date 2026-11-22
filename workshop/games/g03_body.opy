@@ -42,6 +42,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-6, 0, -14)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 7
 
 #!include "common.opy"
 
@@ -273,7 +274,7 @@ def waitF():
     if AUTOPLAY:
         wait(0.6)
         gotF = true
-    waitUntil(gotF == true, 90)
+    waitUntil(gotF == true, 99999)
     wantF = false
 
 rule "Game 3: Interact runs a sweep":
@@ -310,6 +311,7 @@ rule "Game 3: the screen":
 
 rule "Game 3: run":
     @Condition ready
+    STOP(1)
     learner.disallowButton(Button.ABILITY_1)
     learner.disallowButton(Button.ABILITY_2)
     learner.disallowButton(Button.ULTIMATE)
@@ -360,10 +362,8 @@ rule "Game 3: run":
     drawBoard()
 
     # ---- Round 1: the rules, and the first sweep ----
-    ctrl = "Answer: LEFT CLICK / RIGHT CLICK / MELEE.   F: one sweep.   WASD: walk."
+    ctrl = "Step: -1. Goal: +10. Red pit: -10, and the dive ends. Every pad starts at 0."
     coach = "Whiteboard before the round: you know this map's rules, so plan the dive instead of dying to find out."
-    HOLD(7)
-    coach = "Each step costs 1. The goal pays 10. A red pit costs 10 and ends the dive. Every pad starts at 0."
     HOLD(7)
     qId = 1
     qText = "After ONE sweep, the pad next to the goal shows?"
@@ -373,7 +373,8 @@ rule "Game 3: run":
     qWhy = "-1 for the step, +10 for the goal, plus the goal's 0: lecture 2's one-step rule."
     ask()
     runId = 1
-    coach = "Press F: each pad looks at its 4 moves (step reward + the number it lands on) and keeps the best."
+    # The answer's reason stays in the coach line until he presses F; the instruction lives in the controls row.
+    ctrl = "F: sweep 1. Each pad keeps its best move: step cost plus the number it lands on."
     while sweepN < 30:
         waitF()
         sweepOnce()
@@ -384,6 +385,7 @@ rule "Game 3: run":
             break
         if sweepN == 1:
             HOLD(3)
+            STOP(2)
             qId = 2
             qText = "Your start pad shows -1. Which sweep turns it positive?"
             qOpts = ["sweep 2", "sweep {}".format(dStart), "sweep {}".format(2 * dStart)]
@@ -391,9 +393,10 @@ rule "Game 3: run":
             qAuto = 1
             qWhy = "Good news moves one pad per sweep, and your pad is {} steps from the goal.".format(dStart)
             ask()
-            coach = "Press F for sweep 2."
+            ctrl = "F: sweep 2."
         elif sweepN == 2:
             HOLD(3)
+            STOP(3)
             qId = 3
             qText = "Does ONE plan score exactly these numbers?"
             qOpts = ["the best plan", "a worse plan", "no plan"]
@@ -401,9 +404,10 @@ rule "Game 3: run":
             qAuto = 0
             qWhy = "A -2 pad ringed by -2 pads scores -3 under any plan. Midway numbers are half-done sums."
             ask()
-            coach = "Press F for sweep 3."
+            ctrl = "F: sweep 3."
         elif sweepN == 3:
             HOLD(3)
+            STOP(4)
             qId = 4
             qText = "Which sweep is the first to change nothing?"
             qOpts = ["sweep {}".format(dMax), "sweep {}".format(dMax + 1), "never"]
@@ -411,10 +415,11 @@ rule "Game 3: run":
             qAuto = 1
             qWhy = "The farthest pad settles on sweep {}. Sweep {} changes nothing: that is how you know.".format(dMax, dMax + 1)
             ask()
-            coach = "Keep pressing F until a sweep changes nothing."
+            ctrl = "F: next sweep. Keep going until a sweep changes nothing."
 
     # ---- Round 2: the plan appears ----
     nSweeps = sweepN
+    ctrl = ""
     keepOld = false
     makeArrows()
     showArrows = true
@@ -426,6 +431,7 @@ rule "Game 3: run":
     HOLD(7)
     coach = "{} sweeps x {} pads x 4 moves = {} look-aheads. A real match has far too many states to sweep.".format(nSweeps, 25 - 1 - len(pits), looks)
     HOLD(7)
+    STOP(5)
     qId = 5
     qText = "Start pad says {}. Walk the lines. Your score?".format(round(V[START]))
     qOpts = ["10", "{}".format(round(V[START])), "luck decides"]
@@ -443,7 +449,7 @@ rule "Game 3: run":
     walkEnd = 0
     walkRestarts = 0
     prevP = START
-    walkT0 = NOW
+    walkT0 = -1
     lastMove = NOW
     walking = true
     while walking:
@@ -462,6 +468,8 @@ rule "Game 3: run":
             lastMove = NOW
         curP = PAD_OF(learner.getPosition())
         if curP != prevP:
+            if walkT0 < 0:
+                walkT0 = NOW
             walkSteps += abs(floor(curP / 5) - floor(prevP / 5)) + abs(curP % 5 - prevP % 5)
             walkRet += 0 - (abs(floor(curP / 5) - floor(prevP / 5)) + abs(curP % 5 - prevP % 5)) + (10 if curP == goal else 0) - (10 if curP in pits else 0)
             prevP = curP
@@ -471,7 +479,7 @@ rule "Game 3: run":
             elif curP in pits:
                 walkEnd = 2
                 walking = false
-        if NOW - walkT0 > 90:
+        if walkT0 >= 0 and NOW - walkT0 > 90:
             walking = false
         wait(0.05)
     # walk: pads entered, what he scored, the start pad's number, end (1 goal, 2 pit, 0 time ran out), restarts after a fall
@@ -492,10 +500,10 @@ rule "Game 3: run":
     pitTries = 0
     # 2026-11-22: this used to say "the right-hand pit", which was the left-hand one from the start pad and
     # neither from where the walk ends. The board now labels the pit that moves.
+    STOP(6)
     markPit = true
     drawBoard()
-    ctrl = "WASD: go to a pad.   R: move the pit marked THIS PIT MOVES to that pad."
-    coach = "The enemy moved. Stand on any pad and press R: the pit marked THIS PIT MOVES jumps there."
+    ctrl = "WASD: go to any pad, then R: the pit marked THIS PIT MOVES jumps there."
     while not pitOk:
         gotR = false
         wantR = true
@@ -503,7 +511,7 @@ rule "Game 3: run":
             learner.teleport(padPos[AUTO_PIT])
             wait(0.6)
             gotR = true
-        waitUntil(gotR == true, 60)
+        waitUntil(gotR == true, 99999)
         wantR = false
         pitTries += 1
         pitTo = PAD_OF(learner.getPosition())
@@ -543,7 +551,6 @@ rule "Game 3: run":
 
     # ---- Round 5: plan again ----
     ctrl = "F: wipe the board and plan again (the sweeps run by themselves)."
-    coach = "Press F: wipe the whiteboard and sweep the new map until nothing changes."
     waitF()
     runId = 2
     clearBoard()
@@ -567,8 +574,10 @@ rule "Game 3: run":
     HOLD(8)
 
     # ---- Debrief ----
+    STOP(7)
+    # The replan's result stays in the coach line; the honest note goes in the controls row.
+    ctrl = "Simplified: moves never slip, and 25 pads is tiny next to a real game."
     deb = ["You did: planned the dive one sweep per F, walked the plan, then moved a pit.", "Called: dynamic programming, here value iteration: look one step ahead, repeat.", "In an LLM agent: it can plan tool calls only if it knows what each tool does."]
     showDebrief = true
-    coach = "Predictions right: {} of {}. Simplified: moves never slip, and 25 pads is tiny next to a real game.".format(predRight, predTotal)
     HOLD(12)
     finish()

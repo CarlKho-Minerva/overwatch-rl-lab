@@ -44,6 +44,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-11, 0, -18.5)
 #!define HOME_FACING vect(1, 0, 0)
+#!define STOPS 6
 
 #!include "common.opy"
 
@@ -96,6 +97,9 @@ globalvar lane = 0
 globalvar laneActive = false
 globalvar laneChoice = -1
 globalvar laneHead = ""
+# Left row 4: what this stop is about, or the lane prompt while he chooses. It holds until he acts, so the coach line
+# can keep the last result on screen while he is away on the lecture's page.
+globalvar row4 = ""
 globalvar boopsOn = false
 globalvar curCell = 0
 globalvar seenCell = 0
@@ -174,13 +178,16 @@ def chooseLane():
     learner.disallowButton(Button.PRIMARY_FIRE)
     learner.disallowButton(Button.SECONDARY_FIRE)
     wait(0.4)
+    row4 = laneHead
     laneActive = true
     if AUTOPLAY:
         wait(1)
         laneChoice = autoLanes[crossing - 1]
     else:
-        waitUntil(laneChoice >= 0, 90)
+        # No time limit for a person: he may be reading the page when the choice comes up. (It gave up after 90 s.)
+        waitUntil(laneChoice >= 0, 99999)
     laneActive = false
+    row4 = ""
     if laneChoice < 0:
         laneChoice = 1
     lane = laneChoice
@@ -215,7 +222,9 @@ def crossOnce():
     realFall = 0
     hudRun = "Now: {} lane, 0 steps, 0 boops, return 0".format(laneName[lane])
     coach = "GO. Walk the {} lane to the green ring. Each pad you step onto costs 1.".format(laneName[lane])
-    tStart = NOW
+    # The crossing's clock starts at his first step, not when the crossing opens (he may still be on the page).
+    # The stand-in keeps its clock from the start.
+    tStart = NOW if AUTOPLAY else -1
     while outcome == 0:
         wait(0.1)
         if AUTOPLAY:
@@ -228,11 +237,13 @@ def crossOnce():
             ret += -100
             realFall = 1
             LOG("RLG,E,{},selffall,{},{},{}".format(GAME_ID, crossing, steps, curCell))
-        elif NOW - tStart > (40 if AUTOPLAY else 90) or steps >= 40:
+        elif (tStart >= 0 and NOW - tStart > (40 if AUTOPLAY else 90)) or steps >= 40:
             outcome = 3
         else:
             seenCell = CELL_AT(learner.getPosition())
             if seenCell != curCell:
+                if tStart < 0:
+                    tStart = NOW
                 # One step. Draw first, log the draw, then use it.
                 roll = random.randint(1, 10)
                 mv = random.randint(0, 3)
@@ -289,7 +300,7 @@ rule "Game 5: the screen (lane choice, controls, results)":
     # Left block: title, coach, predictions (the core), then controls, the lane prompt while choosing, the debrief.
     # Right block, kept narrow: this crossing, the four results, the long-run averages.
     hudText(getAllPlayers(), null, null, "WASD: walk.  LEFT CLICK / RIGHT CLICK / MELEE: answer and choose.  Abilities are off.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if laneActive else null, null, laneHead, null, HudPosition.LEFT, 4, Color.WHITE, Color.YELLOW, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, row4, null, HudPosition.LEFT, 4, Color.WHITE, Color.YELLOW, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRun, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRes[0], HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRes[1], HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
@@ -304,6 +315,8 @@ rule "Game 5: the screen (lane choice, controls, results)":
 
 rule "Game 5: run":
     @Condition ready
+    # Stop 1: the calm crossing (question 1, lane, crossing 1).
+    STOP(1)
     learner.disallowButton(Button.ABILITY_1)
     learner.disallowButton(Button.ABILITY_2)
     learner.disallowButton(Button.ULTIMATE)
@@ -372,6 +385,7 @@ rule "Game 5: run":
     crossing = 1
     boopsOn = false
     coach = "Crossing 1. No Lucio yet. The edge lane is 11 steps, the inland lane 13."
+    row4 = "Each pad you step onto costs 1, the goal pays 50, a fall costs 100. Edge lane 11 steps, inland 13."
     HOLD(3)
     qId = 1
     qText = "No boops. Each step costs 1, the goal pays 50. Which lane pays more?"
@@ -385,7 +399,8 @@ rule "Game 5: run":
     coach = "Crossing 1 done. Return {}. That was the player you wish you were: nobody pushing.".format(ret)
     HOLD(4)
 
-    # Lucio arrives.
+    # Stop 2: Lucio arrives (question 2, lane, crossing 2). The last result stays on the coach line.
+    STOP(2)
     createDummy(Hero.LUCIO, Team.2, -1, vect(-11, FLOOR_Y, -11), vect(0, 0, -1))
     wait(1)
     if len([p for p in getPlayers(Team.2) if p.isDummy()]) > 0:
@@ -398,7 +413,7 @@ rule "Game 5: run":
 
     # Crossing 2: the boops start.
     crossing = 2
-    coach = "Lucio is here. On one step in ten he boops you one pad in a random direction instead."
+    row4 = "Lucio is here. On one step in ten he boops you one pad in a random direction instead."
     HOLD(5)
     qId = 2
     qText = "You step off an edge pad. What is the chance this step ends over the drop?"
@@ -412,7 +427,8 @@ rule "Game 5: run":
     coach = "Return {}. In the lecture the random move is the learner's own: it keeps her trying things.".format(ret)
     HOLD(5)
 
-    # Crossing 3.
+    # Stop 3: how often the edge lane ends in a fall (question 3, lane, crossing 3).
+    STOP(3)
     crossing = 3
     qId = 3
     qText = "Walk the whole edge lane with boops. How often do you fall before the goal?"
@@ -426,7 +442,8 @@ rule "Game 5: run":
     coach = "Return {}. One crossing is luck. The game can work out the long run instead.".format(ret)
     HOLD(4)
 
-    # Crossing 4: the reveal comes before it, so the last choice can use it.
+    # Stop 4: the long run (question 4 and its reveal, lane, crossing 4).
+    STOP(4)
     crossing = 4
     qId = 4
     qText = "With boops, over many crossings, which lane earns more on average?"
@@ -442,8 +459,9 @@ rule "Game 5: run":
     coach = "Return {}. Your four crossings are on the right; the long-run averages under them.".format(ret)
     HOLD(4)
 
-    # Naming it.
-    coach = "On-policy: learn about the way you really act. Off-policy: learn about the best way, acting another."
+    # Stop 5: naming it (question 5 and its reveal).
+    STOP(5)
+    row4 = "On-policy: learn about the way you really act. Off-policy: learn about the best way, acting another."
     HOLD(6)
     qId = 5
     qText = "TD (lecture 4): move a guess toward the reward plus the NEXT guess. Which learner prefers EDGE?"
@@ -452,15 +470,17 @@ rule "Game 5: run":
     qAuto = 0
     qWhy = "The best next move is never a boop: Q-learning rates the edge {}. SARSA counts boops: {}.".format(round(vEdge0), vEdge)
     ask()
+    row4 = ""
     coach = "SARSA learns the lane for the booped player you are: inland. Q-learning, the never-booped one: edge."
     HOLD(6)
     coach = "Honest note: the boop stands in for your own random move. A boop from the world, Q-learning counts too."
     HOLD(6)
 
+    # Stop 6: the debrief.
+    STOP(6)
     db1 = "You did: four crossings beside a drop, boops on. Long run: edge {}, inland {}.".format(vEdge, vIn)
     db2 = "It is called: SARSA learns on-policy, Q-learning off-policy. By a drop they disagree."
     db3 = "In an agent: judge a plan by what it will really do, slips included, not a perfect run."
     db4 = "Your predictions: {} right of {}.".format(predRight, predTotal)
-    coach = "Debrief. The game is over."
     LOG("RLG,E,{},debrief,{},{}".format(GAME_ID, predRight, predTotal))
     finish()

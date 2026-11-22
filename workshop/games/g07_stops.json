@@ -1,0 +1,84 @@
+{
+ "game": 7,
+ "stops": [
+  {
+   "n": 1,
+   "after": "05:03",
+   "title": "Predict the bars against a habit",
+   "silver": "Silver stops scoring moves and gives the policy, the rule for choosing a move, its own adjustable numbers, which set how likely each move is.",
+   "do": "The question floats in front of you. Answer with LEFT CLICK, RIGHT CLICK or MELEE, as the line under it says.",
+   "predict": "Commit to what the bot's three bars will do if you pick the same hero six rounds in a row.",
+   "saw": "The bot raises the odds of whatever won. Against one hero only that hero's counter keeps winning, so its bar is the one that can climb. The three bars are the bot's whole brain: three preferences turned into three odds by a softmax, a rule that makes the odds add up to 100%.",
+   "agent": "A language model is this bot with one bar per word: a preference for every word, turned into odds by a softmax."
+  },
+  {
+   "n": 2,
+   "after": "05:03",
+   "title": "Play one hero six times",
+   "silver": "Those numbers can sit in a table, a simple formula or a neural network, and learning means changing them, not filling in a table of move scores.",
+   "do": "Pick a hero with LEFT CLICK (Tracer), RIGHT CLICK (Widowmaker) or MELEE (Pharah), then pick the same one five more times. The bot locks in its own pick before you press, from its odds alone.",
+   "predict": "Before each press, guess whether the bar of the hero that beats yours will go up, go down or stay put this round.",
+   "saw": "Your counter's bar climbed round by round. The coach line shows each push: nudge size 0.6 times (reward minus its usual reward) times (1 minus the odds it gave that pick). A pick it thought unlikely moves more. The bot learned its odds directly, with no score for any move: Silver calls the odds a policy, and this way of learning them a policy gradient.",
+   "agent": "Training a model on outputs that scored well is this same push, applied to every word of the output."
+  },
+  {
+   "n": 3,
+   "after": "10:26",
+   "title": "Find where random picks go",
+   "silver": "Silver lists why a policy is worth learning directly, and the third reason is that it can be random on purpose, which a rule that always takes the best-scored move cannot be.",
+   "do": "Answer the question with LEFT CLICK, RIGHT CLICK or MELEE.",
+   "predict": "Decide where a bot that takes its best hero, plus a random hero one time in ten, spends its randomness.",
+   "saw": "The lecture 5 rule, epsilon-greedy, sprays its randomness evenly: its best hero 93% of the time and each other hero 3%, whatever they earned. This bot aims its randomness instead. Each hero's odds come from what that hero did, so a softmax policy is random in the amounts that worked.",
+   "agent": "Sampling temperature spreads the model's own learned odds, which is aimed randomness, not a flat chance of a random word."
+  },
+  {
+   "n": 4,
+   "after": "14:29",
+   "title": "Beat a bot with a rule",
+   "silver": "In rock-paper-scissors any fixed choice gets exploited: a player who always throws rock loses to anyone who notices and throws paper.",
+   "do": "Answer the question with LEFT CLICK, RIGHT CLICK or MELEE, then read the line that follows about two squares that look alike.",
+   "predict": "Decide what beats a bot that must pick by a fixed rule, such as always Pharah, or the three heroes in turn.",
+   "saw": "Anyone who spots the rule beats it, every round, however clever the rule is. Only odds that are random on purpose cannot be read. Silver's aliased gridworld, two squares that look the same, makes the same point: one fixed move fails in one of them, and a coin flip gets out.",
+   "agent": "A support agent sees the conversation, not the customer's real wishes, so two different customers can look the same to it, like the grey squares."
+  },
+  {
+   "n": 5,
+   "after": "14:29",
+   "title": "Name the mix nobody can beat",
+   "silver": "The only stable answer in rock-paper-scissors is to play each option a third of the time, the point where neither player gains by changing alone.",
+   "do": "Answer the question with LEFT CLICK, RIGHT CLICK or MELEE.",
+   "predict": "Commit to the mix of your own picks that no counter-picker can beat on average.",
+   "saw": "A third each. Against it every counter wins exactly as often as it loses, so a perfect counter-picker nets zero. Silver calls this the Nash equilibrium, the mix neither player can improve on alone. It is a policy that has to be random to be best."
+  },
+  {
+   "n": 6,
+   "after": "48:26",
+   "title": "Free play against a fresh bot",
+   "silver": "REINFORCE, the simplest policy gradient, waits for the end of an episode and pushes each move it made by the reward that followed, times a step size.",
+   "do": "A fresh bot starts at a third each. Play five rounds with LEFT CLICK, RIGHT CLICK or MELEE, and try to leave it no pattern.",
+   "predict": "Guess how close to zero you can bring the number that says what a perfect counter-picker would win against your mix.",
+   "saw": "The left block shows your mix and what a perfect counter-picker would net against it, in wins minus losses per 100 rounds. Five picks cannot split into thirds, so the best possible is 20. The bars wander instead of climbing, because no hero keeps winning. Each round here is a whole episode, so its reward is the return that REINFORCE pushes by.",
+   "agent": "Training on whole conversations scored at the end works this way: one reward, pushed back onto every token the agent chose."
+  },
+  {
+   "n": 7,
+   "after": "52:54",
+   "title": "Quadruple the nudge and watch",
+   "silver": "Silver treats the step size as a dial between smooth learning and greedy jumps, and warns that big steps drive the other odds toward zero.",
+   "do": "Answer the question, then play four more rounds with LEFT CLICK, RIGHT CLICK or MELEE. The nudge size is now 2.5 instead of 0.6.",
+   "predict": "Commit to what the bars will do once each push is about four times bigger.",
+   "saw": "One lucky round can now throw a bar most of the way to the top. A single win from even odds lifts a pick to 48% at nudge 0.6 and to 86% at nudge 2.5. Near the top, 1 minus its odds is close to zero, so later rounds barely move it back. That is the step size Silver warns about.",
+   "agent": "A training run with too large a step can lock a model onto one answer that later updates barely move."
+  },
+  {
+   "n": 8,
+   "after": "1:07:03",
+   "title": "Read the debrief",
+   "silver": "Silver subtracts a baseline, the usual result from that situation, from each reward: the push keeps its direction on average and gets much less noisy.",
+   "do": "Nothing to press. Read the three debrief lines on the left and your prediction score.",
+   "predict": "Before reading, name the one number the bot compared every reward against.",
+   "saw": "The bot compared each reward with its usual reward, a running average that moved a quarter of the way toward each new reward. A win it expected barely moved its odds; a draw when it usually won counted against the pick. That usual reward is the baseline, and reward minus baseline is what Silver calls the advantage.",
+   "agent": "A language model draws each word from a softmax, temperature sets how spread the odds are, and training pushes up answers that beat the average of several tries."
+  }
+ ]
+}

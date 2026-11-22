@@ -41,6 +41,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-14, 0, -14)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 8
 
 #!include "common.opy"
 
@@ -76,7 +77,9 @@ globalvar swingB = 0
 globalvar swingO = 0
 globalvar board = ["", "", "", "", ""]
 globalvar status = ""
-globalvar deb = ["", "", ""]
+# Left rows 4 to 6. Until the debrief: BLUE's rule, ORANGE's rule, and a note that names what he just saw. They hold
+# until replaced, so a person reading the lecture's page in another window comes back to them (2026-11-22).
+globalvar deb = ["BLUE: at the point, each ring's guess moves halfway to the time the rest of that walk took.", "ORANGE: at each ring, the last ring's guess moves halfway to that leg's time plus ORANGE's guess here.", "Above each ring: two guesses of the seconds from there to the point. Both start at 3 s a leg."]
 globalvar showDeb = false
 
 macro ALPHA = 0.5
@@ -153,14 +156,17 @@ def doWalk():
         legState[leg] = 2 if mud[leg] == 1 else 1
         learner.setMoveSpeed(MUD_SPEED if mud[leg] == 1 else CLEAR_SPEED)
         status = "WALK {} OF 5    LEG {}: {}".format(walk + 1, leg + 1, "MUD (slow)" if mud[leg] == 1 else "clear")
-        if leg == 0:
-            coach = "Walk {} of 5. Leg 1 is {}. The clock runs only between rings.".format(walk + 1, "MUD" if mud[0] == 1 else "clear")
+        if walk == 0 and leg == 1:
+            STOP(2)
         if AUTOPLAY:
             learner.startThrottleInDirection(directionTowards(vect(learner.getPosition().x, 0, learner.getPosition().z), ringPos[leg + 1]), 1, Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.NONE)
         waitUntil(not AT(leg), 10 if AUTOPLAY else 99999)
         t0 = NOW
+        if leg == 0:
+            # Set only once he has left the spawn ring: until then the last result and its reason stay on screen.
+            coach = "Walk {} of 5. Leg 1 is {}. The clock runs only between rings.".format(walk + 1, "MUD" if mud[0] == 1 else "clear")
         while not AT(leg + 1):
-            waitUntil(AT(leg + 1) or learner.fell, 15 if AUTOPLAY else 60)
+            waitUntil(AT(leg + 1) or learner.fell, 15 if AUTOPLAY else 99999)
             if learner.fell:
                 if learner.isDead():
                     learner.resurrect()
@@ -225,12 +231,13 @@ rule "Game 4: the screen":
     hudText(getAllPlayers(), null, null, board[3], HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, board[4], HudPosition.RIGHT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, "WASD: walk to the next ring. Answer with left click, right click or melee.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showDeb else null, null, deb[0], null, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showDeb else null, null, deb[1], null, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showDeb else null, null, deb[2], null, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, deb[0], null, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE if showDeb else Color.SKY_BLUE, Color.WHITE, HudReeval.VISIBILITY_STRING_AND_COLOR)
+    hudText(getAllPlayers(), null, deb[1], null, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE if showDeb else Color.ORANGE, Color.WHITE, HudReeval.VISIBILITY_STRING_AND_COLOR)
+    hudText(getAllPlayers(), null, deb[2], null, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
 rule "Game 4: run":
     @Condition ready
+    STOP(1)
     # 2026-11-22: the button rule, not the ability switch: the core turns the ability switch back on after each
     # question (it switches Blink off while a question is up, because right click is also Blink).
     learner.disallowButton(Button.ABILITY_1)
@@ -274,20 +281,14 @@ rule "Game 4: run":
         createInWorldText(getAllPlayers(), tO[evalOnce(ii)], ringPos[ii] + vect(0, 1.4, 0), 1.6, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.ORANGE)
 
     status = "BEFORE THE FIRST WALK"
+    # Stop 1 opens on the first walk, which waits for him to leave the spawn ring. The two rules stay on the left rows
+    # (they were four timed lines, 27 seconds, gone by the time he came back from the page).
     coach = "Back from spawn: walk the rings to the point, five times. Some legs are mud and slow you down."
-    PAUSE(6)
-    coach = "Above each ring: two guesses of the seconds from there to the point. Both start at 3 s a leg."
-    PAUSE(6)
-    coach = "BLUE: at the point, each guess moves halfway to the time the rest of that walk really took."
-    PAUSE(7)
-    coach = "ORANGE: at each ring, the last ring's guess moves halfway to that leg's time plus ORANGE's guess here."
-    PAUSE(8)
 
     walk = 0
     doWalk()
-    coach = "BLUE is called Monte Carlo: it waits for the end and learns from the real total. No rules needed."
-    PAUSE(7)
-
+    deb[2] = "BLUE is called Monte Carlo: it waits for the end and learns from the real total. No rules needed."
+    STOP(3)
     qId = 2
     qText = "Lecture 2's Bellman rule: time from here = this leg + time from the next ring. Which guess is built so?"
     qOpts = ["BLUE", "ORANGE"]
@@ -295,12 +296,12 @@ rule "Game 4: run":
     qAuto = 1
     qWhy = "ORANGE: a real leg plus its own next guess, a guess fixing a guess. BLUE uses only real times."
     ask()
-    coach = "ORANGE is temporal-difference learning, TD. Fixing a guess with your next guess is bootstrapping."
-    PAUSE(7)
-
+    deb[2] = "ORANGE is temporal-difference learning, TD. Fixing a guess with your next guess is bootstrapping."
+    STOP(4)
     walk = 1
     doWalk()
 
+    STOP(5)
     qId = 3
     qText = "By the last walk, whose spawn guess will have moved around more in total?"
     qOpts = ["BLUE", "ORANGE", "about the same"]
@@ -312,6 +313,7 @@ rule "Game 4: run":
     walk = 2
     doWalk()
 
+    STOP(6)
     qId = 4
     qText = "On walk 4 the round ends as you reach ring 2, and you go back. Who learns anything from that walk?"
     qOpts = ["BLUE", "ORANGE", "neither"]
@@ -322,9 +324,8 @@ rule "Game 4: run":
 
     walk = 3
     doWalk()
-    coach = "TD learns before the end, and from walks that are cut short. Monte Carlo needs walks that finish."
-    PAUSE(7)
-
+    deb[2] = "TD learns before the end, and from walks that are cut short. Monte Carlo needs walks that finish."
+    STOP(7)
     qId = 5
     qText = "Lecture 3's planner found values without walking at all. What would it need to do that here?"
     qOpts = ["only the map", "each leg's mud odds and speeds", "nothing more"]
@@ -332,8 +333,7 @@ rule "Game 4: run":
     qAuto = 1
     qWhy = "Planning needs the rules: how likely and how slow mud is per leg. These two learn from walks."
     ask()
-    coach = "Neither predictor was told the mud odds. Learning values from walks alone is model-free prediction."
-    PAUSE(7)
+    deb[2] = "Neither predictor was told the mud odds. Learning values from walks alone is model-free prediction."
 
     walk = 4
     doWalk()
@@ -352,8 +352,10 @@ rule "Game 4: run":
     status = "ALL FIVE WALKS DONE"
     coach = "Spawn guess, total movement: BLUE {} s, ORANGE {} s. {}".format(round(swingB * 10) / 10, round(swingO * 10) / 10, "BLUE swung more." if swingB > swingO else "This time ORANGE did; usually BLUE does.")
     PAUSE(7)
-    coach = "ORANGE is steadier but leans on its own guesses. If they start wrong, it stays wrong a while: bias."
+    deb[2] = "ORANGE is steadier but leans on its own guesses. If they start wrong, it stays wrong a while: bias."
     PAUSE(7)
+
+    STOP(8)
 
     deb = ["What you did: walked back from spawn 5 times while two guesses of your time were fixed at each ring.", "Its name: BLUE is Monte Carlo (real totals, no bias, noisy). ORANGE is TD (a leg plus a guess, biased).", "In an agent: judge each turn by the final score (Monte Carlo) or by how a value guess moved that turn (TD)."]
     showDeb = true

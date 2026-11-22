@@ -61,73 +61,75 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: padPos
-        32: dirv
-        33: goal
-        34: pits
-        35: V
-        36: Vnew
-        37: Vsave
-        38: chg
-        39: newPos
-        40: lastCh
-        41: arrow
-        42: arrowOld
-        43: flip
-        44: qs
-        45: qBest
-        46: sweepN
-        47: nChg
-        48: maxChg
-        49: looks
-        50: looks0
-        51: keepOld
-        52: wrongN
-        53: showArrows
-        54: runId
-        55: nSweeps
-        56: dStart
-        57: dMax
-        58: vStart
-        59: walkSim
-        60: wantF
-        61: gotF
-        62: wantR
-        63: markPit
-        64: gotR
-        65: walking
-        66: walkRet
-        67: walkSteps
-        68: walkEnd
-        69: walkRestarts
-        70: walkT0
-        71: lastMove
-        72: curP
-        73: prevP
-        74: pitFrom
-        75: pitTo
-        76: pitOk
-        77: pitTries
-        78: ctrl
-        79: boardTxt
-        80: boardTxt2
-        81: padTxt
-        82: showDebrief
-        83: deb
-        84: npP
-        85: npA
-        86: npS
-        87: npR
-        88: npRow
-        89: npCol
-        90: lp
-        91: la
-        92: wp
-        93: mp
-        94: sp
-        95: dp
-        96: rp
-        97: wk
+        31: stopNo
+        32: titleLine
+        33: padPos
+        34: dirv
+        35: goal
+        36: pits
+        37: V
+        38: Vnew
+        39: Vsave
+        40: chg
+        41: newPos
+        42: lastCh
+        43: arrow
+        44: arrowOld
+        45: flip
+        46: qs
+        47: qBest
+        48: sweepN
+        49: nChg
+        50: maxChg
+        51: looks
+        52: looks0
+        53: keepOld
+        54: wrongN
+        55: showArrows
+        56: runId
+        57: nSweeps
+        58: dStart
+        59: dMax
+        60: vStart
+        61: walkSim
+        62: wantF
+        63: gotF
+        64: wantR
+        65: markPit
+        66: gotR
+        67: walking
+        68: walkRet
+        69: walkSteps
+        70: walkEnd
+        71: walkRestarts
+        72: walkT0
+        73: lastMove
+        74: curP
+        75: prevP
+        76: pitFrom
+        77: pitTo
+        78: pitOk
+        79: pitTries
+        80: ctrl
+        81: boardTxt
+        82: boardTxt2
+        83: padTxt
+        84: showDebrief
+        85: deb
+        86: npP
+        87: npA
+        88: npS
+        89: npR
+        90: npRow
+        91: npCol
+        92: lp
+        93: la
+        94: wp
+        95: mp
+        96: sp
+        97: dp
+        98: rp
+        99: wk
     player:
         0: fellCount
         1: fell
@@ -168,6 +170,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD"));
         Set Global Variable(padPos, Empty Array);
         Set Global Variable(dirv, Array(Left, Forward, Right, Backward));
         Set Global Variable(goal, 23);
@@ -372,7 +375,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
         Set Global Variable(qShown, Total Time Elapsed);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,3,{0}", Global.qId));
-        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        "2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading\nthe page when a question comes up. (It gave up after 90 seconds.)"
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 99999);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
         Destroy In-World Text(Global.qTxtLow);
@@ -447,6 +451,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,3,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,3,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -458,7 +463,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 3: THE WHITEBOARD"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -681,7 +686,7 @@ rule ("Game 3: wait for the player to press Interact (the stand-in presses it af
         Set Global Variable(gotF, False);
         Wait(0.3, Ignore Condition);
         Set Global Variable(wantF, True);
-        Wait Until(Compare(Global.gotF, ==, True), 90);
+        Wait Until(Compare(Global.gotF, ==, True), 99999);
         Set Global Variable(wantF, False);
     }
 }
@@ -761,6 +766,9 @@ rule ("Game 3: run") {
         Global.ready != False;
     }
     actions {
+        Set Global Variable(stopNo, 1);
+        Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
         Disallow Button(Global.learner, Button(Ability 1));
         Disallow Button(Global.learner, Button(Ability 2));
         Disallow Button(Global.learner, Button(Ultimate));
@@ -831,10 +839,8 @@ rule ("Game 3: run") {
         Set Global Variable(showArrows, False);
         Call Subroutine(drawBoard);
         "---- Round 1: the rules, and the first sweep ----"
-        Set Global Variable(ctrl, Custom String("Answer: LEFT CLICK / RIGHT CLICK / MELEE.   F: one sweep.   WASD: walk."));
+        Set Global Variable(ctrl, Custom String("Step: -1. Goal: +10. Red pit: -10, and the dive ends. Every pad starts at 0."));
         Set Global Variable(coach, Custom String("Whiteboard before the round: you know this map's rules, so plan the dive instead of dying to find out."));
-        Wait(7, Ignore Condition);
-        Set Global Variable(coach, Custom String("Each step costs 1. The goal pays 10. A red pit costs 10 and ends the dive. Every pad starts at 0."));
         Wait(7, Ignore Condition);
         Set Global Variable(qId, 1);
         Set Global Variable(qText, Custom String("After ONE sweep, the pad next to the goal shows?"));
@@ -844,7 +850,8 @@ rule ("Game 3: run") {
         Set Global Variable(qWhy, Custom String("-1 for the step, +10 for the goal, plus the goal's 0: lecture 2's one-step rule."));
         Call Subroutine(ask);
         Set Global Variable(runId, 1);
-        Set Global Variable(coach, Custom String("Press F: each pad looks at its 4 moves (step reward + the number it lands on) and keeps the best."));
+        "The answer's reason stays in the coach line until he presses F; the instruction lives in the controls row."
+        Set Global Variable(ctrl, Custom String("F: sweep 1. Each pad keeps its best move: step cost plus the number it lands on."));
         While(Compare(Global.sweepN, <, 30));
             Call Subroutine(waitF);
             Call Subroutine(sweepOnce);
@@ -856,6 +863,9 @@ rule ("Game 3: run") {
             End;
             If(Compare(Global.sweepN, ==, 1));
                 Wait(3, Ignore Condition);
+                Set Global Variable(stopNo, 2);
+                Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
                 Set Global Variable(qId, 2);
                 Set Global Variable(qText, Custom String("Your start pad shows -1. Which sweep turns it positive?"));
                 Set Global Variable(qOpts, Array(Custom String("sweep 2"), Custom String("sweep {0}", Global.dStart), Custom String("sweep {0}", Multiply(2, Global.dStart))));
@@ -863,9 +873,12 @@ rule ("Game 3: run") {
                 Set Global Variable(qAuto, 1);
                 Set Global Variable(qWhy, Custom String("Good news moves one pad per sweep, and your pad is {0} steps from the goal.", Global.dStart));
                 Call Subroutine(ask);
-                Set Global Variable(coach, Custom String("Press F for sweep 2."));
+                Set Global Variable(ctrl, Custom String("F: sweep 2."));
             Else If(Compare(Global.sweepN, ==, 2));
                 Wait(3, Ignore Condition);
+                Set Global Variable(stopNo, 3);
+                Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
                 Set Global Variable(qId, 3);
                 Set Global Variable(qText, Custom String("Does ONE plan score exactly these numbers?"));
                 Set Global Variable(qOpts, Array(Custom String("the best plan"), Custom String("a worse plan"), Custom String("no plan")));
@@ -873,9 +886,12 @@ rule ("Game 3: run") {
                 Set Global Variable(qAuto, 0);
                 Set Global Variable(qWhy, Custom String("A -2 pad ringed by -2 pads scores -3 under any plan. Midway numbers are half-done sums."));
                 Call Subroutine(ask);
-                Set Global Variable(coach, Custom String("Press F for sweep 3."));
+                Set Global Variable(ctrl, Custom String("F: sweep 3."));
             Else If(Compare(Global.sweepN, ==, 3));
                 Wait(3, Ignore Condition);
+                Set Global Variable(stopNo, 4);
+                Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
                 Set Global Variable(qId, 4);
                 Set Global Variable(qText, Custom String("Which sweep is the first to change nothing?"));
                 Set Global Variable(qOpts, Array(Custom String("sweep {0}", Global.dMax), Custom String("sweep {0}", Add(Global.dMax, 1)), Custom String("never")));
@@ -883,11 +899,12 @@ rule ("Game 3: run") {
                 Set Global Variable(qAuto, 1);
                 Set Global Variable(qWhy, Custom String("The farthest pad settles on sweep {0}. Sweep {1} changes nothing: that is how you know.", Global.dMax, Add(Global.dMax, 1)));
                 Call Subroutine(ask);
-                Set Global Variable(coach, Custom String("Keep pressing F until a sweep changes nothing."));
+                Set Global Variable(ctrl, Custom String("F: next sweep. Keep going until a sweep changes nothing."));
             End;
         End;
         "---- Round 2: the plan appears ----"
         Set Global Variable(nSweeps, Global.sweepN);
+        Set Global Variable(ctrl, Custom String(""));
         Set Global Variable(keepOld, False);
         Call Subroutine(makeArrows);
         Set Global Variable(showArrows, True);
@@ -899,6 +916,9 @@ rule ("Game 3: run") {
         Wait(7, Ignore Condition);
         Set Global Variable(coach, Custom String("{0} sweeps x {1} pads x 4 moves = {2} look-aheads. A real match has far too many states to sweep.", Global.nSweeps, Subtract(24, Count Of(Global.pits)), Global.looks));
         Wait(7, Ignore Condition);
+        Set Global Variable(stopNo, 5);
+        Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("Start pad says {0}. Walk the lines. Your score?", Round To Integer(Value In Array(Global.V, 2), To Nearest)));
         Set Global Variable(qOpts, Array(Custom String("10"), Custom String("{0}", Round To Integer(Value In Array(Global.V, 2), To Nearest)), Custom String("luck decides")));
@@ -915,7 +935,7 @@ rule ("Game 3: run") {
         Set Global Variable(walkEnd, 0);
         Set Global Variable(walkRestarts, 0);
         Set Global Variable(prevP, 2);
-        Set Global Variable(walkT0, Total Time Elapsed);
+        Set Global Variable(walkT0, -1);
         Set Global Variable(lastMove, Total Time Elapsed);
         Set Global Variable(walking, True);
         While(Global.walking);
@@ -929,6 +949,9 @@ rule ("Game 3: run") {
             End;
             Set Global Variable(curP, Add(Min(Max(Round To Integer(Divide(Add(X Component Of(Position Of(Global.learner)), 16), 4), Down), 0), 4), Multiply(5, Min(Max(Round To Integer(Divide(Add(Z Component Of(Position Of(Global.learner)), 16), 4), Down), 0), 4))));
             If(Compare(Global.curP, !=, Global.prevP));
+                If(Compare(Global.walkT0, <, 0));
+                    Set Global Variable(walkT0, Total Time Elapsed);
+                End;
                 Modify Global Variable(walkSteps, Add, Add(Absolute Value(Subtract(Round To Integer(Divide(Global.curP, 5), Down), Round To Integer(Divide(Global.prevP, 5), Down))), Absolute Value(Subtract(Modulo(Global.curP, 5), Modulo(Global.prevP, 5)))));
                 Modify Global Variable(walkRet, Add, Subtract(Add(Subtract(0, Add(Absolute Value(Subtract(Round To Integer(Divide(Global.curP, 5), Down), Round To Integer(Divide(Global.prevP, 5), Down))), Absolute Value(Subtract(Modulo(Global.curP, 5), Modulo(Global.prevP, 5))))), If-Then-Else(Compare(Global.curP, ==, Global.goal), 10, 0)), If-Then-Else(Array Contains(Global.pits, Global.curP), 10, 0)));
                 Set Global Variable(prevP, Global.curP);
@@ -940,7 +963,7 @@ rule ("Game 3: run") {
                     Set Global Variable(walking, False);
                 End;
             End;
-            If(Compare(Subtract(Total Time Elapsed, Global.walkT0), >, 90));
+            If(And(Compare(Global.walkT0, >=, 0), Compare(Subtract(Total Time Elapsed, Global.walkT0), >, 90)));
                 Set Global Variable(walking, False);
             End;
             Wait(0.05, Ignore Condition);
@@ -962,14 +985,18 @@ rule ("Game 3: run") {
         Set Global Variable(pitOk, False);
         Set Global Variable(pitTries, 0);
         "2026-11-22: this used to say \"the right-hand pit\", which was the left-hand one from the start pad and\nneither from where the walk ends. The board now labels the pit that moves."
+        Set Global Variable(stopNo, 6);
+        "2026-11-22: this used to say \"the right-hand pit\", which was the left-hand one from the start pad and\nneither from where the walk ends. The board now labels the pit that moves."
+        Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+        "2026-11-22: this used to say \"the right-hand pit\", which was the left-hand one from the start pad and\nneither from where the walk ends. The board now labels the pit that moves."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
         Set Global Variable(markPit, True);
         Call Subroutine(drawBoard);
-        Set Global Variable(ctrl, Custom String("WASD: go to a pad.   R: move the pit marked THIS PIT MOVES to that pad."));
-        Set Global Variable(coach, Custom String("The enemy moved. Stand on any pad and press R: the pit marked THIS PIT MOVES jumps there."));
+        Set Global Variable(ctrl, Custom String("WASD: go to any pad, then R: the pit marked THIS PIT MOVES jumps there."));
         While(Not(Global.pitOk));
             Set Global Variable(gotR, False);
             Set Global Variable(wantR, True);
-            Wait Until(Compare(Global.gotR, ==, True), 60);
+            Wait Until(Compare(Global.gotR, ==, True), 99999);
             Set Global Variable(wantR, False);
             Modify Global Variable(pitTries, Add, 1);
             Set Global Variable(pitTo, Add(Min(Max(Round To Integer(Divide(Add(X Component Of(Position Of(Global.learner)), 16), 4), Down), 0), 4), Multiply(5, Min(Max(Round To Integer(Divide(Add(Z Component Of(Position Of(Global.learner)), 16), 4), Down), 0), 4))));
@@ -1015,7 +1042,6 @@ rule ("Game 3: run") {
         Call Subroutine(ask);
         "---- Round 5: plan again ----"
         Set Global Variable(ctrl, Custom String("F: wipe the board and plan again (the sweeps run by themselves)."));
-        Set Global Variable(coach, Custom String("Press F: wipe the whiteboard and sweep the new map until nothing changes."));
         Call Subroutine(waitF);
         Set Global Variable(runId, 2);
         Call Subroutine(clearBoard);
@@ -1039,9 +1065,15 @@ rule ("Game 3: run") {
         Set Global Variable(ctrl, Custom String(""));
         Wait(8, Ignore Condition);
         "---- Debrief ----"
+        Set Global Variable(stopNo, 7);
+        "---- Debrief ----"
+        Set Global Variable(titleLine, Custom String("RL 3: THE WHITEBOARD    STOP {0} OF 7", Global.stopNo));
+        "---- Debrief ----"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,3,{0}", Global.stopNo));
+        "The replan's result stays in the coach line; the honest note goes in the controls row."
+        Set Global Variable(ctrl, Custom String("Simplified: moves never slip, and 25 pads is tiny next to a real game."));
         Set Global Variable(deb, Array(Custom String("You did: planned the dive one sweep per F, walked the plan, then moved a pit."), Custom String("Called: dynamic programming, here value iteration: look one step ahead, repeat."), Custom String("In an LLM agent: it can plan tool calls only if it knows what each tool does.")));
         Set Global Variable(showDebrief, True);
-        Set Global Variable(coach, Custom String("Predictions right: {0} of {1}. Simplified: moves never slip, and 25 pads is tiny next to a real game.", Global.predRight, Global.predTotal));
         Wait(12, Ignore Condition);
         Call Subroutine(finish);
     }

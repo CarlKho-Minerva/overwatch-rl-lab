@@ -39,6 +39,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -3)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 7
 
 #!include "common.opy"
 
@@ -115,7 +116,14 @@ def playRound():
     last = 0
     lastSrc = "round {} starts".format(rnd)
     refreshScore()
-    coach = "Round {}. Go.".format(rnd)
+    if AUTOPLAY:
+        coach = "Round {}. Go.".format(rnd)
+    else:
+        # 2026-11-22: the game is played beside its lecture's page, so the round's clock (and its cost of 1 a second)
+        # starts at his first step, not when the round opens. He may still be reading.
+        coach = "Round {}. Walk when you are ready: the clock starts at your first step.".format(rnd)
+        waitUntil(distance(learner.getPosition(), HOME_POS) > 1, 99999)
+        coach = "Round {}. Go.".format(rnd)
     roundOn = true
     if AUTOPLAY:
         for ki in range(len(autoRoute)):
@@ -195,6 +203,7 @@ rule "Game 1: the screen":
 
 rule "Game 1: run":
     @Condition ready
+    STOP(1)
     # The five rings sit on a circle of 13 m around the start, so no ring is closer than another.
     for ki in range(NRINGS):
         ringPos.append(HOME_POS + vect(RING_DIST * cosDeg(90 + 72 * ki), 0, RING_DIST * sinDeg(90 + 72 * ki)))
@@ -217,7 +226,7 @@ rule "Game 1: run":
     BEAT(4)
 
     qId = 1
-    qText = "The round starts after you answer. If you stand still, what will the number do?"
+    qText = "Once a round is running, if you stand still, what will the number do?"
     qOpts = ["stay at 0", "go down", "go up"]
     qCorrect = 1
     qAuto = 1
@@ -225,10 +234,12 @@ rule "Game 1: run":
     ask()
 
     # Round 1: find out what the score rewards.
+    STOP(2)
     rnd = 1
     autoRoute = [trapRing, [0, 1, 2, 3, 4].filter(lambda x: x != goalRing and x != trapRing)[0], goalRing]
     playRound()
     r1Found = found
+    STOP(3)
     coach = "Round 1 is over."
     BEAT(2)
     qId = 2
@@ -249,6 +260,7 @@ rule "Game 1: run":
     coach = "No one showed you the right move. Learning from that number alone is reinforcement learning."
     BEAT(6)
 
+    STOP(4)
     qId = 3
     if r1Found:
         qText = "Round 2 has the same hidden layout. Go straight to the ring that paid: your total will be..."
@@ -274,6 +286,7 @@ rule "Game 1: run":
         coach = "Round 2 did not beat round 1 this time. The score only teaches if you use what it showed."
     BEAT(7)
 
+    STOP(5)
     qId = 4
     qText = "Round 3: if you go straight to the ring that paid, what will you learn about the other rings?"
     qOpts = ["nothing new", "which one is best"]
@@ -308,13 +321,13 @@ rule "Game 1: run":
     BEAT(7)
 
     # Round 4: the island looks the same, but the hidden payouts are redrawn and the +50 ring moves.
+    # The round 3 result stays on screen while the question waits (he may be on the page).
+    STOP(6)
     drawRings()
     oldGoal = goalRing
     goalRing = random.choice([0, 1, 2, 3, 4].filter(lambda x: x != oldGoal))
     trapRing = random.choice([0, 1, 2, 3, 4].filter(lambda x: x != goalRing))
     LOG("RLG,E,{},layout,4,{},{}".format(GAME_ID, goalRing, trapRing))
-    coach = "Round 4. The rings are back."
-    BEAT(3)
     qId = 6
     qText = "Round 4 looks the same, but something hidden may have changed. Will your old ring pay +50?"
     qOpts = ["yes, the island looks the same", "I cannot tell from what I see"]
@@ -330,6 +343,7 @@ rule "Game 1: run":
     BEAT(7)
 
     # Debrief.
+    STOP(7)
     db[0] = "What you did: found the paying ring from a number alone, then ran to it blind."
     db[1] = "What it is called: learning from reward, with late feedback. Your memory was your state."
     db[2] = "In a language-model agent: a task scored only at the end; the transcript is its history."
@@ -338,4 +352,3 @@ rule "Game 1: run":
     coach = "Simplified: you always knew where you stood, and the rules held still. Real agents see less."
     BEAT(10)
     finish()
-    coach = "Done. Game 1 finished."

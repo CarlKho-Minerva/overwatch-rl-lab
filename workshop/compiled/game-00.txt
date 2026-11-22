@@ -61,7 +61,9 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: pad
+        31: stopNo
+        32: titleLine
+        33: pad
     player:
         0: fellCount
         1: fell
@@ -91,6 +93,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 0: CORE CHECK"));
         Set Global Variable(pad, Vector(-6, 0, -15));
     }
 }
@@ -267,7 +270,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
         Set Global Variable(qShown, Total Time Elapsed);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,0,{0}", Global.qId));
-        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        "2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading\nthe page when a question comes up. (It gave up after 90 seconds.)"
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 99999);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
         Destroy In-World Text(Global.qTxtLow);
@@ -342,6 +346,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 0: CORE CHECK    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,0,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,0,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -353,7 +358,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 0: CORE CHECK"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }

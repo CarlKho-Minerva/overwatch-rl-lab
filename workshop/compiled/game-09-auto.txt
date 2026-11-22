@@ -61,67 +61,69 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: odds
-        32: padPos
-        33: label
-        34: payTab
-        35: coinTab
-        36: lnTab
-        37: gI
-        38: gU
-        39: gV
-        40: setupDone
-        41: myN
-        42: myS
-        43: myT
-        44: myTot
-        45: myReg
-        46: myUb
-        47: wantOpen
-        48: canOpen
-        49: roundEnd
-        50: roundNo
-        51: autoBox
-        52: oBox
-        53: oK
-        54: oPay
-        55: sN
-        56: sS
-        57: sTot
-        58: sReg
-        59: sA
-        60: sPay
-        61: sK
-        62: sTn
-        63: sX
-        64: sV
-        65: armPick
-        66: rpK
-        67: rpR
-        68: rpT
-        69: rpA
-        70: rpN
-        71: rpS
-        72: rpV
-        73: rpX
-        74: rpI
-        75: rpC
-        76: rpSum
-        77: rpReg
-        78: replayDone
-        79: replayT0
-        80: beamsOn
-        81: beamEnd
-        82: padTxt
-        83: ubTxt
-        84: hudMine
-        85: hudStrat
-        86: hudReg
-        87: hudGreedy
-        88: hudRp
-        89: showRp
-        90: showEnd
-        91: endLine
+        31: stopNo
+        32: titleLine
+        33: odds
+        34: padPos
+        35: label
+        36: payTab
+        37: coinTab
+        38: lnTab
+        39: gI
+        40: gU
+        41: gV
+        42: setupDone
+        43: myN
+        44: myS
+        45: myT
+        46: myTot
+        47: myReg
+        48: myUb
+        49: wantOpen
+        50: canOpen
+        51: roundEnd
+        52: roundNo
+        53: autoBox
+        54: oBox
+        55: oK
+        56: oPay
+        57: sN
+        58: sS
+        59: sTot
+        60: sReg
+        61: sA
+        62: sPay
+        63: sK
+        64: sTn
+        65: sX
+        66: sV
+        67: armPick
+        68: rpK
+        69: rpR
+        70: rpT
+        71: rpA
+        72: rpN
+        73: rpS
+        74: rpV
+        75: rpX
+        76: rpI
+        77: rpC
+        78: rpSum
+        79: rpReg
+        80: replayDone
+        81: replayT0
+        82: beamsOn
+        83: beamEnd
+        84: padTxt
+        85: ubTxt
+        86: hudMine
+        87: hudStrat
+        88: hudReg
+        89: hudGreedy
+        90: hudRp
+        91: showRp
+        92: showEnd
+        93: endLine
     player:
         0: fellCount
         1: fell
@@ -158,6 +160,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES"));
         Set Global Variable(odds, Empty Array);
         Set Global Variable(padPos, Array(Vector(-9, 0, 0), Vector(-3, 0, 0), Vector(3, 0, 0), Vector(9, 0, 0)));
         Set Global Variable(label, Array(Custom String("A"), Custom String("B"), Custom String("C"), Custom String("D")));
@@ -449,6 +452,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,9,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,9,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -460,7 +464,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 9: LOOT BOXES"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -474,6 +478,12 @@ rule ("Game 9: run") {
         Global.ready != False;
     }
     actions {
+        "Played beside the lecture's page, stop by stop (g09_stops.json). Every stop opens on something that waits for\nthe person: the opens (Interact, no time limit) or a question (no time limit since 2026-11-22)."
+        Set Global Variable(stopNo, 1);
+        "Played beside the lecture's page, stop by stop (g09_stops.json). Every stop opens on something that waits for\nthe person: the opens (Interact, no time limit) or a question (no time limit since 2026-11-22)."
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        "Played beside the lecture's page, stop by stop (g09_stops.json). Every stop opens on something that waits for\nthe person: the opens (Interact, no time limit) or a question (no time limit since 2026-11-22)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable(odds, Randomized Array(Array(0.2, 0.4, 0.55, 0.7)));
         For Global Variable(gI, 0, 120, 1);
             Set Global Variable At Index(payTab, Global.gI, If-Then-Else(Compare(Random Real(0, 1), <, Value In Array(Global.odds, Round To Integer(Divide(Global.gI, 30), Down))), 1, 0));
@@ -551,11 +561,14 @@ rule ("Game 9: run") {
         Call Subroutine(refreshView);
         Set Global Variable(coach, Custom String("Four loot boxes. Each pays 1 with its own hidden chance. You get 30 opens: make them pay."));
         Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("Stand on a yellow pad and press Interact to open that box. Opens 1 to 8."));
+        Set Global Variable(coach, Custom String("Stand on a yellow pad and press Interact (F) to open that box. Opens 1 to 8."));
         Set Global Variable(roundNo, 1);
         Set Global Variable(roundEnd, 8);
         Call Subroutine(openRound);
         Call Subroutine(roundSummary);
+        Set Global Variable(stopNo, 2);
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable(qId, 1);
         Set Global Variable(qText, Custom String("A box paid 3 of its first 4 opens. Is it the best box, for sure?"));
         Set Global Variable(qOpts, Array(Custom String("yes"), Custom String("no, too few opens")));
@@ -563,6 +576,9 @@ rule ("Game 9: run") {
         Set Global Variable(qAuto, 1);
         Set Global Variable(qWhy, Custom String("A 0.4 box pays 3 or 4 of 4 about 18% of the time, a 0.55 box 39%. Four opens prove little."));
         Call Subroutine(ask);
+        Set Global Variable(stopNo, 3);
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable(qId, 2);
         Set Global Variable(qText, Custom String("GREEDY opens the best average so far. COIN does too, but 1 open in 10 is random (lecture 5). Stuck forever?"));
         Set Global Variable(qOpts, Array(Custom String("greedy"), Custom String("the coin"), Custom String("neither")));
@@ -573,6 +589,11 @@ rule ("Game 9: run") {
         Set Global Variable(coach, Custom String("That is the dilemma: use the box you know (exploit) or find out more (explore). Lecture 5's coin explores."));
         Wait(1, Ignore Condition);
         "Round 2: the optimist's beams appear"
+        Set Global Variable(stopNo, 4);
+        "Round 2: the optimist's beams appear"
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        "Round 2: the optimist's beams appear"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable(beamsOn, True);
         Create Beam Effect(If-Then-Else(Global.beamsOn, All Players(All Teams), Null), Good Beam, Add(First Of(Global.padPos), Vector(0, 0, 2)), First Of(Global.beamEnd), Color(Sky Blue), Visible To Position and Radius);
         Create Beam Effect(If-Then-Else(Global.beamsOn, All Players(All Teams), Null), Good Beam, Add(Value In Array(Global.padPos, 1), Vector(0, 0, 2)), Value In Array(Global.beamEnd, 1), Color(Sky Blue), Visible To Position and Radius);
@@ -585,11 +606,14 @@ rule ("Game 9: run") {
         Call Subroutine(refreshView);
         Set Global Variable(coach, Custom String("Blue beams: each box's best plausible case from YOUR opens. Average plus a bonus that shrinks as you open it."));
         Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("That is optimism, the rule called UCB1: open the tallest beam. Opens 9 to 16, your choice."));
+        Set Global Variable(coach, Custom String("That is optimism, the rule called UCB1: open the tallest beam, or not. Opens 9 to 16, your choice."));
         Set Global Variable(roundNo, 2);
         Set Global Variable(roundEnd, 16);
         Call Subroutine(openRound);
         Call Subroutine(roundSummary);
+        Set Global Variable(stopNo, 5);
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable(qId, 3);
         Set Global Variable(qText, Custom String("OPTIMIST opened a box once and it paid 0. What does it do with that box?"));
         Set Global Variable(qOpts, Array(Custom String("never again"), Custom String("opens it again later"), Custom String("opens it every time")));
@@ -599,12 +623,17 @@ rule ("Game 9: run") {
         Call Subroutine(ask);
         Set Global Variable(coach, Custom String("Optimism in the face of uncertainty: what you barely know might be the best, so you look."));
         Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("Opens 17 to 24."));
+        Set Global Variable(coach, Custom String("Optimism in the face of uncertainty: what you barely know might be best, so look. Opens 17 to 24."));
         Set Global Variable(roundNo, 3);
         Set Global Variable(roundEnd, 24);
         Call Subroutine(openRound);
         Call Subroutine(roundSummary);
         "Question 4 is answered by the replays, which have been running since the start"
+        Set Global Variable(stopNo, 6);
+        "Question 4 is answered by the replays, which have been running since the start"
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        "Question 4 is answered by the replays, which have been running since the start"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Wait Until(Compare(Global.replayDone, ==, True), 100);
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("Each strategy plays 20 games of 300 opens. Whose regret keeps climbing in a straight line?"));
@@ -616,10 +645,13 @@ rule ("Game 9: run") {
         Set Global Variable(showRp, True);
         Set Global Variable(coach, Custom String("Right side: regret added per 100 opens. Short games favour the coin; the optimist's line bends."));
         Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("Opens 25 to 29."));
+        Set Global Variable(coach, Custom String("Right side: the coin's bill never drops under 2.40 per 100; the optimist's keeps shrinking. Opens 25 to 29."));
         Set Global Variable(roundNo, 4);
         Set Global Variable(roundEnd, 29);
         Call Subroutine(openRound);
+        Set Global Variable(stopNo, 7);
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("One open left. The box you know best, or a box you opened once that lost?"));
         Set Global Variable(qOpts, Array(Custom String("the box I know"), Custom String("the barely known box")));
@@ -629,11 +661,16 @@ rule ("Game 9: run") {
         Call Subroutine(ask);
         Set Global Variable(coach, Custom String("That is the value of information: an open is worth more when it could change what you do next."));
         Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("Your last open."));
+        Set Global Variable(coach, Custom String("Value of information: an open is worth more when it could change what you do next. Your last open."));
         Set Global Variable(roundEnd, 30);
         Call Subroutine(openRound);
         Call Subroutine(roundSummary);
         "Debrief"
+        Set Global Variable(stopNo, 8);
+        "Debrief"
+        Set Global Variable(titleLine, Custom String("RL 9: LOOT BOXES    STOP {0} OF 8", Global.stopNo));
+        "Debrief"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,9,{0}", Global.stopNo));
         Set Global Variable At Index(endLine, 0, Custom String("Odds were A {0}, B {1}, C {2}", First Of(Global.odds), Value In Array(Global.odds, 1), Custom String("{0}, D {1}. Your opens: A {2}", Value In Array(Global.odds, 2), Value In Array(Global.odds, 3), Custom String("{0}, B {1}, C {2}", First Of(Global.myN), Value In Array(Global.myN, 1), Custom String("{0}, D {1}.", Value In Array(Global.myN, 2), Value In Array(Global.myN, 3))))));
         Set Global Variable At Index(endLine, 1, Custom String("You: {0} from 30 opens, regret {1}. Same luck: greedy {2}", Global.myTot, Global.myReg, Custom String("{0}, coin {1}, optimist {2}.", First Of(Global.sTot), Value In Array(Global.sTot, 1), Value In Array(Global.sTot, 2))));
         Set Global Variable At Index(endLine, 2, Custom String("Called: the explore-exploit dilemma, scored by regret. UCB1 explores where unsure."));
@@ -876,11 +913,12 @@ rule ("Game 9: the screen") {
         Global.setupDone != False;
     }
     actions {
-        "Left block (the core's title, coach and score are rows 0 to 2): during play rows 3 to 6, at the end the five\ndebrief rows take their place, so at most 8 rows show. Text rows stay under 88 characters, the right block's\nunder 58 (LAYOUT_BRIEF, 2026-11-22)."
+        "debrief rows take their place, so at most 8 rows show (row 12 explains the beams from round 2). Text rows stay under 88 characters, the right block's\nunder 58 (LAYOUT_BRIEF, 2026-11-22)."
         Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudMine, Left, 3, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudStrat, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudReg, Left, 5, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudGreedy, Left, 6, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(And(Global.beamsOn, Not(Global.showEnd)), All Players(All Teams), Null), Null, Null, Custom String("Blue beam: average plus a bonus that shrinks with each open. Tallest: least known."), Left, 12, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, First Of(Global.endLine), Left, 7, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 1), Left, 8, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 2), Left, 9, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);

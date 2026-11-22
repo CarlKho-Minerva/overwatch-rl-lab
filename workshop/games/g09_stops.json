@@ -1,0 +1,80 @@
+{
+ "game": 9,
+ "stops": [
+  {
+   "n": 1,
+   "after": "02:23",
+   "title": "Open eight loot boxes",
+   "silver": "Every choice an agent makes while it learns is a trade: take the option that has paid best so far, or try another one to find out what it is worth.",
+   "do": "Four yellow pads, four boxes, each with its own hidden chance of paying 1. Walk onto a pad and press Interact (F) to open that box. Make eight opens, on any boxes you like; the game waits for each one.",
+   "predict": "Before your first open, decide how many opens you will give each box before you settle on one.",
+   "saw": "Each open paid 1 or 0, and the label over each pad counts your opens and pays. When the round ends, the left side shows regret: for every open, how much less your box pays on average than the best box would, added up. Eight opens across four boxes is about two looks each, which tells you very little.",
+   "agent": "An agent that sometimes tries a new tool or prompt instead of its usual one makes this trade on every call."
+  },
+  {
+   "n": 2,
+   "after": "11:41",
+   "title": "Judge a box at three of four",
+   "silver": "A row of slot machines with unknown payouts is called a bandit, and its score, regret, is the reward given up by not pulling the best arm, an arm nobody knows in advance.",
+   "do": "A question floats in front of you. Left click for yes, right click for no, too few opens.",
+   "predict": "Decide whether a box that paid 3 of its first 4 opens is surely the best of the four.",
+   "saw": "Four opens prove little. A box that pays 4 times in 10 still pays 3 or 4 of 4 about 18 times in 100, and a box that pays 55 times in 100 does it 39 times in 100. A short lucky streak looks like a great box, which is why nobody knows the best box while playing, and regret can only be counted against odds that are hidden."
+  },
+  {
+   "n": 3,
+   "after": "21:39",
+   "title": "Guess which strategy gets stuck",
+   "silver": "Always taking the arm with the best average can lock on to a worse arm for good, and exploring at random a fixed share of the time pays for it forever, so both lose about the same amount every step.",
+   "do": "Read the question. GREEDY opens the box with the best average so far; COIN does the same but opens a random box 1 time in 10, like the one random move in ten from lecture 5. Left click for greedy, right click for the coin, melee for neither.",
+   "predict": "Pick the strategy that can stay stuck on a bad box forever.",
+   "saw": "Greedy opens each box once, then always the best average. If the best box loses its first open while another box wins, its average sits at 0 and greedy never opens it again, in at least 23 games in 100. The coin opens every box now and then, so it never stays stuck, but it pays for those random opens forever. Use what you know or find out more: that choice is the exploration and exploitation dilemma.",
+   "agent": "An agent that always reuses the tool call that worked first can stay on it long after a better one exists."
+  },
+  {
+   "n": 4,
+   "after": "39:32",
+   "title": "Open by the blue beams",
+   "silver": "Optimism in the face of uncertainty picks the option whose best plausible value is highest: its average plus a bonus that is large when it has rarely been tried and shrinks with use, a score called an upper confidence bound.",
+   "do": "Blue beams now rise over the boxes. A beam's height is that box's best plausible case from your own opens, and an untried box stands tallest. Make opens 9 to 16 with Interact (F), following the tallest beam or not.",
+   "predict": "Before you open, decide whether the box you have opened most can ever have the tallest beam again.",
+   "saw": "Each open pulls that box's beam toward its average, because the bonus shrinks as you open it. Boxes you leave alone keep tall beams. The three strategies kept playing beside you with the same luck, so compare their totals and regret on the left with yours. Opening the tallest beam is the rule called UCB1."
+  },
+  {
+   "n": 5,
+   "after": "47:22",
+   "title": "Predict what the optimist reopens",
+   "silver": "From a bound on how far an average can stray from the truth, Silver builds UCB1, whose bonus falls as an arm is tried and creeps up slowly as the total number of tries grows.",
+   "do": "Answer the question about the optimist: left click for never again, right click for opens it again later, melee for opens it every time. Then make opens 17 to 24 with Interact (F).",
+   "predict": "Decide what the optimist does with a box it opened once that paid nothing.",
+   "saw": "After 8 opens in all, a box opened once that paid 0 scores 2.04, and a box that paid 4 of 6 scores only 1.50, so the optimist goes back to the loser. The bonus grows with the logarithm of all opens, so any box left alone long enough gets another look. In your round, watch the beams of the boxes you skip: they creep up while you open the others."
+  },
+  {
+   "n": 6,
+   "after": "47:22",
+   "title": "Read 300 opens of replays",
+   "silver": "Because its bonus shrinks with use, UCB1's regret grows only like the logarithm of time, while greedy and fixed random exploration add about the same regret every step.",
+   "do": "Answer the question: left click for only greedy, right click for greedy and the coin, melee for all three. The right side then shows 20 replays of 300 opens per strategy. Then make opens 25 to 29 with Interact (F).",
+   "predict": "Pick whose regret keeps climbing in a straight line when the game runs long.",
+   "saw": "The right side gives the regret each strategy added in opens 1 to 100, 101 to 200 and 201 to 300. On average the coin's cannot fall below 2.4 per 100, the price of its random opens. The optimist's falls from one hundred to the next: a curve that flattens, against straight lines. At 300 opens the coin is usually still ahead; the optimist passes it only after a few thousand."
+  },
+  {
+   "n": 7,
+   "after": "1:08:38",
+   "title": "Spend the last open",
+   "silver": "Information is worth what you would give up to have it before deciding, and that depends on the time left: with few plays remaining, take the sure thing.",
+   "do": "One open is left. Answer first: left click for the box you know, right click for the barely known box. Then make your last open with Interact (F).",
+   "predict": "Decide which box deserves your very last open.",
+   "saw": "With one open left, nothing you learn can change a later choice, because there is none. The open is worth only its average payout, so the box you know best usually wins. Early in the game the same open of a barely known box was worth more, because what it showed could steer every open after it. This is the value of information."
+  },
+  {
+   "n": 8,
+   "after": "1:28:45",
+   "title": "Read the debrief",
+   "silver": "The same three ideas, random exploration, optimism and planning over what you have learned, carry over to problems where the agent first sees a context and to full decision problems with many states.",
+   "do": "Nothing to press. The left side shows the hidden odds, how often you opened each box, your total and regret beside greedy, the coin and the optimist, what it is called, and where it shows up in an agent.",
+   "predict": "Before reading, guess which of the four players had the lowest regret over 30 opens.",
+   "saw": "Compare your opens per box with the odds: regret charges each open of a worse box by how much worse it is. Over 30 opens luck moves the totals a lot, so regret, which leaves luck out, is the fairer score. The counts of opens and pays per box were everything anyone used to decide; a summary like that, used as the state, is called an information state.",
+   "agent": "Choosing among a few tools or prompts by their pass counts is this bandit, and a router that reads the task first makes it a contextual bandit."
+  }
+ ]
+}

@@ -61,48 +61,50 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: heroName
-        32: botPos
-        33: youPos
-        34: autoPicks
-        35: botH
-        36: botP
-        37: smMax
-        38: smE
-        39: smS
-        40: base
-        41: alpha
-        42: adv
-        43: dPick
-        44: li
-        45: bPick
-        46: bR
-        47: drawK
-        48: drawU
-        49: youPick
-        50: habit
-        51: pickOpen
-        52: timedOut
-        53: rnd
-        54: phase
-        55: roundsLeft
-        56: pBefore
-        57: cntB
-        58: nB
-        59: youF
-        60: exYou
-        61: exBot
-        62: exF
-        63: winsYou
-        64: winsBot
-        65: draws
-        66: botFx
-        67: youFx
-        68: worldTxt
-        69: barTxt
-        70: info
-        71: nDummies
-        72: holdT
+        31: stopNo
+        32: titleLine
+        33: heroName
+        34: botPos
+        35: youPos
+        36: autoPicks
+        37: botH
+        38: botP
+        39: smMax
+        40: smE
+        41: smS
+        42: base
+        43: alpha
+        44: adv
+        45: dPick
+        46: li
+        47: bPick
+        48: bR
+        49: drawK
+        50: drawU
+        51: youPick
+        52: habit
+        53: pickOpen
+        54: timedOut
+        55: rnd
+        56: phase
+        57: roundsLeft
+        58: pBefore
+        59: cntB
+        60: nB
+        61: youF
+        62: exYou
+        63: exBot
+        64: exF
+        65: winsYou
+        66: winsBot
+        67: draws
+        68: botFx
+        69: youFx
+        70: worldTxt
+        71: barTxt
+        72: info
+        73: nDummies
+        74: holdT
     player:
         0: fellCount
         1: fell
@@ -138,6 +140,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK"));
         Set Global Variable(heroName, Array(Custom String("TRACER"), Custom String("WIDOWMAKER"), Custom String("PHARAH")));
         Set Global Variable(botPos, Array(Vector(-5, 0, 4), Vector(0, 0, 4), Vector(5, 0, 4)));
         Set Global Variable(youPos, Array(Vector(-5, 0, -4), Vector(0, 0, -4), Vector(5, 0, -4)));
@@ -333,7 +336,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
         Set Global Variable(qShown, Total Time Elapsed);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,7,{0}", Global.qId));
-        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        "2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading\nthe page when a question comes up. (It gave up after 90 seconds.)"
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 99999);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
         Destroy In-World Text(Global.qTxtLow);
@@ -408,6 +412,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,7,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,7,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -419,7 +424,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 7: COUNTER-PICK"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -494,13 +499,14 @@ rule ("Game 7: wait for the player's pick (left click, right click, melee), outs
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 5);
         Wait(0.25, Ignore Condition);
         Set Global Variable(pickOpen, True);
-        Wait Until(Or(Compare(Global.youPick, >=, 0), Global.gameOver), 120);
+        "No time limit for a person: the game is played beside its lecture's page, and he may be reading it."
+        Wait Until(Or(Compare(Global.youPick, >=, 0), Global.gameOver), 99999);
         Set Global Variable(pickOpen, False);
         If(Compare(Global.youPick, <, 0));
             "2026-11-22: in the same-hero rounds a random pick had a 2 in 3 chance of not matching, and the round then\nasked again, two minutes at a time. A timed-out pick there is the hero already chosen."
             Set Global Variable(youPick, If-Then-Else(And(Compare(Global.phase, ==, 0), Compare(Global.habit, >=, 0)), Global.habit, Random Integer(0, 2)));
             Modify Global Variable(timedOut, Add, 1);
-            Set Global Variable(coach, Custom String("No pick in two minutes, so one was made for you."));
+            Set Global Variable(coach, Custom String("No pick came, so one was made for you."));
         End;
     }
 }
@@ -519,7 +525,8 @@ rule ("Game 7: one round: the bot locks in from its odds, the player picks, reve
         Set Global Variable(bPick, If-Then-Else(Compare(Global.drawU, <, First Of(Global.botP)), 0, If-Then-Else(Compare(Global.drawU, <, Add(First Of(Global.botP), Value In Array(Global.botP, 1))), 1, 2)));
         Set Global Variable(botFx, Vector(0, -60, 0));
         Set Global Variable(youFx, Vector(0, -60, 0));
-        Set Global Variable(coach, Custom String("Round {0}: the bot has locked in its pick, hidden. Make yours.", Add(Global.rnd, 1)));
+        "The last result stays in the coach line while he picks again; the round number lives in the controls row."
+        Set Global Variable At Index(info, 0, Custom String("Round {0}: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah.", Add(Global.rnd, 1)));
         Call Subroutine(getPick);
         If(Compare(Global.phase, ==, 0));
             If(Compare(Global.habit, <, 0));
@@ -560,7 +567,7 @@ rule ("Game 7: one round: the bot locks in from its odds, the player picks, reve
         End;
         Call Subroutine(buildTexts);
         Modify Global Variable(rnd, Add, 1);
-        Wait(4.5, Ignore Condition);
+        Wait(2, Ignore Condition);
     }
 }
 
@@ -746,10 +753,13 @@ rule ("Game 7: run") {
         Set Global Variable(alpha, 0.6);
         Call Subroutine(buildTexts);
         Set Global Variable At Index(info, 0, Custom String("PICK: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."));
-        Set Global Variable(coach, Custom String("Counter-picking: the bot learns to pick whatever beats the hero you keep playing."));
-        Wait(7, Ignore Condition);
-        Set Global Variable(coach, Custom String("It keeps no scores, only three odds (the bars on the right), and draws its pick from them."));
-        Wait(7, Ignore Condition);
+        "Stop 1: the first prediction. Each stop opens on something that waits for him (a question or a pick), since\nhe may still be reading the page; the intro lines stay on screen while the question waits."
+        Set Global Variable(stopNo, 1);
+        "Stop 1: the first prediction. Each stop opens on something that waits for him (a question or a pick), since\nhe may still be reading the page; the intro lines stay on screen while the question waits."
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        "Stop 1: the first prediction. Each stop opens on something that waits for him (a question or a pick), since\nhe may still be reading the page; the intro lines stay on screen while the question waits."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
+        Set Global Variable(coach, Custom String("Counter-picking: the bot keeps only three odds (bars on the right) and learns to beat the hero you repeat."));
         "Phase A: one hero, again and again."
         Set Global Variable(qId, 1);
         Set Global Variable(qText, Custom String("You will pick the same hero 6 rounds in a row. What will the bot's three bars do?"));
@@ -759,9 +769,11 @@ rule ("Game 7: run") {
         Set Global Variable(qWhy, Custom String("It nudges up whatever won. Against one hero, only that hero's counter keeps winning."));
         Call Subroutine(ask);
         Set Global Variable(phase, 0);
+        Set Global Variable(stopNo, 2);
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Set Global Variable At Index(info, 2, Custom String("The push: nudge size x (reward minus its usual) x (1 minus the pick's odds)."));
-        Set Global Variable(coach, Custom String("Pick any hero, then keep picking it. Watch the bars on the right."));
-        Wait(4, Ignore Condition);
+        Set Global Variable(coach, Custom String("The bot locks in a hidden pick first. Pick any hero, then keep picking it. Watch the bars."));
         For Global Variable(roundsLeft, 0, 6, 1);
             Call Subroutine(playRound);
         End;
@@ -770,6 +782,11 @@ rule ("Game 7: run") {
         Set Global Variable(coach, Custom String("Its rule, REINFORCE: push up what beat its usual reward, more if the pick was a surprise."));
         Wait(8, Ignore Condition);
         "Lecture 5 reach-back: randomness sprayed against randomness aimed."
+        Set Global Variable(stopNo, 3);
+        "Lecture 5 reach-back: randomness sprayed against randomness aimed."
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        "Lecture 5 reach-back: randomness sprayed against randomness aimed."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Set Global Variable(qId, 2);
         Set Global Variable(qText, Custom String("Lecture 5's bot took its best-scored hero, and a random hero one time in ten. Where did its randomness go?"));
         Set Global Variable(qOpts, Array(Custom String("evenly onto all three"), Custom String("onto heroes that did well"), Custom String("nowhere")));
@@ -778,6 +795,11 @@ rule ("Game 7: run") {
         Set Global Variable(qWhy, Custom String("Evenly: best hero 93%, others 3% each, whatever they earned. This bot aims its odds."));
         Call Subroutine(ask);
         "Why the best policy can need randomness."
+        Set Global Variable(stopNo, 4);
+        "Why the best policy can need randomness."
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        "Why the best policy can need randomness."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Set Global Variable(qId, 3);
         Set Global Variable(qText, Custom String("A bot that must pick by a fixed rule (always Pharah, or Tracer, Widow, Pharah in turn). What beats it?"));
         Set Global Variable(qOpts, Array(Custom String("nothing, if the rule is clever"), Custom String("anyone who spots the rule"), Custom String("only luck")));
@@ -787,6 +809,9 @@ rule ("Game 7: run") {
         Call Subroutine(ask);
         Set Global Variable(coach, Custom String("Silver's other case: two squares look alike, so one fixed move fails in one. A coin flip escapes."));
         Wait(8, Ignore Condition);
+        Set Global Variable(stopNo, 5);
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("Which mix of your own picks can no counter-picker beat on average?"));
         Set Global Variable(qOpts, Array(Custom String("a third each"), Custom String("mostly the hero that wins"), Custom String("the same hero, always")));
@@ -795,6 +820,11 @@ rule ("Game 7: run") {
         Set Global Variable(qWhy, Custom String("A third each: every counter wins as often as it loses (Silver's rock-paper-scissors)."));
         Call Subroutine(ask);
         "Phase B: free play against a fresh bot; his own mix is measured."
+        Set Global Variable(stopNo, 6);
+        "Phase B: free play against a fresh bot; his own mix is measured."
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        "Phase B: free play against a fresh bot; his own mix is measured."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Call Subroutine(resetBot);
         Set Global Variable(alpha, 0.6);
         Set Global Variable(phase, 1);
@@ -802,10 +832,12 @@ rule ("Game 7: run") {
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,7,reset,{0},{1}", Global.rnd, Global.alpha));
         Set Global Variable At Index(info, 2, Custom String("Your mix appears here after each round of free play."));
         Set Global Variable(coach, Custom String("Free play against a fresh bot, odds back to a third each. Try to leave it nothing to learn."));
-        Wait(6, Ignore Condition);
         For Global Variable(roundsLeft, 0, 5, 1);
             Call Subroutine(playRound);
         End;
+        Set Global Variable(stopNo, 7);
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("For the last 4 rounds the nudge size goes from 0.6 to 2.5. What will the bars do?"));
         Set Global Variable(qOpts, Array(Custom String("swing hard"), Custom String("settle near a third"), Custom String("move as before")));
@@ -817,12 +849,16 @@ rule ("Game 7: run") {
         Set Global Variable(phase, 2);
         Call Subroutine(buildTexts);
         Set Global Variable(coach, Custom String("Nudge size 2.5 now. Keep playing your mix."));
-        Wait(3, Ignore Condition);
         For Global Variable(roundsLeft, 0, 4, 1);
             Call Subroutine(playRound);
         End;
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,7,score,{0},{1},{2}", Global.winsYou, Global.winsBot, Custom String("{0},{1}", Global.draws, Global.timedOut)));
         "Debrief."
+        Set Global Variable(stopNo, 8);
+        "Debrief."
+        Set Global Variable(titleLine, Custom String("RL 7: COUNTER-PICK    STOP {0} OF 8", Global.stopNo));
+        "Debrief."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,7,{0}", Global.stopNo));
         Set Global Variable(pickOpen, False);
         Set Global Variable(botFx, Vector(0, -60, 0));
         Set Global Variable(youFx, Vector(0, -60, 0));

@@ -39,6 +39,7 @@ settings {
 #!define LEARNER_HERO Hero.SOLDIER
 #!define HOME_POS vect(0, 0, -8)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 8
 
 #!include "common.opy"
 
@@ -152,14 +153,15 @@ def getPick():
         wait(0.4)
         youPick = autoPicks[rnd]
     else:
-        waitUntil(youPick >= 0 or gameOver, 120)
+        # No time limit for a person: the game is played beside its lecture's page, and he may be reading it.
+        waitUntil(youPick >= 0 or gameOver, 99999)
     pickOpen = false
     if youPick < 0:
         # 2026-11-22: in the same-hero rounds a random pick had a 2 in 3 chance of not matching, and the round then
         # asked again, two minutes at a time. A timed-out pick there is the hero already chosen.
         youPick = habit if (phase == 0 and habit >= 0) else random.randint(0, 2)
         timedOut += 1
-        coach = "No pick in two minutes, so one was made for you."
+        coach = "No pick came, so one was made for you."
 
 def playRound():
     @Name "Game 7: one round: the bot locks in from its odds, the player picks, reveal, the bot learns"
@@ -171,7 +173,8 @@ def playRound():
     bPick = 0 if drawU < botP[0] else (1 if drawU < botP[0] + botP[1] else 2)
     botFx = HIDE_POS
     youFx = HIDE_POS
-    coach = "Round {}: the bot has locked in its pick, hidden. Make yours.".format(rnd + 1)
+    # The last result stays in the coach line while he picks again; the round number lives in the controls row.
+    info[0] = "Round {}: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah.".format(rnd + 1)
     getPick()
     if phase == 0:
         if habit < 0:
@@ -207,7 +210,7 @@ def playRound():
         info[3] = "A perfect counter-picker would net {} wins minus losses per 100 rounds vs it.".format(round(exYou * 100))
     buildTexts()
     rnd += 1
-    wait(0.5 if AUTOPLAY else 4.5)
+    wait(0.5 if AUTOPLAY else 2)
 
 rule "Game 7: pick Tracer (left click)":
     @Event eachPlayer
@@ -307,10 +310,12 @@ rule "Game 7: run":
     buildTexts()
 
     info[0] = "PICK: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."
-    coach = "Counter-picking: the bot learns to pick whatever beats the hero you keep playing."
-    wait(1 if AUTOPLAY else 7)
-    coach = "It keeps no scores, only three odds (the bars on the right), and draws its pick from them."
-    wait(1 if AUTOPLAY else 7)
+    # Stop 1: the first prediction. Each stop opens on something that waits for him (a question or a pick), since
+    # he may still be reading the page; the intro lines stay on screen while the question waits.
+    STOP(1)
+    coach = "Counter-picking: the bot keeps only three odds (bars on the right) and learns to beat the hero you repeat."
+    if AUTOPLAY:
+        wait(2)
 
     # Phase A: one hero, again and again.
     qId = 1
@@ -321,9 +326,11 @@ rule "Game 7: run":
     qWhy = "It nudges up whatever won. Against one hero, only that hero's counter keeps winning."
     ask()
     phase = 0
+    STOP(2)
     info[2] = "The push: nudge size x (reward minus its usual) x (1 minus the pick's odds)."
-    coach = "Pick any hero, then keep picking it. Watch the bars on the right."
-    wait(1 if AUTOPLAY else 4)
+    coach = "The bot locks in a hidden pick first. Pick any hero, then keep picking it. Watch the bars."
+    if AUTOPLAY:
+        wait(1)
     for roundsLeft in range(N_A):
         playRound()
     coach = "It moved odds, not scores. Odds per move are a policy; learning them directly is a policy gradient."
@@ -332,6 +339,7 @@ rule "Game 7: run":
     wait(1 if AUTOPLAY else 8)
 
     # Lecture 5 reach-back: randomness sprayed against randomness aimed.
+    STOP(3)
     qId = 2
     qText = "Lecture 5's bot took its best-scored hero, and a random hero one time in ten. Where did its randomness go?"
     qOpts = ["evenly onto all three", "onto heroes that did well", "nowhere"]
@@ -341,6 +349,7 @@ rule "Game 7: run":
     ask()
 
     # Why the best policy can need randomness.
+    STOP(4)
     qId = 3
     qText = "A bot that must pick by a fixed rule (always Pharah, or Tracer, Widow, Pharah in turn). What beats it?"
     qOpts = ["nothing, if the rule is clever", "anyone who spots the rule", "only luck"]
@@ -351,6 +360,7 @@ rule "Game 7: run":
     coach = "Silver's other case: two squares look alike, so one fixed move fails in one. A coin flip escapes."
     wait(1 if AUTOPLAY else 8)
 
+    STOP(5)
     qId = 4
     qText = "Which mix of your own picks can no counter-picker beat on average?"
     qOpts = ["a third each", "mostly the hero that wins", "the same hero, always"]
@@ -360,6 +370,7 @@ rule "Game 7: run":
     ask()
 
     # Phase B: free play against a fresh bot; his own mix is measured.
+    STOP(6)
     resetBot()
     alpha = ALPHA_SMALL
     phase = 1
@@ -367,10 +378,12 @@ rule "Game 7: run":
     LOG("RLG,E,{},reset,{},{}".format(GAME_ID, rnd, alpha))
     info[2] = "Your mix appears here after each round of free play."
     coach = "Free play against a fresh bot, odds back to a third each. Try to leave it nothing to learn."
-    wait(1 if AUTOPLAY else 6)
+    if AUTOPLAY:
+        wait(1)
     for roundsLeft in range(N_B1):
         playRound()
 
+    STOP(7)
     qId = 5
     qText = "For the last 4 rounds the nudge size goes from 0.6 to 2.5. What will the bars do?"
     qOpts = ["swing hard", "settle near a third", "move as before"]
@@ -382,12 +395,14 @@ rule "Game 7: run":
     phase = 2
     buildTexts()
     coach = "Nudge size 2.5 now. Keep playing your mix."
-    wait(1 if AUTOPLAY else 3)
+    if AUTOPLAY:
+        wait(1)
     for roundsLeft in range(N_B2):
         playRound()
     LOG("RLG,E,{},score,{},{},{},{}".format(GAME_ID, winsYou, winsBot, draws, timedOut))
 
     # Debrief.
+    STOP(8)
     pickOpen = false
     botFx = HIDE_POS
     youFx = HIDE_POS

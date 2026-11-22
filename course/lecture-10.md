@@ -2,92 +2,217 @@
 
 *David Silver's lecture 10 (UCL, 2015), gone through in his order and re-explained with the Tracer experiments on Workshop Island. The lecture and its slides are his: [video](https://www.youtube.com/watch?v=kZ_AUmFcZtk), [course page](https://davidstarsilver.wordpress.com/teaching/). The words below are a re-explanation. Every island number comes from the logged runs in this repository.*
 
-For nine lectures nothing on the island had a plan of its own. For the last one a blocker from the other team stands in one of the four rows, and her score is the runner's loss. The question is what "best" means when the other side is choosing too. Silver's answer: in a two-player game where one side's gain is the other's loss, it is a pair of policies that neither side would change on its own, and the programs that came closest play themselves, learn a value function by TD, and use it inside a search.
+You are Tracer with two ways to peek a Widowmaker, the fast left flank or the safe right corner, while she scopes one of them, and every point you win is a point she loses. For nine lectures nothing on the island had a plan of its own; for this last one a blocker from the other team stands in one of the four rows, and her score is the runner's loss. The hour asks what "best" means when the other side is choosing too, and for a two-player game where one side's gain is the other's loss Silver's answer is a pair of rules for choosing moves, called policies, that neither side would change on its own. The programs that came closest play against themselves, learn a score for each position (a value function) by temporal-difference learning (TD), which corrects each guess with the next one, and use it inside a search.
 
-**Play it first:** [Game 10: The Peek](../workshop/games/g10.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-10.txt` into a custom game's settings). It asks you to predict before it shows you.
+**Two windows:** this page, and [Game 10: The Peek](../workshop/games/g10.md), an Overwatch custom game for this lecture (paste `workshop/compiled/game-10.txt` into a custom game's settings and start it). The game opens at stop 1 and waits. Read down this page; at each box marked Alt+Tab, switch to the game, do that stop, and switch back. The game never moves on while you read.
 
 ## The lecture in order
 
 ### [02:38](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=158s) Games are small worlds with simple rules and deep play
-Game rules fit in a paragraph, yet people need centuries to play well, and a game can isolate one hard real-world feature, such as hidden information. Silver's tables show reinforcement learning programs at the top level in five of seven classic games, with chess the weakest case (international master).
-**On the island:** the two-player build is the only part of the lab that is a game in Silver's sense, with two sides and opposite interests.
+The rules of chess fit in a paragraph or two, and people have still spent hundreds of years working out how to play it well. Silver opens with that as his reason for studying games: the rules are simple and the play is deep. Games also come with human experts who have given decades to them, so a program can be measured against the best people there are.
+
+A game can also isolate one hard feature of the real world. His example is a game where a player cannot see everything, which is called hidden information. The game keeps that one difficulty and strips everything else down to simple rules.
+
+Then he shows two slides. The first gives the best level any program has reached in seven classic games: checkers, chess, Othello, backgammon, Scrabble, Go and poker. The second gives the level reached by programs that learned from reward by trial and error, which is reinforcement learning. In five of the seven the two slides match. Chess is the weakest case, and even there a learning program reached international master.
+
+**On the island:** the two-player build is the only part of the lab that is a game in Silver's sense: two sides who want opposite things.
 
 ### [08:01](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=481s) Against a fixed opponent, "best" is a best response
-In an MDP (the single-agent setting of earlier lectures) optimal means the most reward. In a game the best policy depends on the others: against someone who always plays rock, the best response is always paper. Hold the other players fixed and you can fold them into the environment's dynamics, so the game becomes an ordinary MDP whose optimal policy is the best response (13:17). Asked whether Easy21 did this with the dealer, Silver says yes (18:05).
-**On the island:** the "fixed" blocker always stands in the edge row, so she is part of the environment and Q-learning seeks a best response. The one blind run against her ended at a mean return of -14.0 over its last 40 episodes, reaching the goal 70% of the time.
+If your opponent in rock, paper, scissors always plays rock, you play paper every time. Against one who always plays paper you would do something else. Silver starts here: in a game, the best way to play depends on how the others play.
+
+That was not so before. Every earlier lecture had one learner alone in its world, a setting called a Markov decision process, or MDP. There the best rule for choosing a move, the optimal policy, was the one that collects the most reward.
+
+So he takes the easy case first: the other players never change how they play. The best policy against them is called the best response. Against always-rock it is always-paper.
+
+An opponent who never changes is, to the learner, part of the world. Silver folds her into the rules for what happens after each move, the environment's dynamics, and the game becomes an ordinary MDP whose optimal policy is the best response (13:17). A student asks whether the course assignment, Easy21, did this with its dealer. Silver says yes (18:05).
+
+> **Alt+Tab · game 10 · stop 1 of 6: Peek a Widowmaker who never moves**
+>
+> **What he just said:** Against an opponent who never changes, the best you can do is answer her habit: fold her into the world and solve it like any one-player problem.
+>
+> **In the game:** A question at the top asks which peek wins the most against a Widowmaker who always holds the right corner; answer with LEFT CLICK, RIGHT CLICK or MELEE. Then the game waits for 4 peeks: LEFT CLICK peeks the left corner, RIGHT CLICK the right one.
+>
+> **Before you press:** Against someone who always holds right, should you mix your peeks or take one corner every time?
+>
+> <details><summary>Back from the game: what you just saw</summary>She never looked left, so every left peek was clean and paid 3. Her habit made the problem one-sided, and one pure answer beats any mix against it. That answer is called a best response: the best plan against an opponent who stays fixed, who is then simply part of the map. <em>In an agent:</em> An agent tuned against one fixed simulated customer is learning a best response to that simulator.</details>
+
+**On the island:** the "fixed" blocker always stands in the edge row, so she is part of the environment, and the runner's Q-learning is looking for a best response. The one blind run against her (the runner is not told the blocker's row) ended at a mean return of -14.0 over its last 40 episodes, reaching the goal 70% of the time.
 
 ### [10:25](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=625s) A Nash equilibrium is where nobody wants to change alone
-A Nash equilibrium is a joint policy (a rule for every player at once) in which each player's policy is a best response to the others. Always-paper is not one, because the opponent would switch to scissors. In rock, paper, scissors the equilibrium is each move one third of the time. It is not unique in general (17:21), but these two-player zero-sum games have a unique minimax value (25:09).
-`pi^i = pi*^i(pi^-i)`
-In words: every player's policy is the best response to everyone else's, all at once.
+Always playing paper beats an opponent who always plays rock, but only until she changes. If she switches to scissors, always-paper loses every round. The best answer to one opponent is not yet the best way to play the game.
+
+Silver's standard for that is a set of plans, one for each player, in which every plan is already the best answer to all the others, so nobody would gain by changing alone. A rule for every player at once is called a joint policy, and one in which each player's policy is a best response to the others is a Nash equilibrium. `pi^i = pi*^i(pi^-i)`. In words: every player's policy is the best response to everyone else's, all at once.
+
+In rock, paper, scissors the equilibrium is to play each move one third of the time. Stray from that, and the other player can find a way to exploit it.
+
+A student asks whether there is only one equilibrium. In general, no (17:21). But in the games this lecture mostly studies, where two players see everything and one side's gain is the other's loss, the worth of a position under best play by both sides is unique (25:09). That worth is called the minimax value.
+
 **On the island:** Not run on the island. The experiment would freeze each trained bot and train a fresh opponent against her: if neither fresh opponent does better, the pair is near an equilibrium.
 
-### [13:17](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=797s) The equilibrium is where self-play comes to rest
-In self-play one learner controls every player and learns from games against itself. Each side keeps learning a best response to the other, so every improvement changes the other's problem. If the chase stops, the resting point is a Nash equilibrium. Silver cites Michael Littman's thesis: standard algorithms such as Q-learning do converge this way with table lookup (one stored number per state).
-**On the island:** the chase without self-play. The runner (Q-learning) and the blocker (a four-armed bandit, one running score per row) are different programs. Against a blind runner the learning blocker ended in the far inland row 76% of the time, and the runner's return was -46.1, against -14.0 with a fixed blocker (2 runs and 1, exploratory).
+### [13:17](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=797s) The equilibrium is where a learner playing itself comes to rest
+Picture two players who keep adjusting to each other: one finds a better counter, the other has to counter that, and so on. Silver uses this chase to explain how a program could learn its way to the set of plans nobody would change alone, the Nash equilibrium.
+
+Put one learner in control of every player and let it learn from the games it plays against itself. This is called self-play. Each side keeps learning the best answer to how the other side plays now, its best response, and every improvement on one side changes the problem the other is solving.
+
+If the chase ever stops, it has stopped at a Nash equilibrium, because by then each side is already giving the best answer to the other. Silver warns that it may not stop. But he cites Michael Littman's thesis for one solid result: standard methods such as Q-learning, which learns a score for each move from experience, do settle there (converge) when they keep one stored number per state, which is called table lookup.
+
+> **Alt+Tab · game 10 · stop 2 of 6: Peek a Widowmaker who learns you**
+>
+> **What he just said:** When both sides learn, each improvement changes the other side's problem, and the place where that chase comes to rest, if it does, is an equilibrium.
+>
+> **In the game:** A question asks for her best answer if you always peeked left. Then the game waits for 5 peeks, LEFT CLICK or RIGHT CLICK, against a new Widowmaker who watched your first 4. The red bar on the right shows her odds of aiming left before each peek.
+>
+> **Before you press:** If you peeked left every time, where should she aim?
+>
+> <details><summary>Back from the game: what you just saw</summary>Half the time she aims where your habit says you go; the other half she repeats her own past aims. If your first 4 peeks were left, her odds opened high on the left, so the habit that won stop 1 was the first thing she punished. Watch her red bar after you switch sides: when the opponent learns, the target you are aiming at moves. <em>In an agent:</em> A model trained hard against one user simulator learns that simulator's habits, and a different simulator can punish them.</details>
+
+**On the island:** the same chase, without self-play: the runner (Q-learning) and the blocker (a four-armed bandit, which keeps one running score per row) are different programs. Against a blind runner the learning blocker ended in the far inland row 76% of the time, and the runner's return was -46.1, against -14.0 with a fixed blocker (2 runs and 1, exploratory).
 
 ### [18:53](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=1133s) Two players, opposite rewards, and who sees what
-The lecture narrows to two players taking turns in a zero-sum game, where what is good for one is equally bad for the other.
-`R1 + R2 = 0`
-In words: the rewards add to zero, so one value function, negated, serves both sides.
-In a perfect-information game both players see the whole state: chess, Go, and backgammon, whose dice add chance but hide nothing. In an imperfect-information game part of it is hidden: the opponent's Scrabble letters, the opponent's poker cards (21:05).
-**On the island:** the blocker's score is the runner's return negated, so the build is exactly zero-sum, though not turn-based. The "sees" runner is told the blocker's row; the "blind" runner plays an imperfect-information game.
+In chess two players take turns, and whatever helps one of them hurts the other by the same amount. From here on Silver studies only games of that kind. He calls the players white and black whatever the game is.
+
+A game where what is good for one side is equally bad for the other is called zero-sum. It means the score for how good a position is, the value function of earlier lectures, does not have to be kept twice. `R1 + R2 = 0`. In words: the rewards add to zero, so one value function, negated, serves both sides.
+
+He then sorts games by what the players can see. In some, both players see the whole situation, the state of the game: chess, Go, and backgammon, whose dice add chance but hide nothing. These are perfect-information games. In others part of the state is hidden from a player, such as the opponent's Scrabble letters or the opponent's poker cards (21:05). These are imperfect-information games.
+
+Most of the hour stays with the first kind, and the hidden kind returns at the end.
+
+> **Alt+Tab · game 10 · stop 3 of 6: Find the peek she cannot read**
+>
+> **What he just said:** In some games part of the state is hidden, like the cards in a poker hand, and there a player whose choices can be predicted can be exploited.
+>
+> **In the game:** Two questions wait at the top. The first, through lecture 7's rock, paper, scissors, asks whether any fixed pattern of peeks is safe (LEFT CLICK or RIGHT CLICK). The second asks whether the safe mix peeks left more or less than half the time (LEFT CLICK, RIGHT CLICK or MELEE).
+>
+> **Before you press:** Left pays more when it works; does the safe mix use it more than half the time, or less?
+>
+> <details><summary>Back from the game: what you just saw</summary>Any fixed pattern can be counted and punished, so the safe plan is random on purpose, as lecture 7's policies were. It peeks left only 2 times in 7, the share at which both of her aims pay her the same, so studying you gains her nothing. A plan that rolls dice on purpose like this is called a mixed strategy.</details>
+
+**On the island:** the blocker's score is the runner's return with the sign flipped, so the build is exactly zero-sum, though the two do not take turns. The "sees" runner is told the blocker's row. The "blind" runner is not, so she plays an imperfect-information game.
 
 ### [21:40](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=1300s) Minimax: assume the other side always answers with its best move
-The minimax value is the game's outcome when white tries hardest to raise it and black tries hardest to lower it.
-`v*(s) = max over pi1, min over pi2, of v_pi(s)`
-In words: the value of a position under perfect play by both sides, taken in turn order (25:50).
-Its policy is a Nash equilibrium. Minimax search (Claude Shannon's, run on paper) finds it by searching to the end and backing values up. In the worked tree (27:39) max takes the larger of each leaf pair (+7, -2, +9, -4), min the smaller of those (-2, -4), and the root is -2, so max opens with a1.
+Before a move in chess you ask what your opponent will do about it, and the safe assumption is that she finds her best reply. Silver defines the worth of a position on that assumption.
+
+Take a score for a position, and let white do everything possible to raise it while black does everything possible to lower it. What comes out is called the minimax value. `v*(s) = max over pi1, min over pi2, of v_pi(s)`. In words: the value of a position under perfect play by both sides, taken in turn order (25:50). Playing that way is a Nash equilibrium, since neither side would change alone.
+
+Finding it takes a search that follows every line of play to the end of the game and passes the results back up. This is minimax search, first described by Claude Shannon, who ran his chess program on paper. In Silver's worked tree (27:39), with players called max and min, max takes the larger of each pair of final scores (+7, -2, +9, -4), min takes the smaller of each two of those (-2, -4), and max takes the larger again, so the starting position, the root, is worth -2 and max opens with a1.
+
+> **Alt+Tab · game 10 · stop 4 of 6: Peek by the die**
+>
+> **What he just said:** The minimax value is what a game is worth when each side plays its best against the other's best, and in a two-player game where one side's gain is the other's loss, the plans that reach it form an equilibrium.
+>
+> **In the game:** A question asks what you can expect per peek against a perfect Widowmaker. Then the game waits for 5 more peeks, LEFT CLICK or RIGHT CLICK, while the right side shows what a die says each time (LEFT 2 times in 7). Follow it or not.
+>
+> **Before you press:** Against a perfect Widowmaker, is the most you can expect per peek nothing, a little, or about a point?
+>
+> <details><summary>Back from the game: what you just saw</summary>With the 2 in 7 mix you win 1/7 of a point a peek on average, whatever she does, and a perfect Widowmaker can hold you to no more. That number is the minimax value of the game. Look at how often you followed the die rather than at your total: 5 peeks are far too few for 1/7 a peek to show through the luck.</details>
+
 **On the island:** Not run on the island. Solving the strip once per blocker row and letting the blocker take the worst row for the runner would give the seeing game's minimax value.
 
-### [29:56](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=1796s) Cut the search short and let a value function score the leaves
-Trees grow exponentially, so programs search a few moves and score the stopping points with a value function, sped up by alpha-beta pruning (31:53). The classic one is binary-linear: one yes-or-no feature per fact ("white has a rook"), each with a weight.
-`v(s, w) = x(s) . w`
-In words: add up the weights of the features switched on in this position.
-Deep Blue (36:15) used 8,000 hand-made features and grandmaster-tuned weights, searched 200 million positions a second, and beat Kasparov in 1997 with no learning. Chinook (38:19) added stored endgame tables, took two of Marion Tinsley's seven career losses, and later solved checkers (2007).
+### [29:56](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=1796s) Cut the search short and score the stopping points with an estimate
+Nobody can follow every line of chess to the end of the game, because the tree of possibilities multiplies with every move you look ahead. Real programs look a few moves ahead and stop. At each stopping point they put an estimate of how good that position is, which is the value function of earlier lectures in a new job. The search is also sped up by skipping branches that neither player would ever choose, a method called alpha-beta pruning (31:53).
+
+The classic value function asks a list of yes-or-no questions about the position, such as "white has a rook". Each question is a feature, and each feature has a weight, a number for how much a yes is worth. The form is called binary-linear. `v(s, w) = x(s) . w`. In words: add up the weights of the features switched on in this position.
+
+Two famous programs were built this way. Deep Blue (36:15) used 8,000 hand-made features with weights tuned by grandmasters, searched 200 million positions a second, and beat Kasparov in 1997 with no learning. Chinook (38:19), a checkers program, added stored tables of endgame positions it could play perfectly. It won two of the only seven games Marion Tinsley lost in his whole checkers career, and later solved checkers (2007).
+
 **On the island:** PLANNER is the island's Chinook: the strip is small enough to solve outright (13 sweeps, no falls in 10 runs).
 
-### [42:24](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=2544s) Self-play TD is the same code, plus afterstates
-Monte Carlo, TD(0) and TD(lambda) carry over unchanged. Only policy improvement changes: white maximises, black minimises.
-`Delta w = alpha (v(S_t+1, w) - v(S_t, w)) grad_w v(S_t, w)`
-In words: if one move later you expect a different result, nudge the weights toward the newer guess.
-With known deterministic rules you need only the afterstate, the position a move leads to (44:55).
-`q*(s, a) = v*(succ(s, a))`
-In words: a move is worth what the position it creates is worth.
+### [42:24](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=2544s) Learning by self-play is the same code as before, plus afterstates
+A program that plays both sides of a game can learn with the methods from earlier lectures. Silver says the code does not even have to change. One learner playing against itself is called self-play, and what it learns is still a score for each position, the value function.
+
+All three learning rules carry over, and each works by adjusting the weights the score is built from. Monte Carlo moves the score toward who really won the game. TD(lambda) covers the range between that and TD(0), which moves the score toward the program's own guess one move later. `Delta w = alpha (v(S_t+1, w) - v(S_t, w)) grad_w v(S_t, w)`. In words: if one move later you expect a different result, nudge the weights toward the newer guess.
+
+One step does change. When the program improves its rule for choosing a move, its policy, white picks the move with the highest value and black the move with the lowest.
+
+Games allow a shortcut too. When the rules are known and a move always leads to the same position (deterministic rules), a move needs no score of its own. You score the position it leads to, called the afterstate (44:55). `q*(s, a) = v*(succ(s, a))`. In words: a move is worth what the position it creates is worth.
+
 **On the island:** the island is nearly deterministic (0.21 slips per 1,000 steps), and PLANNER already picks moves by the value of the square each reaches. No learning bot uses afterstates.
 
 ### [47:37](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=2857s) Logistello and TD-Gammon: self-play that reached the top
-Logistello found 1.5 million stone patterns as features, learned their weights by self-play policy iteration with Monte Carlo targets, searched every move, and beat Takeshi Murakami 6-0. TD-Gammon (52:38) trained a small neural network from random weights by self-play TD, greedily, with no exploration. The dice made that work: they push play everywhere (56:31) and smooth the value function (57:44). The recipe diverged in chess and checkers, and even TD-Gammon reached superhuman play only with a 3-ply (three-move) search.
-**On the island:** no dice, so a greedy learner must be pushed to explore. Greedy Q + OPTIMISM (every Q starts at 40) fell 7.2 times per 100 episodes, against 26.5 for Q-learning (exploratory).
+Two programs taught themselves a board game by playing it against themselves, and both ended up stronger than the best human players.
 
-### [1:02:20](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=3740s) Let the search supply the learning targets
-Plain TD failed in chess, where tactics are invisible without search. TD root, from Arthur Samuel's 1959 checkers player (1:07:47), moves the current value toward a deep search from the next position. TD leaf (1:08:38) moves this step's search toward the next step's search, through the principal leaf, the leaf whose value decided the result.
-`v+(S_t, w) <- v+(S_t+1, w)`
-In words: push this move's search result toward the next move's (the plus means "after searching").
-KnightCap (1:18:04) reached master level this way, but needed an expert opponent and known piece values.
+The first, Logistello, played Othello. It found its own features: 1.5 million patterns of stones, each a yes-or-no fact with a weight. It learned the weights in a loop of playing a batch of games against itself, scoring each position by who went on to win (a Monte Carlo target), and choosing moves by the new scores. This is policy iteration by self-play. It searched before every move, and it beat the human world champion, Takeshi Murakami, 6-0.
+
+The second, TD-Gammon (52:38), played backgammon. It trained a small neural network from random weights by playing itself and correcting each guess toward the next one (self-play TD). It always took the move that looked best, which is called greedy, and it never explored.
+
+Silver asks why that worked, and both answers are the dice. They push play into every kind of position (56:31), and they smooth the learned score for each position, the value function (57:44). In chess and checkers the same recipe never settled (it diverged). Even TD-Gammon reached superhuman play only with a 3-ply (three-move) search on top.
+
+**On the island:** there are no dice, so a greedy learner has to be pushed to explore. Greedy Q + OPTIMISM (every Q starts at 40) fell 7.2 times per 100 episodes, against 26.5 for Q-learning (exploratory).
+
+### [1:02:20](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=3740s) Let the search tell the learner what to aim for
+Counting rooks and bishops will not tell you that a checkmate is coming. Looking ahead will. This is why plain TD, which corrects one quick guess with the next quick guess, did poorly in chess: the tactics are invisible without search.
+
+Until now the programs learned their quick score for a position, the value function, first and searched with it afterwards. Silver asks whether the search can improve the learning itself, and gives two ways.
+
+The older way comes from Arthur Samuel's 1959 checkers player (1:07:47). After a move, the program runs a deep search from the new position and moves its quick score for the previous position toward what the search found. Silver calls this TD root.
+
+The second way takes the whole search result at one move and pushes it toward the search result at the next. It is called TD leaf (1:08:38). `v+(S_t, w) <- v+(S_t+1, w)`. In words: push this move's search result toward the next move's (the plus means "after searching"). Only one number has to change: the score of the end position the search settled on, called the principal leaf. A chess program called KnightCap (1:18:04) reached master level this way, but it needed an expert opponent and had to be told what the pieces are worth.
+
 **On the island:** Not run on the island. A runner with a two-step look-ahead, learning toward that look-ahead value, would be the test.
 
 ### [1:20:26](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=4826s) TreeStrap: every node of one search becomes a lesson
-TreeStrap (with Joel Veness) moves every node of one search toward the search value below it.
-`v(s, w) <- v+(s, w)`
-In words: teach the quick guess at each position to predict a deeper search from there.
-Meep learned this way from random weights in self-play and won 13 of 15 games against international masters. Learning from your own search drifts from reality, Silver warns (1:25:48): "you have to ground it" in games played to a real end.
-**On the island:** DYNA-Q learns from imagined steps grounded by a model of real ones. Her first-40 return beat Q-learning's by 25.98 (15.53 to 36.25, exploratory); they were level by the last 40. That is not a minimax search.
+One search looks at millions of positions and works out a value for every one of them. The two methods before this kept a single value from each search and threw the rest away. Silver, with Joel Veness, built a method that uses them all, called TreeStrap.
 
-### [1:26:39](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=5199s) Simulation-based search, and the first hidden information
-Self-play games played out from the current position give Monte Carlo tree search; UCT, a UCB bandit (lecture 9) at each node, converges on minimax values. Maven (1:31:44) scored each Scrabble word by short rollouts plus a learned value of its leftover letters, and beat champion Adam Logan with MOUTHPART. But it drew the opponent's hidden rack at random, ignoring what the opponent's plays reveal (1:39:43).
-**On the island:** no bot rolls out futures, but the blind runner shares Maven's shortcut: one table averaging over wherever the blocker tends to stand, with no update on clues during an episode.
+It needs only one search. For every position inside it, the program compares its quick score with what the search found by looking deeper from that position, and moves the quick score toward the deeper answer. `v(s, w) <- v+(s, w)`. In words: teach the quick guess at each position to predict a deeper search from there.
 
-### [1:40:21](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=6021s) Imperfect information: one search tree per player, and an average to aim at
-In poker each player needs her own tree over information states. An information state summarises what one player knows (her cards, what she has seen), and many real states share one (1:43:28, and the slide). Naive MCTS here "blows up. It doesn't work. It diverges." (1:42:13). Smooth UCT borrows fictitious play: respond to the opponent's average behaviour so far, not her current one, so the sides stop chasing each other.
-`pi_avg(a|s) = N(s,a) / N(s);  A ~ UCT(S) with probability eta, else pi_avg(.|S)`
-In words: the share of times each action was taken is the average strategy; act by UCT some of the time and by that average otherwise.
-It found the equilibrium in small poker games. The slide credits counterfactual regret minimization with near-perfect limit Hold'em; Silver, without naming it, describes Alberta's near-perfect player (1:45:20), which the self-play agent could not beat head to head but outscored at the competition by exploiting other entrants.
-**On the island:** the blind runner against the learning blocker is this case. Her information state is her square; the true state adds the blocker's row. She bumped 0.47 times per episode, against 0.20 with a fixed blocker. The blocker chases recent results, the kind Smooth UCT calms; no averaging was run.
+A chess program called Meep learned this way. It started from random weights (the numbers its score is built from), played only against itself, and won 13 of 15 games against international masters.
+
+Asked whether any of this is sure to settle, Silver answers with a warning (1:25:48). A program that learns only from its own search drifts from reality, so "you have to ground it" in games played to a real end.
+
+**On the island:** DYNA-Q learns from imagined steps, and they are grounded because her model is built from real ones. Her return over the first 40 episodes beat Q-learning's by 25.98 (15.53 to 36.25, exploratory), and the two were level by the last 40. That is not a minimax search.
+
+### [1:26:39](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=5199s) Search by playing games out, and the first hidden information
+There is another way to judge a move: imagine playing the rest of the game many times and see how it tends to end. Silver comes back to this kind of search, with the program now playing both sides of every imagined game.
+
+Done with care, those imagined games grow into a tree of positions, a method called Monte Carlo tree search. Its most successful version puts a bandit, the slot-machine problem of lecture 9, at every position in the tree, and uses that lecture's UCB rule to pick which move to try next. This version is called UCT. In self-play its values settle on what each position is worth under best play by both sides, the minimax values.
+
+Sometimes a simpler search is enough. Maven (1:31:44), a Scrabble program, scored each word it could play by short imagined games, called rollouts, plus a learned value for the letters left on its rack. It beat the champion Adam Logan with the word MOUTHPART.
+
+Scrabble hides something, though: the opponent's rack. Maven drew those letters at random and ignored what the opponent's plays reveal about them (1:39:43).
+
+**On the island:** no bot plays out imagined futures. But the blind runner shares Maven's shortcut: she keeps one table that averages over wherever the blocker tends to stand, and she does not update on clues during an episode.
+
+### [1:40:21](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=6021s) Hidden cards: one search tree per player, and an average to aim at
+In poker you cannot see the other player's cards. Silver says that Monte Carlo tree search (MCTS), the last part's search by imagined games, applied naively to such a game "blows up. It doesn't work. It diverges." (1:42:13).
+
+The repair borrows an idea from game theory: respond to the opponent's average behaviour so far, not her current one, so the two sides stop chasing each other. The idea is called fictitious play, and the search built on it is Smooth UCT. `pi_avg(a|s) = N(s,a) / N(s);  A ~ UCT(S) with probability eta, else pi_avg(.|S)`. In words: the share of times each action was taken is the average strategy; act by UCT some of the time and by that average otherwise. In small poker games it found the equilibrium, where neither side gains by changing.
+
+Each player also needs her own tree, built over what she knows: her cards and what she has seen. That summary is called an information state, and many real states share one (1:43:28, and the slide).
+
+The slide credits a method named counterfactual regret minimization with near-perfect limit Hold'em. Silver does not name it, but he describes Alberta's near-perfect player (1:45:20), which the Smooth UCT agent could not beat head to head but outscored at the competition by exploiting other entrants.
+
+> **Alt+Tab · game 10 · stop 5 of 6: Start two learners, watch the averages**
+>
+> **What he just said:** In poker, search that chased the opponent's latest move went round in circles, and the fix was to answer her average behaviour so far, an idea called fictitious play.
+>
+> **In the game:** A question asks what two learners settle into (LEFT CLICK, RIGHT CLICK or MELEE). Then press F (INTERACT) to start 300 peeks of a learning Tracer bot against a learning Widowmaker, shown every 20 peeks on the two bars while the Widowmaker turns to the side she picks.
+>
+> **Before you press:** After 300 peeks of two learners answering each other, do they lock onto one corner, settle near the safe mix, or never settle?
+>
+> <details><summary>Back from the game: what you just saw</summary>Each bot plays the best answer to the other's average so far. Their actual choices kept flipping (the Tracer switched 12 times), yet the averages ended at 28% and 55% left, close to the safe 29% and 57%. A pair of plans where neither side gains by changing alone is a Nash equilibrium, and learning by playing a learning opponent is self-play. <em>In an agent:</em> Two models trained against each other can circle the same way, which is why averaging over past opponents is a common fix.</details>
+
+**On the island:** the blind runner against the learning blocker is this case. Her information state is her square; the true state adds the blocker's row. She bumped 0.47 times per episode, against 0.20 with a fixed blocker. The blocker chases recent results, the kind of chasing Smooth UCT calms; no averaging was run.
 
 ### [1:47:03](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=6423s) The recipe, and a warning about it
-Game after game: binary features, a mostly linear value function, a TD-family algorithm, self-play, and search on top. Then he says to "question our assumptions": he had argued Go needed search, until a deep network played as well as a million-simulation tree search with none (1:49:49). Search and knowledge trade off.
-**On the island:** the island's row: squares, a table, Q-learning, a fixed or bandit opponent (not self-play), and no search.
+Silver ends with one slide that lines up every program from the hour and asks what they share. The same ingredients come up in game after game.
+
+Every program described a position with yes-or-no facts about it, the binary features. On top of those sat a score for the position, a value function; in most it was a weighted sum of the features (a linear function), and TD-Gammon's neural network was the exception. The score was learned with an algorithm from the TD family, which for Silver takes in Monte Carlo, TD leaf and TreeStrap as well as plain TD. Each program trained against itself, by self-play, and each ran a search on top.
+
+Then he tells the room to "question our assumptions". He had argued for years that Go needed search. Then a deep neural network, with no search at all, played Go as well as a tree search running a million simulations (1:49:49).
+
+His closing point is that search and knowledge trade off. A program can put more knowledge into its value function or it can search deeper, and he counts both as ways to make progress.
+
+> **Alt+Tab · game 10 · stop 6 of 6: Read the debrief**
+>
+> **What he just said:** Silver sums up the recipe behind the strong game programs (simple features, a learned value, self-play and search on top) and warns that search and knowledge trade off, so the assumptions deserve questioning.
+>
+> **In the game:** Press F (INTERACT) for the debrief. Three lines appear on the left, with your prediction score and your points for the 14 peeks.
+>
+> **Before you press:** Before you press, decide which of your three opponents taught you the most about the game itself, and which only about her.
+>
+> <details><summary>Back from the game: what you just saw</summary>You met three opponents: a fixed one, beaten by a best response; a learner, who punished your habits; and a perfect one, held off only by the minimax mix. This game is one two-by-two choice replayed, with no positions, no search tree and no learned value, which is where Silver's programs did their real work. <em>In an agent:</em> Testing an agent against one fixed simulated user measures how well it learned that user; a second, different simulator is the nearest thing to checking whether it can be exploited.</details>
+
+**On the island:** the island's row on that slide would read: squares as the features, a table as the value function, Q-learning, a fixed or bandit opponent (not self-play), and no search.
 
 ## What the island measured for this lecture
 

@@ -61,32 +61,34 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: ringPos
-        32: goalRing
-        33: trapRing
-        34: oldGoal
-        35: rnd
-        36: roundOn
-        37: touched
-        38: found
-        39: trapHit
-        40: secs
-        41: total
-        42: last
-        43: lastSrc
-        44: totals
-        45: r1Total
-        46: r2Total
-        47: r1Found
-        48: ri
-        49: ki
-        50: autoTgt
-        51: autoRoute
-        52: hudScore
-        53: hudRounds
-        54: hudGap
-        55: debrief
-        56: db
+        31: stopNo
+        32: titleLine
+        33: ringPos
+        34: goalRing
+        35: trapRing
+        36: oldGoal
+        37: rnd
+        38: roundOn
+        39: touched
+        40: found
+        41: trapHit
+        42: secs
+        43: total
+        44: last
+        45: lastSrc
+        46: totals
+        47: r1Total
+        48: r2Total
+        49: r1Found
+        50: ri
+        51: ki
+        52: autoTgt
+        53: autoRoute
+        54: hudScore
+        55: hudRounds
+        56: hudGap
+        57: debrief
+        58: db
     player:
         0: fellCount
         1: fell
@@ -121,6 +123,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH"));
         Set Global Variable(ringPos, Empty Array);
         Set Global Variable(goalRing, -1);
         Set Global Variable(trapRing, -1);
@@ -391,6 +394,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,1,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,1,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -402,7 +406,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 1: NO COACH"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -596,6 +600,9 @@ rule ("Game 1: run") {
         Global.ready != False;
     }
     actions {
+        Set Global Variable(stopNo, 1);
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         "The five rings sit on a circle of 13 m around the start, so no ring is closer than another."
         For Global Variable(ki, 0, 5, 1);
             Modify Global Variable(ringPos, Append To Array, Add(Vector(0, 0, -3), Vector(Multiply(13, Cosine From Degrees(Add(90, Multiply(72, Global.ki)))), 0, Multiply(13, Sine From Degrees(Add(90, Multiply(72, Global.ki)))))));
@@ -634,17 +641,25 @@ rule ("Game 1: run") {
         Set Global Variable(coach, Custom String("Five rings, all alike. The yellow number is all you get."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 1);
-        Set Global Variable(qText, Custom String("The round starts after you answer. If you stand still, what will the number do?"));
+        Set Global Variable(qText, Custom String("Once a round is running, if you stand still, what will the number do?"));
         Set Global Variable(qOpts, Array(Custom String("stay at 0"), Custom String("go down"), Custom String("go up")));
         Set Global Variable(qCorrect, 1);
         Set Global Variable(qAuto, 1);
         Set Global Variable(qWhy, Custom String("It drops 1 every second. The score says hurry, but never where to go."));
         Call Subroutine(ask);
         "Round 1: find out what the score rewards."
+        Set Global Variable(stopNo, 2);
+        "Round 1: find out what the score rewards."
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        "Round 1: find out what the score rewards."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         Set Global Variable(rnd, 1);
         Set Global Variable(autoRoute, Array(Global.trapRing, First Of(Filtered Array(Array(0, 1, 2, 3, 4), And(Compare(Current Array Element, !=, Global.goalRing), Compare(Current Array Element, !=, Global.trapRing)))), Global.goalRing));
         Call Subroutine(playRound);
         Set Global Variable(r1Found, Global.found);
+        Set Global Variable(stopNo, 3);
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         Set Global Variable(coach, Custom String("Round 1 is over."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 2);
@@ -665,6 +680,9 @@ rule ("Game 1: run") {
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("No one showed you the right move. Learning from that number alone is reinforcement learning."));
         Wait(0.4, Ignore Condition);
+        Set Global Variable(stopNo, 4);
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         Set Global Variable(qId, 3);
         If(Global.r1Found);
             Set Global Variable(qText, Custom String("Round 2 has the same hidden layout. Go straight to the ring that paid: your total will be..."));
@@ -690,6 +708,9 @@ rule ("Game 1: run") {
             Set Global Variable(coach, Custom String("Round 2 did not beat round 1 this time. The score only teaches if you use what it showed."));
         End;
         Wait(0.4, Ignore Condition);
+        Set Global Variable(stopNo, 5);
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("Round 3: if you go straight to the ring that paid, what will you learn about the other rings?"));
         Set Global Variable(qOpts, Array(Custom String("nothing new"), Custom String("which one is best")));
@@ -721,14 +742,17 @@ rule ("Game 1: run") {
         Call Subroutine(settleRound);
         Set Global Variable(coach, Custom String("Round 3: {0}, with nothing on screen to steer by. Your state came from your history.", Global.total));
         Wait(0.4, Ignore Condition);
-        "Round 4: the island looks the same, but the hidden payouts are redrawn and the +50 ring moves."
+        "Round 4: the island looks the same, but the hidden payouts are redrawn and the +50 ring moves.\nThe round 3 result stays on screen while the question waits (he may be on the page)."
+        Set Global Variable(stopNo, 6);
+        "Round 4: the island looks the same, but the hidden payouts are redrawn and the +50 ring moves.\nThe round 3 result stays on screen while the question waits (he may be on the page)."
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        "Round 4: the island looks the same, but the hidden payouts are redrawn and the +50 ring moves.\nThe round 3 result stays on screen while the question waits (he may be on the page)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         Call Subroutine(drawRings);
         Set Global Variable(oldGoal, Global.goalRing);
         Set Global Variable(goalRing, Random Value In Array(Remove From Array(Array(0, 1, 2, 3, 4), Global.oldGoal)));
         Set Global Variable(trapRing, Random Value In Array(Remove From Array(Array(0, 1, 2, 3, 4), Global.goalRing)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,layout,4,{0},{1}", Global.goalRing, Global.trapRing));
-        Set Global Variable(coach, Custom String("Round 4. The rings are back."));
-        Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 6);
         Set Global Variable(qText, Custom String("Round 4 looks the same, but something hidden may have changed. Will your old ring pay +50?"));
         Set Global Variable(qOpts, Array(Custom String("yes, the island looks the same"), Custom String("I cannot tell from what I see")));
@@ -743,6 +767,11 @@ rule ("Game 1: run") {
         Set Global Variable(coach, Custom String("Round 4: {0}. It looked like round 2, but it was not: that is partial observability.", Global.total));
         Wait(0.4, Ignore Condition);
         "Debrief."
+        Set Global Variable(stopNo, 7);
+        "Debrief."
+        Set Global Variable(titleLine, Custom String("RL 1: NO COACH    STOP {0} OF 7", Global.stopNo));
+        "Debrief."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,1,{0}", Global.stopNo));
         Set Global Variable At Index(db, 0, Custom String("What you did: found the paying ring from a number alone, then ran to it blind."));
         Set Global Variable At Index(db, 1, Custom String("What it is called: learning from reward, with late feedback. Your memory was your state."));
         Set Global Variable At Index(db, 2, Custom String("In a language-model agent: a task scored only at the end; the transcript is its history."));
@@ -751,7 +780,6 @@ rule ("Game 1: run") {
         Set Global Variable(coach, Custom String("Simplified: you always knew where you stood, and the rules held still. Real agents see less."));
         Wait(0.4, Ignore Condition);
         Call Subroutine(finish);
-        Set Global Variable(coach, Custom String("Done. Game 1 finished."));
     }
 }
 

@@ -2,6 +2,7 @@
 
     RLG,M,<game>,<version>,<autoplay>
     RLG,T,<game>,<name>,<expected>,<got>,<ok>
+    RLG,G,<game>,<stop>                                          a numbered stop begins (the lecture's page has the same stops)
     RLG,Q,<game>,<question id>                                   the question is on screen
     RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
     RLG,E,<game>,<event name>,<values...>
@@ -37,7 +38,7 @@ def _val(x: str):
 
 def parse(path) -> dict:
     """All RLG lines of one log file: {"M": [...], "T": [...], "A": [...], "E": [...], "X": [...]}, each a list of dicts."""
-    out = {"M": [], "T": [], "A": [], "E": [], "X": [], "L": [], "Q": [], "path": str(path)}
+    out = {"M": [], "T": [], "A": [], "E": [], "X": [], "L": [], "Q": [], "G": [], "path": str(path)}
     for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
         m = LINE.match(line.strip())
         if not m:
@@ -55,6 +56,8 @@ def parse(path) -> dict:
             out["A"].append({"t": t, "game": f[0], "qid": f[1], "answer": f[2], "correct": f[3], "right": f[4], "seconds": f[5] if len(f) > 5 else None})
         elif kind == "Q" and len(f) >= 2:
             out["Q"].append({"t": t, "game": f[0], "qid": f[1]})
+        elif kind == "G" and len(f) >= 2:
+            out["G"].append({"t": t, "game": f[0], "stop": f[1]})
         elif kind == "E" and len(f) >= 2:
             out["E"].append({"t": t, "game": f[0], "name": f[1], "v": f[2:]})
         elif kind == "L" and len(f) >= 4:

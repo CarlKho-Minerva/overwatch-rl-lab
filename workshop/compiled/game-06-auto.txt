@@ -61,71 +61,73 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: padTxt
-        32: truth
-        33: descE
-        34: descT
-        35: descW
-        36: descS
-        37: allPads
-        38: autoPads
-        39: padPos
-        40: padCnt
-        41: padLast
-        42: padTop
-        43: padLow
-        44: sPad
-        45: sVal
-        46: uPad
-        47: uVal
-        48: desc
-        49: fit
-        50: fitErr
-        51: fitSq
-        52: fitD
-        53: gSum
-        54: gCnt
-        55: fi
-        56: pi
-        57: estE
-        58: estT
-        59: estW
-        60: estS
-        61: missE
-        62: missT
-        63: missW
-        64: m6
-        65: m60
-        66: mInf
-        67: mS
-        68: bestMap
-        69: bestV
-        70: stageNo
-        71: callPad
-        72: callNoise
-        73: callVal
-        74: scoutOpen
-        75: scoutReq
-        76: scoutN
-        77: herePad
-        78: pickPad
-        79: ringMode
-        80: lowMode
-        81: topMode
-        82: kk
-        83: q5Pads
-        84: wrongMax
-        85: stepsLine
-        86: legendLine
-        87: legend2
-        88: missHead
-        89: rowE
-        90: rowT
-        91: rowW
-        92: rowS
-        93: deb1
-        94: deb2
-        95: deb3
+        31: stopNo
+        32: titleLine
+        33: padTxt
+        34: truth
+        35: descE
+        36: descT
+        37: descW
+        38: descS
+        39: allPads
+        40: autoPads
+        41: padPos
+        42: padCnt
+        43: padLast
+        44: padTop
+        45: padLow
+        46: sPad
+        47: sVal
+        48: uPad
+        49: uVal
+        50: desc
+        51: fit
+        52: fitErr
+        53: fitSq
+        54: fitD
+        55: gSum
+        56: gCnt
+        57: fi
+        58: pi
+        59: estE
+        60: estT
+        61: estW
+        62: estS
+        63: missE
+        64: missT
+        65: missW
+        66: m6
+        67: m60
+        68: mInf
+        69: mS
+        70: bestMap
+        71: bestV
+        72: stageNo
+        73: callPad
+        74: callNoise
+        75: callVal
+        76: scoutOpen
+        77: scoutReq
+        78: scoutN
+        79: herePad
+        80: pickPad
+        81: ringMode
+        82: lowMode
+        83: topMode
+        84: kk
+        85: q5Pads
+        86: wrongMax
+        87: stepsLine
+        88: legendLine
+        89: legend2
+        90: missHead
+        91: rowE
+        92: rowT
+        93: rowW
+        94: rowS
+        95: deb1
+        96: deb2
+        97: deb3
     player:
         0: fellCount
         1: fell
@@ -162,6 +164,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS"));
         Set Global Variable(padTxt, Empty Array);
         Set Global Variable(truth, Array(2, 1, 2, 1, 8, 9, 7, 8, 1, 9, 2, 1));
         Set Global Variable(descE, Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
@@ -463,6 +466,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,6,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,6,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -474,7 +478,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 6: CALLOUTS"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -706,6 +710,12 @@ rule ("Game 6: run") {
         Global.ready != False;
     }
     actions {
+        "Stop 1: scout six pads (the page: tables stop working when states cannot all be visited)."
+        Set Global Variable(stopNo, 1);
+        "Stop 1: scout six pads (the page: tables stop working when states cannot all be visited)."
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    STOP {0} OF 6", Global.stopNo));
+        "Stop 1: scout six pads (the page: tables stop working when states cannot all be visited)."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,6,{0}", Global.stopNo));
         For Global Variable(pi, 0, 12, 1);
             Set Global Variable At Index(padPos, Global.pi, Vector(Add(-16.5, Multiply(3, Global.pi)), 0, 2));
         End;
@@ -805,14 +815,18 @@ rule ("Game 6: run") {
                 Set Player Health(Global.learner, Max Health(Global.learner));
             End;
         End;
-        Set Global Variable(stepsLine, Custom String("Scouting done: 6 calls."));
-        "---------------- Prediction 1: which map is closest after 6 calls ----------------"
+        "---------------- Stop 2. Prediction 1: which map is closest after 6 calls ----------------\nEach stop's opening words go in the yellow row, so the last result stays on the coach line until he acts."
+        Set Global Variable(stopNo, 2);
+        "---------------- Stop 2. Prediction 1: which map is closest after 6 calls ----------------\nEach stop's opening words go in the yellow row, so the last result stays on the coach line until he acts."
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    STOP {0} OF 6", Global.stopNo));
+        "---------------- Stop 2. Prediction 1: which map is closest after 6 calls ----------------\nEach stop's opening words go in the yellow row, so the last result stays on the coach line until he acts."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,6,{0}", Global.stopNo));
+        Set Global Variable(stepsLine, Custom String("Scouting done. A callout like 'mid is hot' covers 4 pads; three maps kept your 6 calls."));
         Set Global Variable(uPad, Global.sPad);
         Set Global Variable(uVal, Global.sVal);
         Set Global Variable(stageNo, 6);
         Call Subroutine(fitThree);
         Set Global Variable(m6, Array(Global.missE, Global.missT, Global.missW));
-        Set Global Variable(coach, Custom String("A callout like 'mid is hot' covers four pads at once. Your team kept three maps from your 6 calls."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 1);
         Set Global Variable(qText, Custom String("Your 6 calls fed three maps. Which is closest to the truth on all 12 pads now?"));
@@ -836,7 +850,13 @@ rule ("Game 6: run") {
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("THIRDS shares: one call moves the number for 4 pads. Learning spread to similar pads is generalisation."));
         Wait(0.4, Ignore Condition);
-        "---------------- Round 2: 54 more calls; draw them first, log them, then ask ----------------"
+        "---------------- Stop 3. Round 2: 54 more calls; draw them first, log them, then ask ----------------"
+        Set Global Variable(stopNo, 3);
+        "---------------- Stop 3. Round 2: 54 more calls; draw them first, log them, then ask ----------------"
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    STOP {0} OF 6", Global.stopNo));
+        "---------------- Stop 3. Round 2: 54 more calls; draw them first, log them, then ask ----------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,6,{0}", Global.stopNo));
+        Set Global Variable(stepsLine, Custom String("The team scouts on: 54 more calls, every pad 4 or 5 times, each off by up to 1."));
         For Global Variable(kk, 0, 54, 1);
             Set Global Variable(callPad, Modulo(Global.kk, 12));
             Call Subroutine(drawCall);
@@ -849,7 +869,6 @@ rule ("Game 6: run") {
         Set Global Variable(stageNo, 60);
         Call Subroutine(fitThree);
         Set Global Variable(m60, Array(Global.missE, Global.missT, Global.missW));
-        Set Global Variable(coach, Custom String("Now the team keeps scouting: 54 more calls, every pad read 4 or 5 times, each read off by up to 1."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 2);
         Set Global Variable(qText, Custom String("After all 60 calls, which map will be closest to the truth?"));
@@ -865,6 +884,18 @@ rule ("Game 6: run") {
         Set Global Variable(qAuto, 1);
         Set Global Variable(qWhy, Custom String("Small, not zero: 4 or 5 reads off by up to 1 average near the truth, not onto it. The Monte Carlo way."));
         Call Subroutine(ask);
+        "The 54 calls play as a sequence: he starts it with F, so it never runs while he is reading the page."
+        Set Global Variable(stepsLine, Custom String("Press F to bring in the 54 calls."));
+        Set Global Variable(scoutReq, False);
+        Wait Until(Not(Is Button Held(Global.learner, Button(Interact))), 3);
+        Set Global Variable(scoutOpen, True);
+        Wait(0.5, Ignore Condition);
+        Set Global Variable(scoutReq, True);
+        Wait Until(Compare(Global.scoutReq, ==, True), 99999);
+        Set Global Variable(scoutOpen, False);
+        Set Global Variable(scoutReq, False);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,6,go,3"));
+        Set Global Variable(stepsLine, Custom String("60 calls in."));
         Set Global Variable(coach, Custom String("Watch the 54 calls come in."));
         For Global Variable(kk, 0, 54, 1);
             Play Effect(All Players(All Teams), Good Explosion, Color(Sky Blue), Value In Array(Global.padPos, Value In Array(Global.sPad, Add(6, Global.kk))), 0.6);
@@ -879,7 +910,14 @@ rule ("Game 6: run") {
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("Same method, three descriptions: average per group. EXACT has one group per pad: a table is the special case."));
         Wait(0.4, Ignore Condition);
-        "---------------- Prediction 4 and 5: the floor of a coarse description ----------------"
+        "---------------- Stop 4. Prediction 4 and 5: the floor of a coarse description ----------------"
+        Set Global Variable(stopNo, 4);
+        "---------------- Stop 4. Prediction 4 and 5: the floor of a coarse description ----------------"
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    STOP {0} OF 6", Global.stopNo));
+        "---------------- Stop 4. Prediction 4 and 5: the floor of a coarse description ----------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,6,{0}", Global.stopNo));
+        Set Global Variable(stepsLine, Custom String("Now picture scouting forever: every pad read endlessly."));
+        Wait(0.4, Ignore Condition);
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("Scout forever, every pad read endlessly. Which maps can never get every pad right?"));
         Set Global Variable(qOpts, Array(Custom String("EXACT"), Custom String("THIRDS and ONE WORD"), Custom String("none, all get there")));
@@ -913,9 +951,13 @@ rule ("Game 6: run") {
         Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   {0}  /  {1}  /  {2}", Value In Array(Global.m6, 2), Value In Array(Global.m60, 2), Value In Array(Global.mInf, 2)));
         Set Global Variable(coach, Custom String("Forever: EXACT {0}, THIRDS {1}, ONE WORD {2}. A coarser map learns faster and has a floor.", First Of(Global.mInf), Value In Array(Global.mInf, 1), Value In Array(Global.mInf, 2)));
         Wait(0.4, Ignore Condition);
-        "---------------- Round 3: he chooses the description ----------------"
-        Set Global Variable(coach, Custom String("Your call now: give ONE pad its own number on top of THIRDS. Stand in its ring and press F."));
-        Set Global Variable(stepsLine, Custom String("Pick one pad for its own number."));
+        "---------------- Stop 5. Round 3: he chooses the description ----------------"
+        Set Global Variable(stopNo, 5);
+        "---------------- Stop 5. Round 3: he chooses the description ----------------"
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    STOP {0} OF 6", Global.stopNo));
+        "---------------- Stop 5. Round 3: he chooses the description ----------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,6,{0}", Global.stopNo));
+        Set Global Variable(stepsLine, Custom String("Your call: give ONE pad its own number on top of THIRDS. Stand in its ring, press F."));
         Set Global Variable(pickPad, -1);
         While(Compare(Global.pickPad, <, 0));
             Set Global Variable(scoutReq, False);
@@ -970,10 +1012,13 @@ rule ("Game 6: run") {
         Set Global Variable(rowS, Custom String("YOURS, 4 numbers:   {0}  /  {1}  /  {2}", First Of(Global.mS), Value In Array(Global.mS, 1), Value In Array(Global.mS, 2)));
         Set Global Variable(coach, Custom String("Choosing the description is most of the work. Here you chose it by hand; a network learns its own."));
         Wait(0.4, Ignore Condition);
-        Set Global Variable(coach, Custom String("Honest note: the mildest form, fixed hand-made groups and plain averages, not a learned network."));
-        Wait(0.4, Ignore Condition);
-        "---------------- Debrief ----------------"
-        Set Global Variable(stepsLine, Custom String(""));
+        "---------------- Stop 6. Debrief ----------------"
+        Set Global Variable(stopNo, 6);
+        "---------------- Stop 6. Debrief ----------------"
+        Set Global Variable(titleLine, Custom String("RL 6: CALLOUTS    STOP {0} OF 6", Global.stopNo));
+        "---------------- Stop 6. Debrief ----------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,6,{0}", Global.stopNo));
+        Set Global Variable(stepsLine, Custom String("Honest note: the mildest form, fixed hand-made groups and plain averages, no network."));
         Set Global Variable(deb1, Custom String("You scouted 6 pads; three maps learned from the same calls: 12 numbers, 3, and 1."));
         Set Global Variable(deb2, Custom String("Called value function approximation: features share a sighting across similar states."));
         Set Global Variable(deb3, Custom String("A language model: sensible on new prompts, sure but wrong when look-alikes differ."));

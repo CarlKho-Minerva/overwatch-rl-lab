@@ -25,8 +25,10 @@ by the same idea on the strip with what the bots did: [course/](course/README.md
 an outline per lecture for a video series in [series/](series/README.md). Lecture transcripts are not in this
 repository; the pages are re-explanations with time stamps into the videos.
 
-**The games.** Each lecture also has its own Overwatch custom game that a person plays: the player is the agent, the
-opponent, the coach or the scout, and each game asks for a prediction before every reveal
+**The games.** Each lecture also has its own Overwatch custom game that a person plays with the lecture's page open
+beside it: the page states a part of the lecture, says Alt+Tab, and the game is waiting at the same numbered stop to
+show what the lecturer meant. The player is the agent, the opponent, the coach or the scout, and each game asks for a
+prediction before every reveal
 ([workshop/games/](workshop/games/README.md)). 11 of 11 have been run start to finish in the real game by a
 stand-in bot, with the game checking its own arithmetic, and 11 of 11 have been played to the end with real
 key presses and mouse buttons on the build a person plays. Neither check can say a game is clear or fun.

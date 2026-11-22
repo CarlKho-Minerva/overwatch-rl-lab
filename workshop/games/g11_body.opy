@@ -39,6 +39,7 @@ settings {
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -10)
 #!define HOME_FACING vect(0, 0, 1)
+#!define STOPS 7
 
 #!include "common.opy"
 
@@ -95,6 +96,8 @@ globalvar hudRound = ""
 globalvar hudPings = ""
 globalvar hudKeys = ""
 globalvar hudKeys2 = ""
+# What to do next. Instructions live here, so a result in the coach line stays until he acts again.
+globalvar hudNext = ""
 globalvar enterNow = 0
 globalvar pingQ = 0
 globalvar pBefore = 0
@@ -198,14 +201,15 @@ def playRound():
     barText = "chance Sombra is in the LEFT room: 50%"
     hudPings = "pings this round: none yet"
     hudRound = "round {} of {}   score {}   the ping is right {}% of the time".format(roundN, NROUNDS, score, round(acc * 100))
+    # The coach line keeps the last result (stops: he may be on the page). What to do now goes in its own row.
     if roundN == 1:
-        coach = "Round 1. Press F to ping. The rooms open after two pings."
+        hudNext = "Press F to ping. The rooms open after two pings."
     elif roundN == 2:
-        coach = "Round 2. She has moved. Press F to ping. The rooms open after one ping."
+        hudNext = "She has moved. Press F to ping. The rooms open after one ping."
     elif roundN == NROUNDS:
-        coach = "Last round. The ping is now always right, like Widowmaker's infra-sight. Ping, or walk in."
+        hudNext = "The ping is now always right, like Widowmaker's infra-sight. Ping, or walk in."
     else:
-        coach = "Round {}. Your call: ping with F, or walk onto the pad of the room you think is empty.".format(roundN)
+        hudNext = "Your call: ping with F, or walk onto the pad of the room you think is empty."
     # The stand-in's plan for each round: 0 follow the best plan, 1 enter after one ping (the gamble at 80%).
     autoStyle = 1 if roundN == 3 or roundN == NROUNDS else 0
     while not roundDone:
@@ -217,7 +221,7 @@ def playRound():
             else:
                 pingReq = true
         deciding = true
-        waitUntil(pingReq or (roomsOpen and (distance(learner.getPosition(), padL) < PAD_R or distance(learner.getPosition(), padR) < PAD_R)), 12 if AUTOPLAY else 900)
+        waitUntil(pingReq or (roomsOpen and (distance(learner.getPosition(), padL) < PAD_R or distance(learner.getPosition(), padR) < PAD_R)), 12 if AUTOPLAY else 99999)
         deciding = false
         learner.stopThrottleInDirection()
         onPad = roomsOpen and (distance(learner.getPosition(), padL) < PAD_R or distance(learner.getPosition(), padR) < PAD_R)
@@ -243,7 +247,8 @@ def playRound():
                     qWhy = "Before it you were 50/50, so the ping's own accuracy is the answer: 80%."
                     ask()
                     barShown = true
-                    coach = "The bar is your belief: one number, moved by one rule after each ping. Press F again."
+                    STOP(2)
+                    hudNext = "The bar on the right is your belief: one number moved by one rule. Press F again."
                 elif roundN == 1 and pingCount == 2:
                     qId = 2
                     qText = "Second ping: {}. How sure now that she is {}?".format(lastSaid, lastSaid)
@@ -254,7 +259,7 @@ def playRound():
                     ask()
                     barShown = true
                     roomsOpen = true
-                    coach = "Rooms open. Ping more with F, or walk onto the pad of the room you think is EMPTY."
+                    hudNext = "Rooms open. Ping more with F, or walk onto the pad of the room you think is EMPTY."
                 elif roundN == 2 and pingCount == 1:
                     qId = 3
                     qText = "80% sure she is {}. Enter the other room, or ping again?".format(lastSaid)
@@ -266,7 +271,7 @@ def playRound():
                     ask()
                     barShown = true
                     roomsOpen = true
-                    coach = "At these prices 80% is not sure enough: one wrong room costs three right ones. Your call."
+                    hudNext = "80% is not sure enough here: one wrong room costs three right ones. F or a pad."
                 else:
                     coach = "That ping was worth {} on average; entering instead, {}. {}".format(pingQ, enterNow, "Worth its cost." if pingQ > enterNow + 0.0001 else "Entering was the better bet.")
         elif onPad:
@@ -279,6 +284,7 @@ def playRound():
                 nGood += 1
             # enter: round, room entered, her room, belief, that room's value, best entering value, one-more-ping value, reward, pings
             LOG("RLG,E,{},enter,{},{},{},{},{},{},{},{},{}".format(GAME_ID, roundN, room, hidden, belief, roomEv, enterNow, pingQ, reward, pingCount))
+            hudNext = ""
             createEffect(getAllPlayers(), Effect.SPHERE, Color.LIGHT_PURPLE, (padL if hidden == 0 else padR) + vect(0, 1, 0), 1.2, EffectReeval.NONE)
             sombraFx = getLastCreatedEntity()
             createInWorldText(getAllPlayers(), "SOMBRA WAS HERE", (padL if hidden == 0 else padR) + vect(0, 2.8, 0), 2, Clip.NONE, WorldTextReeval.NONE, Color.LIGHT_PURPLE)
@@ -289,7 +295,7 @@ def playRound():
             coach = "She was in the {} room. You walked into the {}: {}.".format("LEFT" if hidden == 0 else "RIGHT", "LEFT" if room == 0 else "RIGHT", "+10, empty" if reward > 0 else "-30, hacked")
             barShown = true
             wait(1 if AUTOPLAY else 4)
-            coach = "Chance that room was empty: {}%, worth {} on average. One more ping: {}. {}".format(round(100 * (1 - belief if room == 0 else belief)), roomEv, pingQ, "Pinging was the better bet." if pingQ > roomEv + 0.0001 else "Entering was the better bet.")
+            coach = "{}. Chance it was empty: {}%, worth {} on average. One more ping: {}. {}".format("+10" if reward > 0 else "-30", round(100 * (1 - belief if room == 0 else belief)), roomEv, pingQ, "Pinging was the better bet." if pingQ > roomEv + 0.0001 else "Entering was the better bet.")
             wait(1 if AUTOPLAY else 6)
             destroyEffect(sombraFx)
             destroyInWorldText(sombraTx)
@@ -331,9 +337,10 @@ rule "Game 11: the screen (strings are rebuilt only when something changes)":
     @Condition ready
     hudText(getAllPlayers(), null, null, hudRound, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudPings, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, debrief[0], HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, debrief[1], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, debrief[2], HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, hudNext, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, debrief[0], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, debrief[1], HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, debrief[2], HudPosition.LEFT, 8, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
     # Right block, the scoreboard (2026-11-22 layout pass: no TOP rows, right rows at most 58 characters).
     progressBarHud(getAllPlayers() if barShown else null, belief * 100, barText, HudPosition.RIGHT, 0, Color.LIGHT_PURPLE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
     hudText(getAllPlayers(), null, null, planText, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
@@ -342,6 +349,7 @@ rule "Game 11: the screen (strings are rebuilt only when something changes)":
 
 rule "Game 11: run":
     @Condition ready
+    STOP(1)
     hudKeys = "F: ping, costs 1. Walk onto a pad: enter that room."
     hudKeys2 = "Empty room +10. Sombra's room -30."
     createEffect(getAllPlayers(), Effect.RING, Color.WHITE, padL, PAD_R, EffectReeval.NONE)
@@ -370,15 +378,17 @@ rule "Game 11: run":
     LOG("RLG,E,{},plan,{},{},{},{},{},{}".format(GAME_ID, nStar, pStar, Vt[KL], Vt[KL + 1], Vt[KL + 2], perfectV))
     planText = "Best plan: ping between {}% and {}%, enter outside it.".format(round(100 * (1 - pStar)), round(100 * pStar))
 
-    coach = "Sombra hides, invisible, in one of two rooms. Walk through the EMPTY one: +10. Hers costs 30."
-    wait(1 if AUTOPLAY else 6)
-    coach = "Your ping (F) is a sonic arrow, like Hanzo's: it names her room, right 8 times in 10. Each costs 1."
-    wait(1 if AUTOPLAY else 6)
+    # The rules stay on screen (this line, and the right block) until his first ping: he may be on the page.
+    coach = "Sombra hides, unseen, in one of two rooms. Your ping is Hanzo's sonic arrow: right 8 times in 10."
+    if AUTOPLAY:
+        wait(2)
 
     playRound()
+    STOP(3)
     playRound()
 
     # Two situations that look the same (lesson 11's hidden wall, lecture 7's look-alike squares).
+    STOP(4)
     qId = 4
     qText = "Two players: pings RIGHT, LEFT and LEFT, LEFT. Same bar?"
     qOpts = ["same bar", "different bars"]
@@ -388,6 +398,7 @@ rule "Game 11: run":
     ask()
     playRound()
 
+    STOP(5)
     # The value of information (lecture 9): a ping is worth most where it can change what you do.
     # gain50: how much the best plan at 50% (which pings) beats entering now.
     # gain94: how much entering at 94% beats one more ping followed by the best plan.
@@ -406,6 +417,7 @@ rule "Game 11: run":
     playRound()
 
     # A sensor that is always right: the island's single bump.
+    STOP(6)
     qId = 6
     qText = "Next, the ping is never wrong. How many pings do you need?"
     qOpts = ["one", "two", "three or more"]
@@ -415,6 +427,19 @@ rule "Game 11: run":
     ask()
     playRound()
 
+    # The debrief waits for F, so he can read its stop on the page first.
+    STOP(7)
+    hudNext = "Press F to see the debrief."
+    if AUTOPLAY:
+        wait(0.5)
+    else:
+        pingReq = false
+        deciding = true
+        waitUntil(pingReq == true, 99999)
+        deciding = false
+        pingReq = false
+    LOG("RLG,E,{},go,{}".format(GAME_ID, 7))
+    hudNext = ""
     # debrief: rounds won, score, predictions right, predictions asked
     LOG("RLG,E,{},score,{},{},{},{}".format(GAME_ID, nGood, score, predRight, predTotal))
     hudKeys = ""
@@ -426,7 +451,6 @@ rule "Game 11: run":
     debrief[1] = "Its name: partial observability. The bar is a belief state; a ping buys information."
     wait(0.5 if AUTOPLAY else 3)
     debrief[2] = "In an agent: a lookup is a ping, cancelling is a room. Check what it was shown first."
-    coach = "Score {}, empty room {} of {} times. Predictions right: {} of {}.".format(score, nGood, NROUNDS, predRight, predTotal)
-    wait(1 if AUTOPLAY else 8)
+    hudRound = "final score {}   empty room {} of {} times".format(score, nGood, NROUNDS)
     coach = "Simplified: two rooms, a ping of known accuracy, Sombra never moves. Real hidden states are too many to list."
     finish()

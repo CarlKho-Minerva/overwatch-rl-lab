@@ -61,60 +61,63 @@ variables {
         28: qTxtTop
         29: qTxtLow
         30: qShown
-        31: seed
-        32: seed2
-        33: gap
-        34: nRep
-        35: raceNo
-        36: showRace
-        37: countStale
-        38: raceGo
-        39: paused
-        40: botP
-        41: botD
-        42: REPS
-        43: pickI
-        44: usedR
-        45: picking
-        46: r1
-        47: r2
-        48: walking
-        49: walkDone
-        50: walkCur
-        51: walkPos
-        52: walkCol
-        53: walkRow
-        54: walkCell
-        55: walkDC
-        56: walkDR
-        57: walkA
-        58: walkK
-        59: walkRew
-        60: walkS2
-        61: walkBumps
-        62: autoPath
-        63: autoI
-        64: drawI
-        65: revI
-        66: knowP
-        67: knowD
-        68: sTotP
-        69: sTotD
-        70: sFsP
-        71: sFsD
-        72: sFix
-        73: sThrough
-        74: totD1
-        75: ctrl
-        76: raceHead
-        77: hudP
-        78: hudD
-        79: hudTot
-        80: hudTot2
-        81: debriefOn
-        82: db1
-        83: db2
-        84: db3
+        31: stopNo
+        32: titleLine
+        33: seed
+        34: seed2
+        35: gap
+        36: nRep
+        37: raceNo
+        38: showRace
+        39: countStale
+        40: raceGo
+        41: paused
+        42: botP
+        43: botD
+        44: REPS
+        45: pickI
+        46: usedR
+        47: picking
+        48: goWait
+        49: r1
+        50: r2
+        51: walking
+        52: walkDone
+        53: walkCur
+        54: walkPos
+        55: walkCol
+        56: walkRow
+        57: walkCell
+        58: walkDC
+        59: walkDR
+        60: walkA
+        61: walkK
+        62: walkRew
+        63: walkS2
+        64: walkBumps
+        65: autoPath
+        66: autoI
+        67: drawI
+        68: revI
+        69: knowP
+        70: knowD
+        71: sTotP
+        72: sTotD
+        73: sFsP
+        74: sFsD
+        75: sFix
+        76: sThrough
+        77: totD1
+        78: ctrl
+        79: raceHead
+        80: hudP
+        81: hudD
+        82: hudTot
+        83: hudTot2
+        84: debriefOn
+        85: db1
+        86: db2
+        87: db3
     player:
         0: fellCount
         1: fell
@@ -174,6 +177,7 @@ subroutines {
     7: runRace
     8: pickReplays
     9: raceSummary
+    10: waitGo
 }
 
 rule ("Initialize global variables") {
@@ -193,6 +197,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL"));
         Set Global Variable(seed, 1);
         Set Global Variable(seed2, 20);
         Set Global Variable(nRep, 20);
@@ -204,6 +209,7 @@ rule ("Initialize global variables") {
         Set Global Variable(pickI, 2);
         Set Global Variable(usedR, -1);
         Set Global Variable(picking, False);
+        Set Global Variable(goWait, False);
         Set Global Variable(walking, False);
         Set Global Variable(walkDone, False);
         Set Global Variable(walkCur, 7);
@@ -419,7 +425,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
         Set Global Variable(qShown, Total Time Elapsed);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,8,{0}", Global.qId));
-        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        "2026-11-22: no time limit for a person. The game is played beside its lecture's page, and he may be reading\nthe page when a question comes up. (It gave up after 90 seconds.)"
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 99999);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
         Destroy In-World Text(Global.qTxtLow);
@@ -494,6 +501,7 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    FINISHED"));
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,8,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,8,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
@@ -505,7 +513,7 @@ rule ("Core: the screen") {
         Ongoing - Global;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Custom String("RL 8: RECALL"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Global.titleLine, Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
@@ -821,8 +829,10 @@ rule ("Game 8: the player sets the replays per real step for the next race (F ch
         Set Global Variable(hudTot, Custom String(""));
         Set Global Variable(hudTot2, Custom String(""));
         Set Global Variable(ctrl, Custom String("F (Interact): change the replays (0, 5, 20{0}). R (Reload): start.", If-Then-Else(Compare(Global.usedR, <, 0), Custom String(""), Custom String(", not {0} again", Global.usedR))));
+        "Stops (2026-11-22): he may be reading the lecture's page when this opens, so it waits as long as he likes."
+        Wait Until(Not(Is Button Held(Global.learner, Button(Reload))), 5);
         Set Global Variable(picking, True);
-        Wait Until(Not(Global.picking), 60);
+        Wait Until(Not(Global.picking), 99999);
         Set Global Variable(picking, False);
         Set Global Variable(raceHead, Custom String("Race {0}: {1} replays per real step. Steps per trip:", Global.raceNo, Global.nRep));
         Set Global Variable(ctrl, Custom String("Answer: left click, right click, melee."));
@@ -848,6 +858,36 @@ rule ("Game 8: F changes the replays") {
         End;
         Set Global Variable(nRep, Value In Array(Global.REPS, Global.pickI));
         Set Global Variable(raceHead, Custom String("Race {0}: {1} replays per real step. Steps per trip:", Global.raceNo, Global.nRep));
+    }
+}
+
+rule ("Game 8: wait for R (Reload) before a stop's automatic part; the stand-in goes by itself") {
+    event {
+        Subroutine;
+        waitGo;
+    }
+    actions {
+        Wait Until(Not(Is Button Held(Global.learner, Button(Reload))), 5);
+        Set Global Variable(goWait, True);
+        Wait Until(Not(Global.goWait), 99999);
+        Set Global Variable(goWait, False);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,8,go,{0}", Global.stopNo));
+    }
+}
+
+rule ("Game 8: R goes on") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.goWait != False;
+        Is Button Held(Event Player, Button(Reload)) == True;
+    }
+    actions {
+        Set Global Variable(goWait, False);
     }
 }
 
@@ -994,27 +1034,35 @@ rule ("Game 8: run") {
         Disallow Button(Global.learner, Button(Ability 1));
         Disallow Button(Global.learner, Button(Ability 2));
         Disallow Button(Global.learner, Button(Ultimate));
-        "--- Round 1: the player walks the maze; his steps become the replaying bot's memory ---------------------------"
-        Set Global Variable(coach, Custom String("Tracer's Recall rewinds her last steps. A learner can do that with its memories between real steps."));
-        Wait(6, Ignore Condition);
-        Set Global Variable(coach, Custom String("Walk from the blue pad to the green one, pad by pad. Each step you take goes into one bot's memory."));
+        "--- Stop 1: the player walks the maze; his steps become the replaying bot's memory ----------------------------"
+        Set Global Variable(stopNo, 1);
+        "--- Stop 1: the player walks the maze; his steps become the replaying bot's memory ----------------------------"
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    STOP {0} OF 6", Global.stopNo));
+        "--- Stop 1: the player walks the maze; his steps become the replaying bot's memory ----------------------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,8,{0}", Global.stopNo));
+        Set Global Variable(coach, Custom String("Walk from blue to green, pad by pad. Like Tracer's Recall, a bot will keep your steps and replay them."));
         Set Global Variable(ctrl, Custom String("WASD: walk onto a pad next to yours. Red balls are wall."));
         Call Subroutine(putHome);
         Set Global Variable(walkCur, 7);
         Set Global Variable(walkDone, False);
         Set Global Variable(walking, True);
-        Wait Until(Compare(Global.walkDone, ==, True), 120);
+        Wait Until(Compare(Global.walkDone, ==, True), 99999);
         Set Global Variable(walking, False);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,8,walkend,{0},{1},{2}", Count Of(Global.walkK), Global.walkBumps, If-Then-Else(Global.walkDone, 1, 0)));
         Set Global Variable(coach, Custom String("{0} Your {1} steps are now the replaying bot's memory: its own copy of what each move does.", If-Then-Else(Global.walkDone, Custom String("Goal."), Custom String("Time.")), Count Of(Global.walkK)));
         Wait(6, Ignore Condition);
         Teleport(Global.learner, Vector(0, 0, -14));
         Set Facing(Global.learner, Forward, To World);
-        "--- Round 2: race 1 -----------------------------------------------------------------------------------------"
+        "--- Stop 2: race 1 ------------------------------------------------------------------------------------------"
+        Set Global Variable(stopNo, 2);
+        "--- Stop 2: race 1 ------------------------------------------------------------------------------------------"
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    STOP {0} OF 6", Global.stopNo));
+        "--- Stop 2: race 1 ------------------------------------------------------------------------------------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,8,{0}", Global.stopNo));
         Set Global Variable(raceNo, 1);
         Set Global Variable(gap, 0);
-        Set Global Variable(coach, Custom String("You are the coach. The plain bot learns from real steps only; the other replays memories after each."));
         Call Subroutine(pickReplays);
+        Set Global Variable(coach, Custom String("You are the coach. The plain bot learns from real steps only; the other replays memories after each."));
         Set Global Variable(r1, Global.nRep);
         Set Global Variable(usedR, Global.nRep);
         "The race is worked out once, unseen, while the player answers; then the same dice run it in front of him."
@@ -1056,14 +1104,18 @@ rule ("Game 8: run") {
         Call Subroutine(raceSummary);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,8,pass,{0},{1},{2}", Global.raceNo, Global.sTotP, Custom String("{0},{1},{2}", (Global.botP).total, Global.sTotD, Custom String("{0},{1}", (Global.botD).total, Global.nRep))));
         Set Global Variable(coach, If-Then-Else(Compare(Global.nRep, >, 0), Custom String("Each real step costs both bots the same. The replaying bot gets more learning out of each one."), Custom String("0 replays: the second bot is the plain bot. Memory unused is memory wasted.")));
-        Wait(8, Ignore Condition);
-        "--- Round 3: race 2, a different number of replays ------------------------------------------------------------"
+        Wait(1, Ignore Condition);
+        "--- Stop 3: race 2, a different number of replays -------------------------------------------------------------"
+        Set Global Variable(stopNo, 3);
+        "--- Stop 3: race 2, a different number of replays -------------------------------------------------------------"
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    STOP {0} OF 6", Global.stopNo));
+        "--- Stop 3: race 2, a different number of replays -------------------------------------------------------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,8,{0}", Global.stopNo));
         Set Global Variable(raceNo, 2);
-        Set Global Variable(coach, Custom String("Race 2: pick a different number. The plain bot rolls the same dice again: it is your yardstick."));
         Call Subroutine(pickReplays);
         Set Global Variable(r2, Global.nRep);
         Set Global Variable(showRace, False);
-        Set Global Variable(coach, Custom String("Race 2 set: {0} replays per real step.", Global.nRep));
+        Set Global Variable(coach, Custom String("Race 2: {0} replays per real step. The plain bot rolls the same dice again: it is your yardstick.", Global.nRep));
         Call Subroutine(runRace);
         Set Global Variable(sTotP, (Global.botP).total);
         Set Global Variable(sTotD, (Global.botD).total);
@@ -1086,8 +1138,15 @@ rule ("Game 8: run") {
         Call Subroutine(raceSummary);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,8,pass,{0},{1},{2}", Global.raceNo, Global.sTotP, Custom String("{0},{1},{2}", (Global.botP).total, Global.sTotD, Custom String("{0},{1}", (Global.botD).total, Global.nRep))));
         Set Global Variable(coach, Custom String("Replay only spreads what it has seen: past a point, more thinking stops paying."));
-        Wait(7, Ignore Condition);
-        "--- Round 4: the gap moves -----------------------------------------------------------------------------------"
+        Wait(1, Ignore Condition);
+        "--- Stop 4: the gap moves (R moves it) -------------------------------------------------------------------------"
+        Set Global Variable(stopNo, 4);
+        "--- Stop 4: the gap moves (R moves it) -------------------------------------------------------------------------"
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    STOP {0} OF 6", Global.stopNo));
+        "--- Stop 4: the gap moves (R moves it) -------------------------------------------------------------------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,8,{0}", Global.stopNo));
+        Set Global Variable(ctrl, Custom String("R (Reload): move the gap in the wall."));
+        Call Subroutine(waitGo);
         Set Global Variable(raceNo, 3);
         Set Global Variable(nRep, 20);
         Set Global Variable(gap, 2);
@@ -1120,6 +1179,12 @@ rule ("Game 8: run") {
             Set Global Variable(qWhy, Custom String("Both had to stumble on the new gap: thinking cannot find what was never seen."));
         End;
         Call Subroutine(ask);
+        "--- Stop 5: what fixes the replaying bot's memory, then race 3 --------------------------------------------------"
+        Set Global Variable(stopNo, 5);
+        "--- Stop 5: what fixes the replaying bot's memory, then race 3 --------------------------------------------------"
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    STOP {0} OF 6", Global.stopNo));
+        "--- Stop 5: what fixes the replaying bot's memory, then race 3 --------------------------------------------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,8,{0}", Global.stopNo));
         Set Global Variable(qId, 5);
         Set Global Variable(qText, Custom String("Its memory says the old gap is open. Which happens later?"));
         Set Global Variable(qOpts, Array(Custom String("it fixes the old-gap memory"), Custom String("it finds the new gap"), Custom String("about the same time")));
@@ -1147,8 +1212,15 @@ rule ("Game 8: run") {
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,8,pass,{0},{1},{2}", Global.raceNo, Global.sTotP, Custom String("{0},{1},{2}", (Global.botP).total, Global.sTotD, Custom String("{0},{1}", (Global.botD).total, Global.nRep))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,8,wall,{0},{1},{2}", (Global.botD).stale, (Global.botD).fixStep, (Global.botD).throughStep));
         Set Global Variable(coach, Custom String("It replayed untrue memories {0} times. A bump fixed the old gap at step {1}; new gap found at step {2}.", (Global.botD).stale, If-Then-Else(Compare((Global.botD).fixStep, >=, 0), (Global.botD).fixStep, Custom String("never")), If-Then-Else(Compare((Global.botD).throughStep, >=, 0), (Global.botD).throughStep, Custom String("never"))));
-        Wait(9, Ignore Condition);
-        "--- Debrief ---------------------------------------------------------------------------------------------------"
+        Wait(1, Ignore Condition);
+        "--- Stop 6: the debrief (R shows it, so the race result stays until he is back) ---------------------------------"
+        Set Global Variable(stopNo, 6);
+        "--- Stop 6: the debrief (R shows it, so the race result stays until he is back) ---------------------------------"
+        Set Global Variable(titleLine, Custom String("RL 8: RECALL    STOP {0} OF 6", Global.stopNo));
+        "--- Stop 6: the debrief (R shows it, so the race result stays until he is back) ---------------------------------"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,G,8,{0}", Global.stopNo));
+        Set Global Variable(ctrl, Custom String("R (Reload): show the summary."));
+        Call Subroutine(waitGo);
         Set Global Variable(ctrl, Custom String(""));
         Set Global Variable(db1, Custom String("You walked once and coached two bots: one learned from real steps, one also replayed."));
         Set Global Variable(db2, Custom String("That is Dyna-Q: learn a model (its copy of what moves do), then plan by replaying it."));
