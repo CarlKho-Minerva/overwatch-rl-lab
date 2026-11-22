@@ -97,8 +97,6 @@ globalvar botFx = vect(0, -60, 0)
 globalvar youFx = vect(0, -60, 0)
 globalvar worldTxt = ["", "", ""]
 globalvar barTxt = ["", "", ""]
-globalvar oddsHead = ""
-globalvar botExTxt = ""
 globalvar info = ["", "", "", ""]
 globalvar nDummies = 0
 globalvar holdT
@@ -137,10 +135,8 @@ def buildTexts():
     @Name "Game 7: rebuild the screen strings once, when something changes"
     worldTxt = ["{}: {}%".format(heroName[0], round(botP[0] * 100)), "{}: {}%".format(heroName[1], round(botP[1] * 100)), "{}: {}%".format(heroName[2], round(botP[2] * 100))]
     barTxt = ["bot picks TRACER {}%".format(round(botP[0] * 100)), "bot picks WIDOWMAKER {}%".format(round(botP[1] * 100)), "bot picks PHARAH {}%".format(round(botP[2] * 100))]
-    oddsHead = "nudge size {}   its usual reward (baseline) {}".format(alpha, base)
     exF = botP
     exBot = EXPLOIT(exF)
-    botExTxt = "vs these odds a perfect counter nets {} wins per 100".format(round(exBot * 100))
 
 def getPick():
     @Name "Game 7: wait for the player's pick (left click, right click, melee), outside of questions"
@@ -249,12 +245,14 @@ rule "Game 7: the screen":
     hudText(getAllPlayers(), null, null, info[1], HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, info[2], HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, info[3], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), "THIS GAME'S RULE", "Tracer beats Widowmaker, Widowmaker beats Pharah, Pharah beats Tracer", "a rule made for this game, not real Overwatch", HudPosition.RIGHT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.NONE)
-    hudText(getAllPlayers(), "THE BOT'S ODDS FOR ITS NEXT PICK", oddsHead, null, HudPosition.RIGHT, 1, Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    progressBarHud(getAllPlayers(), botP[0] * 100, barTxt[0], HudPosition.RIGHT, 2, Color.ORANGE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
-    progressBarHud(getAllPlayers(), botP[1] * 100, barTxt[1], HudPosition.RIGHT, 3, Color.LIGHT_PURPLE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
-    progressBarHud(getAllPlayers(), botP[2] * 100, barTxt[2], HudPosition.RIGHT, 4, Color.BLUE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
-    hudText(getAllPlayers(), null, null, botExTxt, HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    # Right block: one slot per row, every row at most 36% of the screen wide (slots on one row sit side by side).
+    hudText(getAllPlayers(), "THIS GAME'S RULE", null, null, HudPosition.RIGHT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.NONE)
+    hudText(getAllPlayers(), null, null, "Tracer beats Widowmaker beats Pharah beats Tracer", HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.NONE)
+    hudText(getAllPlayers(), null, null, "(made for this game, not real Overwatch)", HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.NONE)
+    hudText(getAllPlayers(), "BOT'S ODDS FOR ITS NEXT PICK", null, null, HudPosition.RIGHT, 3, Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.NONE)
+    progressBarHud(getAllPlayers(), botP[0] * 100, barTxt[0], HudPosition.RIGHT, 4, Color.ORANGE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
+    progressBarHud(getAllPlayers(), botP[1] * 100, barTxt[1], HudPosition.RIGHT, 5, Color.LIGHT_PURPLE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
+    progressBarHud(getAllPlayers(), botP[2] * 100, barTxt[2], HudPosition.RIGHT, 6, Color.BLUE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
 
 rule "Game 7: run":
     @Condition ready
@@ -308,7 +306,7 @@ rule "Game 7: run":
     alpha = ALPHA_SMALL
     buildTexts()
 
-    info[0] = "PICK when a round asks: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."
+    info[0] = "PICK: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."
     coach = "Counter-picking: the bot learns to pick whatever beats the hero you keep playing."
     wait(1 if AUTOPLAY else 7)
     coach = "It keeps no scores, only three odds (the bars on the right), and draws its pick from them."

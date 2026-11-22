@@ -99,11 +99,9 @@ variables {
         66: youFx
         67: worldTxt
         68: barTxt
-        69: oddsHead
-        70: botExTxt
-        71: info
-        72: nDummies
-        73: holdT
+        69: info
+        70: nDummies
+        71: holdT
     player:
         0: fellCount
         1: fell
@@ -158,8 +156,6 @@ rule ("Initialize global variables") {
         Set Global Variable(youFx, Vector(0, -60, 0));
         Set Global Variable(worldTxt, Array(Custom String(""), Custom String(""), Custom String("")));
         Set Global Variable(barTxt, Array(Custom String(""), Custom String(""), Custom String("")));
-        Set Global Variable(oddsHead, Custom String(""));
-        Set Global Variable(botExTxt, Custom String(""));
         Set Global Variable(info, Array(Custom String(""), Custom String(""), Custom String(""), Custom String("")));
     }
 }
@@ -473,10 +469,8 @@ rule ("Game 7: rebuild the screen strings once, when something changes") {
     actions {
         Set Global Variable(worldTxt, Array(Custom String("{0}: {1}%", First Of(Global.heroName), Round To Integer(Multiply(First Of(Global.botP), 100), To Nearest)), Custom String("{0}: {1}%", Value In Array(Global.heroName, 1), Round To Integer(Multiply(Value In Array(Global.botP, 1), 100), To Nearest)), Custom String("{0}: {1}%", Value In Array(Global.heroName, 2), Round To Integer(Multiply(Value In Array(Global.botP, 2), 100), To Nearest))));
         Set Global Variable(barTxt, Array(Custom String("bot picks TRACER {0}%", Round To Integer(Multiply(First Of(Global.botP), 100), To Nearest)), Custom String("bot picks WIDOWMAKER {0}%", Round To Integer(Multiply(Value In Array(Global.botP, 1), 100), To Nearest)), Custom String("bot picks PHARAH {0}%", Round To Integer(Multiply(Value In Array(Global.botP, 2), 100), To Nearest))));
-        Set Global Variable(oddsHead, Custom String("nudge size {0}   its usual reward (baseline) {1}", Global.alpha, Global.base));
         Set Global Variable(exF, Global.botP);
         Set Global Variable(exBot, Max(Subtract(Value In Array(Global.exF, 1), Value In Array(Global.exF, 2)), Max(Subtract(Value In Array(Global.exF, 2), First Of(Global.exF)), Subtract(First Of(Global.exF), Value In Array(Global.exF, 1)))));
-        Set Global Variable(botExTxt, Custom String("vs these odds a perfect counter nets {0} wins per 100", Round To Integer(Multiply(Global.exBot, 100), To Nearest)));
     }
 }
 
@@ -641,12 +635,14 @@ rule ("Game 7: the screen") {
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.info, 1), Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.info, 2), Left, 5, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.info, 3), Left, 6, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Custom String("THIS GAME'S RULE"), Custom String("Tracer beats Widowmaker, Widowmaker beats Pharah, Pharah beats Tracer"), Custom String("a rule made for this game, not real Overwatch"), Right, 0, Color(Orange), Color(White), Color(White), None, Default Visibility);
-        Create HUD Text(All Players(All Teams), Custom String("THE BOT'S ODDS FOR ITS NEXT PICK"), Global.oddsHead, Null, Right, 1, Color(Yellow), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create Progress Bar HUD Text(All Players(All Teams), Multiply(First Of(Global.botP), 100), First Of(Global.barTxt), Right, 2, Color(Orange), Color(White), Visible To and Values, Default Visibility);
-        Create Progress Bar HUD Text(All Players(All Teams), Multiply(Value In Array(Global.botP, 1), 100), Value In Array(Global.barTxt, 1), Right, 3, Custom Color(210, 127, 243, 255), Color(White), Visible To and Values, Default Visibility);
-        Create Progress Bar HUD Text(All Players(All Teams), Multiply(Value In Array(Global.botP, 2), 100), Value In Array(Global.barTxt, 2), Right, 4, Color(Blue), Color(White), Visible To and Values, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Global.botExTxt, Right, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        "Right block: one slot per row, every row at most 36% of the screen wide (slots on one row sit side by side)."
+        Create HUD Text(All Players(All Teams), Custom String("THIS GAME'S RULE"), Null, Null, Right, 0, Color(Orange), Color(White), Color(White), None, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("Tracer beats Widowmaker beats Pharah beats Tracer"), Right, 1, Color(White), Color(White), Color(White), None, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("(made for this game, not real Overwatch)"), Right, 2, Color(White), Color(White), Color(White), None, Default Visibility);
+        Create HUD Text(All Players(All Teams), Custom String("BOT'S ODDS FOR ITS NEXT PICK"), Null, Null, Right, 3, Color(Yellow), Color(White), Color(White), None, Default Visibility);
+        Create Progress Bar HUD Text(All Players(All Teams), Multiply(First Of(Global.botP), 100), First Of(Global.barTxt), Right, 4, Color(Orange), Color(White), Visible To and Values, Default Visibility);
+        Create Progress Bar HUD Text(All Players(All Teams), Multiply(Value In Array(Global.botP, 1), 100), Value In Array(Global.barTxt, 1), Right, 5, Custom Color(210, 127, 243, 255), Color(White), Visible To and Values, Default Visibility);
+        Create Progress Bar HUD Text(All Players(All Teams), Multiply(Value In Array(Global.botP, 2), 100), Value In Array(Global.barTxt, 2), Right, 6, Color(Blue), Color(White), Visible To and Values, Default Visibility);
     }
 }
 
@@ -743,7 +739,7 @@ rule ("Game 7: run") {
         Call Subroutine(resetBot);
         Set Global Variable(alpha, 0.6);
         Call Subroutine(buildTexts);
-        Set Global Variable At Index(info, 0, Custom String("PICK when a round asks: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."));
+        Set Global Variable At Index(info, 0, Custom String("PICK: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."));
         Set Global Variable(coach, Custom String("Counter-picking: the bot learns to pick whatever beats the hero you keep playing."));
         Wait(7, Ignore Condition);
         Set Global Variable(coach, Custom String("It keeps no scores, only three odds (the bars on the right), and draws its pick from them."));
