@@ -22,9 +22,10 @@ They are a starting point for whoever records them.
 | 2 | [What a square is worth](episode-02.md) | Markov Decision Processes | RANDOM WALK steps forward, back, inland, then off the edge. Score line: -101. | RANDOM WALK's measured score against the exact value, then the PLANNER. | `workshop/compiled/night-school.txt` |
 | 3 | [The Bot Who Never Fell](episode-03.md) | Planning by Dynamic Programming | nine Tracers on the strip, names over their heads, tumbling off the edge one by one; at the left end, PLANNER standing still. | value iteration on the strip, 13 sweeps as arrows, then the greedy walk. | `workshop/compiled/night-school.txt` |
 | 4 | [Three Bookkeepers and a Falling Tracer](episode-04.md) | Model-Free Prediction | RANDOM WALK, name over her head, takes three random steps and drops off the edge; the score line reads -101. | the three tables on one random walker. | `workshop/compiled/night-school.txt` |
+| 5 | [One line apart](episode-05.md) | Model-Free Control | Q-LEARNING steps off the edge; SARSA, a row inland, keeps walking. | SARSA against Q-LEARNING, falls per 100 and distance from the edge. | `workshop/compiled/night-school.txt` |
 | 11 | The Wall She Cannot See | Partial observability (lecture 1's thread, picked up) | A Tracer walks at an empty-looking square and stops dead, three times. | BLIND against REMEMBERS BUMPS on the short strip: test crossings reaching the goal. Then the same forgetting in a support chat. | `workshop/compiled/night-school-pomdp4.txt` |
 
-4 of the ten lecture outlines are written so far.
+5 of the ten lecture outlines are written so far.
 
 ## Footage this repository can produce
 

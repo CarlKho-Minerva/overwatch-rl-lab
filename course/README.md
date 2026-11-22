@@ -14,8 +14,9 @@ says which comparisons were planned before the runs and which were not.
 | 2 | [Markov Decision Processes](lecture-02.md) | [video](https://www.youtube.com/watch?v=lfHX2hHRMVQ) | [outline](../series/episode-02.md) |
 | 3 | [Planning by Dynamic Programming](lecture-03.md) | [video](https://www.youtube.com/watch?v=Nd1-UUMVfz4) | [outline](../series/episode-03.md) |
 | 4 | [Model-Free Prediction](lecture-04.md) | [video](https://www.youtube.com/watch?v=PnHCvfgC_ZA) | [outline](../series/episode-04.md) |
+| 5 | [Model-Free Control](lecture-05.md) | [video](https://www.youtube.com/watch?v=0g4j2k_Ggc4) | [outline](../series/episode-05.md) |
 
-4 of 10 lectures are written so far.
+5 of 10 lectures are written so far.
 
 How to use it: read one page, answer its "Guess first" questions before opening them, then come back a day later and
 do the questions of an earlier lecture. Mixing lectures is harder than finishing one at a time and is remembered better.
