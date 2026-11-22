@@ -90,6 +90,9 @@ def summarise(matches, n_last=40):
         bad += len(b)
     S["replay_checked"], S["replay_bad"] = checked, bad
     S["sanity_problems"] = sum(len(ns.sanity(m)) for m in std)
+    S["masked_lines"] = sum(m.masked for m in matches)
+    S["dropped_lines"] = sum(m.dropped for m in matches)
+    S["log_lines"] = sum(len(m.episodes) + len(m.steps) + len(m.load) + len(m.ptables) + sum(len(q) for q in m.qrows.values()) for m in matches)
     conds = {}
     for cond in sorted({r["cond"] for r in full}):
         rs = [per_run(r, n_last) for r in full if r["cond"] == cond]
