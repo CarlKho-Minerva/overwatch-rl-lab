@@ -336,7 +336,9 @@ def replay_steps(m: Match, tol: float = 0.011):
         rows.sort(key=lambda r: r["t"])
         if [r["t"] for r in rows] != list(range(len(rows))):
             continue    # a gap: the table cannot be rebuilt
-        Q = [float(run["q_init"])] * (NCELLS * NA)
+        # The table is as large as the states the run used: 48 cells, or 192 when the runner also saw a blocker's row.
+        n_states = max(NCELLS, 1 + max(max(r["s"], r["s2"]) for r in rows))
+        Q = [float(run["q_init"])] * (n_states * NA)
         for r in rows:
             i = r["s"] * NA + r["a"]
             row2 = Q[r["s2"] * NA: r["s2"] * NA + NA]

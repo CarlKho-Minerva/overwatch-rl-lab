@@ -40,78 +40,79 @@ variables {
         7: cBonus
         8: cTrain
         9: cAgg
-        10: cBlock
-        11: cfgBotsPerTeam
-        12: cfgMoveSpeed
-        13: cfgEvalEps
-        14: cfgSoftMin
-        15: cfgRunMaxMin
-        16: cfgAutoRestart
-        17: cfgMaxSteps
-        18: cfgEvalMaxSteps
-        19: cfgCell
-        20: gamma
-        21: rStep
-        22: rGoal
-        23: rFall
-        24: rTimeout
-        25: calStage
-        26: calMsg
-        27: floorY
-        28: isleCenter
-        29: edgeXMin
-        30: edgeXMax
-        31: edgeZMin
-        32: edgeZMax
-        33: probeDir
-        34: probeLo
-        35: probeHi
-        36: probeMid
-        37: probeI
-        38: cell
-        39: gridX0
-        40: zBase
-        41: zSign
-        42: cellPos
-        43: startPos
-        44: goalPos
-        45: camEye
-        46: camLook
-        47: runSpeed
-        48: coastDist
-        49: actTimeout
-        50: calP0
-        51: calP1
-        52: calT0
-        53: spawnTry
-        54: spawnI
-        55: spawnCalls
-        56: n1
-        57: n2
-        58: bots
-        59: nBots
-        60: condOffset
-        61: matchT0
-        62: stopping
-        63: logBytes
-        64: totalEpisodes
-        65: totalSteps
-        66: feat
-        67: featI
-        68: uiI
-        69: uiJ
-        70: glyphSet
-        71: stopReason
-        72: hudHead
-        73: hudLine
-        74: hudFeat
-        75: hudI
-        76: duelT1
-        77: duelT2
-        78: logQ
-        79: flushN
-        80: flushI
-        81: scriptPlan
+        10: condOrder
+        11: cBlock
+        12: cfgBotsPerTeam
+        13: cfgMoveSpeed
+        14: cfgEvalEps
+        15: cfgSoftMin
+        16: cfgRunMaxMin
+        17: cfgAutoRestart
+        18: cfgMaxSteps
+        19: cfgEvalMaxSteps
+        20: cfgCell
+        21: gamma
+        22: rStep
+        23: rGoal
+        24: rFall
+        25: rTimeout
+        26: calStage
+        27: calMsg
+        28: floorY
+        29: isleCenter
+        30: edgeXMin
+        31: edgeXMax
+        32: edgeZMin
+        33: edgeZMax
+        34: probeDir
+        35: probeLo
+        36: probeHi
+        37: probeMid
+        38: probeI
+        39: cell
+        40: gridX0
+        41: zBase
+        42: zSign
+        43: cellPos
+        44: startPos
+        45: goalPos
+        46: camEye
+        47: camLook
+        48: runSpeed
+        49: coastDist
+        50: actTimeout
+        51: calP0
+        52: calP1
+        53: calT0
+        54: spawnTry
+        55: spawnI
+        56: spawnCalls
+        57: n1
+        58: n2
+        59: bots
+        60: nBots
+        61: condOffset
+        62: matchT0
+        63: stopping
+        64: logBytes
+        65: totalEpisodes
+        66: totalSteps
+        67: feat
+        68: featI
+        69: uiI
+        70: uiJ
+        71: glyphSet
+        72: stopReason
+        73: hudHead
+        74: hudLine
+        75: hudFeat
+        76: hudI
+        77: duelT1
+        78: duelT2
+        79: logQ
+        80: flushN
+        81: flushI
+        82: scriptPlan
     player:
         0: bid
         1: side
@@ -245,6 +246,7 @@ rule ("Initialize global variables") {
         Set Global Variable(cBonus, Array(0, 0, 0, 0));
         Set Global Variable(cTrain, Array(15, 15, 15, 15));
         Set Global Variable(cAgg, Array(0, 0, 3, 3));
+        Set Global Variable(condOrder, Array(0, 1, 2, 3));
         Set Global Variable(cBlock, Array(1, 2, 1, 2));
         Set Global Variable(cfgBotsPerTeam, Workshop Setting Integer(Custom String("Night School"), Custom String("Bots per team"), 2, 1, 5, 0));
         Set Global Variable(cfgMoveSpeed, Workshop Setting Integer(Custom String("Night School"), Custom String("Bot move speed percent"), 200, 50, 300, 1));
@@ -471,7 +473,7 @@ rule ("Init: spawn the bots, measure their run speed, start the block") {
             Abort;
         End;
         Set Global Variable(actTimeout, Add(Divide(Multiply(2.5, Global.cell), Global.runSpeed), 0.25));
-        Set Global Variable(condOffset, Random Integer(0, 3));
+        Set Global Variable(condOffset, Random Integer(0, Subtract(Count Of(Global.condOrder), 1)));
         Set Global Variable(feat, Array(First Of(Global.bots), Last Of(Global.bots)));
         Set Global Variable(matchT0, Total Time Elapsed);
         "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions, no-new-run minute, longest run (minutes)"
@@ -824,7 +826,7 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         startRun;
     }
     actions {
-        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 4));
+        Set Player Variable(Event Player, cond, Value In Array(Global.condOrder, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), Count Of(Global.condOrder))));
         Set Player Variable(Event Player, algo, Value In Array(Global.cAlgo, (Event Player).cond));
         Set Player Variable(Event Player, alpha, Value In Array(Global.cAlpha, (Event Player).cond));
         Set Player Variable(Event Player, eps0, Value In Array(Global.cEps, (Event Player).cond));
