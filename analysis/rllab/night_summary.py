@@ -224,26 +224,40 @@ def figures(S, rows, out: Path):
     made = []
 
     def curve_fig(name, conds, title, key, ylabel, n_eps=150, ylim=None):
-        fig, ax = plt.subplots(figsize=(8.6, 4.4), dpi=160)
-        any_line = False
+        fig, ax = plt.subplots(figsize=(8.6, 4.4 if len(conds) <= 6 else 5.6), dpi=160)
+        ends = []
         for c in conds:
             got = curves(rows, c, n_eps if c != 10 else 40, key)
             if not got:
                 continue
             sm, n = got
-            ax.plot(range(1, len(sm) + 1), sm, color=COLORS[c], lw=2, label=f"{ns.CONDITION_NAMES[c]} ({n} runs)")
-            ax.annotate(ns.CONDITION_NAMES[c], (len(sm), sm[-1]), xytext=(6, 0), textcoords="offset points", color=COLORS[c], fontsize=9, va="center")
-            any_line = True
-        if not any_line:
+            ax.plot(range(1, len(sm) + 1), sm, color=COLORS[c], lw=2)
+            ends.append([sm[-1], len(sm), c, n])
+        if not ends:
             plt.close(fig)
             return
-        ax.set_xlabel("training episode")
+        if ylim:
+            ax.set_ylim(*ylim)
+        lo, hi = ax.get_ylim()
+        gap = (hi - lo) * (0.052 if len(ends) <= 6 else 0.042)
+        # Direct labels at the right, pushed apart so they do not sit on each other, each tied to its line's end.
+        ends.sort(key=lambda e: e[0])
+        ys = [e[0] for e in ends]
+        for i in range(1, len(ys)):
+            ys[i] = max(ys[i], ys[i - 1] + gap)
+        # ...then pull down only the ones that ran off the top, keeping the spacing
+        ys[-1] = min(ys[-1], hi - gap * 0.5)
+        for i in range(len(ys) - 2, -1, -1):
+            ys[i] = min(ys[i], ys[i + 1] - gap)
+        for (y_end, x_end, c, n), y in zip(ends, ys):
+            ax.plot([x_end, n_eps * 1.03], [y_end, y], color=COLORS[c], lw=0.7, alpha=0.7)
+            ax.text(n_eps * 1.04, y, f"{ns.CONDITION_NAMES[c]} ({n})", color=COLORS[c], fontsize=8.5, va="center")
+        ax.set_xlabel("training episode (number of runs in brackets)")
         ax.set_ylabel(ylabel)
         ax.set_title(title, loc="left", fontsize=12, color=INK)
         ax.grid(True, axis="y", lw=0.6)
-        ax.set_xlim(1, n_eps * 1.22)
-        if ylim:
-            ax.set_ylim(*ylim)
+        ax.set_xlim(1, n_eps * 1.42)
+        ax.set_xticks([t for t in range(0, n_eps + 1, 25)])
         fig.tight_layout()
         fig.savefig(out / name)
         plt.close(fig)
@@ -386,12 +400,15 @@ def duel_summary(matches, out: Path, n_last=40):
             runs.append({"cond": info["cond"], "train": tr, "eval": ev, "blocker_q": info.get("blocker_q"), "blocker_n": info.get("blocker_n")})
     if not runs:
         return None
-    D = {"matches": len(duel), "runs": len(runs), "conditions": {}}
+    D = {"matches": len(duel), "runs": len(runs), "conditions": {},
+         "episodes_min": min(len(r["train"]) for r in runs), "episodes_max": max(len(r["train"]) for r in runs),
+         "episodes_mean": mean(len(r["train"]) for r in runs)}
     for c in range(4):
         rs = [r for r in runs if r["cond"] == c]
         if not rs:
             continue
         d = {"name": DUEL_NAMES[c], "runs": len(rs)}
+        d["episodes_min"], d["episodes_max"] = min(len(r["train"]) for r in rs), max(len(r["train"]) for r in rs)
         d["last_return"] = mean(mean(e["ret"] for e in r["train"][-n_last:]) for r in rs)
         d["first_return"] = mean(mean(e["ret"] for e in r["train"][:n_last]) for r in rs)
         d["goal_rate_last"] = mean(mean(1 if e["outcome"] == 1 else 0 for e in r["train"][-n_last:]) for r in rs)
