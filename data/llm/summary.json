@@ -107,6 +107,61 @@
      "cases_add_something": 12
     }
    }
+  },
+  "gemma4:31b": {
+   "model": "gemma4:31b",
+   "episodes": 36,
+   "conditions": {
+    "last": {
+     "name": "Latest message only",
+     "cases": 24,
+     "right": 12,
+     "wrong": 0,
+     "no_final": 12,
+     "premature": 0,
+     "right_but_premature": 0,
+     "turns_mean": 5.0,
+     "fewest_mean": 2.25,
+     "extra_turns_mean": 0.0,
+     "repeat_steps_mean": 3.0,
+     "belief_err_wish": 0.2733333333333333,
+     "belief_err_flex": 0.15,
+     "belief_err_wish_after_lookup": 0.725,
+     "belief_err_flex_after_customer": 0.5,
+     "first_step": {
+      "ask_customer": 20,
+      "lookup_booking": 4
+     },
+     "right_cant_fly": 0,
+     "cases_cant_fly": 12,
+     "right_add_something": 12,
+     "cases_add_something": 12
+    },
+    "notes": {
+     "name": "Latest message and its own notes",
+     "cases": 12,
+     "right": 12,
+     "wrong": 0,
+     "no_final": 0,
+     "premature": 0,
+     "right_but_premature": 0,
+     "turns_mean": 2.6666666666666665,
+     "fewest_mean": 2.3333333333333335,
+     "extra_turns_mean": 0.3333333333333333,
+     "repeat_steps_mean": 0.0,
+     "belief_err_wish": 0.05,
+     "belief_err_flex": 0.0,
+     "belief_err_wish_after_lookup": 0.0,
+     "belief_err_flex_after_customer": null,
+     "first_step": {
+      "ask_customer": 12
+     },
+     "right_cant_fly": 8,
+     "cases_cant_fly": 8,
+     "right_add_something": 4,
+     "cases_add_something": 4
+    }
+   }
   }
  }
 }

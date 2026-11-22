@@ -220,6 +220,15 @@ depending on something she is not given.
   In the game on 2026-11-22 at 07:37, before the first short-strip block: 2,230 steps, 669 bumps, 223 episodes, all as
   expected (10 steps, return 40, three bumps), every table entry recomputed.
 
+### What ran (2026-11-22)
+
+- Long strip (version 1102): one block, 07:04 to 07:35 Pacific, 10 finished runs. The design was then set aside for the short strip, as
+  recorded above, so its comparisons rest on those 10 runs and are reported as they came out.
+- Short strip (version 1103): three blocks, 07:38 to 08:32 Pacific, 30 finished runs (9, 12, 9 by condition).
+  1,600 logged steps rebuilt outside the game with 0 mismatches.
+- Results, intervals and what they do not show: `course/lesson-11-partial-observability.md`, generated from
+  `analysis/figures/night/summary.json`.
+
 ## The same task on a language model
 
 `llm/hidden_order.py` moves the three runners onto a local model served by Ollama: a customer wants one of four things,

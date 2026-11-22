@@ -40,18 +40,18 @@ random moves off, the share that reach the goal, and the steps taken (an unfinis
 
 | | BLIND | REMEMBERS BUMPS | SEES THE WALL |
 |---|---|---|---|
-| Finished runs (20 test crossings each) | 6 | 8 | 6 |
-| Test crossings reaching the goal (95% interval) | 38% (12 to 64) | 86% (61 to 100) | 91% (78 to 100) |
-| Steps per test crossing, unfinished = 40 (95% interval) | 27.4 (18.1 to 36.1) | 11.7 (6.3 to 20.3) | 8.6 (5.3 to 13.4) |
-| Runs where all 20 got through | 0 of 6 | 6 of 8 | 4 of 6 |
-| Runs where none got through | 3 of 6 | 1 of 8 | 0 of 6 |
+| Finished runs (20 test crossings each) | 9 | 12 | 9 |
+| Test crossings reaching the goal (95% interval) | 52% (26 to 77) | 90% (72 to 100) | 94% (85 to 100) |
+| Steps per test crossing, unfinished = 40 (95% interval) | 22.2 (14.2 to 31.2) | 9.7 (6.0 to 15.9) | 7.6 (5.3 to 10.8) |
+| Runs where all 20 got through | 0 of 9 | 10 of 12 | 7 of 9 |
+| Runs where none got through | 3 of 9 | 1 of 12 | 0 of 9 |
 | Simulation by the rules alone: reaching the goal, steps | 47%, 24.5 | 98%, 7.2 | 100%, 6.0 |
 
-In words: with no row that is always open, the blind runner got through 38% of her test crossings, the one who remembers bumps 86%, the one who sees the wall 91%. One remembered bump is the difference between getting stuck and getting through. Seeing against remembering is not separated in these runs (8.6 steps a crossing against 11.7, and the interval includes zero). The simulation expects seeing to save about one step, the price of the bump.
+In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 90%, the one who sees the wall 94%. One remembered bump is the difference between getting stuck and getting through. Seeing against remembering is not separated in these runs (7.6 steps a crossing against 9.7, and the interval includes zero). The simulation expects seeing to save about one step, the price of the bump.
 
-Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 48 points higher (95% interval 10 to 86 points, shuffle probability 0.046, 8 and 6 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 5 points higher (95% interval -16 to 35 points, shuffle probability 0.959, 6 and 8 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 15.7 lower (95% interval -28.3 to -2.5, shuffle probability 0.052, 8 and 6 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, steps per test crossing: 3.1 lower (95% interval -12.9 to 4.5, shuffle probability 0.717, 6 and 8 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
+Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 38 points higher (95% interval 10 to 66 points, shuffle probability 0.020, 12 and 9 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 3 points higher (95% interval -12 to 23 points, shuffle probability 0.958, 9 and 12 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 12.6 lower (95% interval -22.2 to -2.7, shuffle probability 0.023, 12 and 9 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, steps per test crossing: 2.1 lower (95% interval -8.6 to 3.4, shuffle probability 0.720, 9 and 12 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
 
-1,200 logged steps were rebuilt outside the game (24 bumps), with 0 mismatches.
+1,600 logged steps were rebuilt outside the game (29 bumps), with 0 mismatches.
 
 ![One dot per run: share of test crossings reaching the goal, and steps per test crossing](../analysis/figures/night/fig_pomdp4_eval.png)
 
@@ -190,6 +190,18 @@ undone. The model is the same in every condition. Only what it is shown each tur
 | Belief error on the wish (0 = exact, 1 = all wrong) | 0.32 | 0.14 | 0.11 | n/a |
 
 In words: shown only the latest message, the model finished 6 of 24 cases and went round in circles in the other 18: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.73 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 23 of 24. In 2 cases it took the final step before the conversation had settled it, and 1 of those came out right by luck. In those its note said the customer wanted to change the date, written from a first message that fitted two wishes. The note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 24 of 24, in 2.75 turns a case where the best plan needs 2.25. It asked first in 24 of 24 cases and so never used the shortcut of section 6 (look up first, and stop if the ticket is basic). Told the hidden facts it was right in 24 of 24 in 1 turn. The gap between that column and the others is what the questions and lookups are buying.
+
+| gemma4:31b | Latest message only | Own notes |
+|---|---|---|
+| Cases run | 24 | 12 |
+| Right final step | 12 of 24 | 12 of 12 |
+| Wrong final step | 0 | 0 |
+| No final step in 8 turns | 12 | 0 |
+| Final step taken before the transcript settled it | 0 | 0 |
+| Turns per case (the best plan needs) | 5.00 (2.25) | 2.67 (2.33) |
+| Belief error on the wish (0 = exact, 1 = all wrong) | 0.27 | 0.05 |
+
+In words: shown only the latest message, the model finished 12 of 24 cases and went round in circles in the other 12: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.72 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 12 of 12. The note is a belief, and here it carried what was needed.
 
 The 24 cases per condition are every combination of wish, ticket type and opening phrasing, run once at temperature 0
 with a scripted customer. They describe one local model on one small world and nothing wider.
