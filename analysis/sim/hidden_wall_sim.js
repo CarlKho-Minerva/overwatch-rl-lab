@@ -26,16 +26,16 @@ var HW = (function () {
     opt = opt || {};
     var rand = rng(seed), Q = new Float64Array(NCELLS * 5 * 4).fill(opt.qinit || 0), alpha = 0.5, eps = 0.1;
     var GOAL = opt.goal === undefined ? 11 : opt.goal, WALL_COL = opt.wallCol === undefined ? 6 : opt.wallCol;
-    var train = opt.train || 200, tests = opt.tests || 20, out = { goal: 0, steps: 0, bumps: 0, trainFalls: 0 };
+    var train = opt.train || 200, tests = opt.tests || 20, out = { goal: 0, steps: 0, bumps: 0, trainFalls: 0, testFalls: 0 };
     for (var ep = 0; ep < train + tests; ep++) {
       var learning = ep < train, wallRow = Math.floor(rand() * (opt.rows || 2)), cell = 0, mem = 0, steps = 0, done = false, reached = false;
       while (!done) {
         var s = view(kind, cell, mem, wallRow);
-        var a = (learning && rand() < eps) ? Math.floor(rand() * 4) : argmax(Q, s, rand);
+        var a = ((learning || opt.testEps) && rand() < (learning ? eps : opt.testEps)) ? Math.floor(rand() * 4) : argmax(Q, s, rand);   // testEps: keep some random moves in the test crossings
         var m = move(cell, a, wallRow, WALL_COL), r = -1;
         if (m.bump) { mem = 1 + m.row; if (!learning) out.bumps++; }
         steps++;
-        if (m.fell) { r += -100; done = true; if (learning) out.trainFalls++; }
+        if (m.fell) { r += -100; done = true; if (learning) out.trainFalls++; else out.testFalls++; }
         else if (m.cell === GOAL) { r += 50; done = true; reached = true; }
         else if (steps >= MAXS) { r += -50; done = true; }
         if (learning) {
@@ -47,13 +47,13 @@ var HW = (function () {
       }
       if (!learning) { out.goal += reached ? 1 : 0; out.steps += reached ? steps : MAXS; }
     }
-    out.goal /= tests; out.steps /= tests; out.bumps /= tests; out.trainFalls = 100 * out.trainFalls / train;
+    out.testFalls /= tests; out.goal /= tests; out.steps /= tests; out.bumps /= tests; out.trainFalls = 100 * out.trainFalls / train;
     return out;
   }
   function many(kind, n, seed0, opt) {
-    var g = 0, st = 0, all = 0, none = 0, b = 0, f = 0;
-    for (var i = 0; i < n; i++) { var o = run(kind, seed0 + i * 7919 + kind * 104729, opt); g += o.goal; st += o.steps; b += o.bumps; f += o.trainFalls; if (o.goal === 1) all++; if (o.goal === 0) none++; }
-    return { goal: g / n, steps: st / n, all: all, none: none, bumps: b / n, falls: f / n, n: n };
+    var g = 0, st = 0, all = 0, none = 0, b = 0, f = 0, tf = 0;
+    for (var i = 0; i < n; i++) { var o = run(kind, seed0 + i * 7919 + kind * 104729, opt); g += o.goal; st += o.steps; b += o.bumps; f += o.trainFalls; tf += o.testFalls; if (o.goal === 1) all++; if (o.goal === 0) none++; }
+    return { goal: g / n, steps: st / n, all: all, none: none, bumps: b / n, falls: f / n, testFalls: tf / n, n: n };
   }
   return { move: move, run: run, many: many, NC: NC, NR: NR, MAXS: MAXS };
 })();

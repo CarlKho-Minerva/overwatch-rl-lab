@@ -47,7 +47,7 @@ random moves off, the share that reach the goal, and the steps taken (an unfinis
 | Runs where none got through | 1 of 3 | 0 of 4 | 0 of 3 |
 | Simulation by the rules alone: reaching the goal, steps | 47%, 24.5 | 98%, 7.2 | 100%, 6.0 |
 
-In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 100%, the one who sees the wall 87%. One remembered bump is the difference between getting stuck and getting through, and it is nearly worth as much as being shown the wall. Seeing still saves the cost of finding out: 10.1 steps a crossing against 6.7.
+In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 100%, the one who sees the wall 87%. One remembered bump is the difference between getting stuck and getting through. Seeing against remembering is not separated in these runs (10.1 steps a crossing against 6.7, and the interval includes zero). The simulation expects seeing to save about one step, the price of the bump.
 
 Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 48 points higher (95% interval 20 to 100 points, shuffle probability 0.029, 4 and 3 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 13 points lower (95% interval -40 to 0 points, shuffle probability 0.424, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 15.8 lower (95% interval -33.1 to -6.2, shuffle probability 0.029, 4 and 3 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, steps per test crossing: 3.4 higher (95% interval -2.0 to 12.7, shuffle probability 0.620, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
 
@@ -89,13 +89,25 @@ Planned comparisons, named before the runs: Remembers bumps against blind, share
 | Layout, training episodes | BLIND | REMEMBERS BUMPS | SEES THE WALL |
 |---|---|---|---|
 | Short strip, 200 | 47%, 24.5 steps | 98%, 7.2 | 100%, 6.0 |
-| Short strip, 1,000 | 48%, 24.0 | 98%, 6.9 | 100%, 5.8 |
-| Long strip, 200 | 92%, 18.3 | 74%, 21.1 | 67%, 23.0 |
-| Long strip, 400 | 96%, 16.8 | 99%, 15.0 | 98%, 15.7 |
+| Short strip, 1,000 | 48%, 24.0 steps | 98%, 6.9 | 100%, 5.8 |
+| Long strip, 200 | 92%, 18.3 steps | 74%, 21.1 | 67%, 23.0 |
+| Long strip, 400 | 96%, 16.8 steps | 99%, 15.0 | 98%, 15.7 |
 
 In words: on the short strip more training does nothing for the blind runner. What she lacks is not practice. On the
 long strip, 200 episodes favour whoever has least to learn, and by 400 the three are level, because there the hidden
 thing can simply be avoided. A richer state is a cost first and a benefit later.
+
+### Silver's other way out: a coin flip
+
+Lecture 7 has a small grid with two squares that look the same to the agent
+([15:26](https://www.youtube.com/watch?v=KHZVXao4qXs&t=926s)). Any fixed rule does the same thing in both and gets
+stuck in one. A rule with some chance in it gets through. So memory is not the only repair for missing information.
+On the island it buys little: in the simulation the blind runner on the short strip reaches the goal in
+47% of test crossings with no random moves, 52% with one random move in ten and
+32% with one in two, because a random move beside a drop is often a fall
+(20% of her test crossings ended in one at one in ten). A coin flip helps only where it is aimed.
+Silver's agent is random in the two look-alike squares and nowhere else; learning where to be random is what the
+policy-gradient methods of lecture 7 are for, and that bot has not been run on the hidden wall.
 
 ## A belief is a number that moves
 

@@ -24,9 +24,10 @@ They are a starting point for whoever records them.
 | 4 | [Three Bookkeepers and a Falling Tracer](episode-04.md) | Model-Free Prediction | RANDOM WALK, name over her head, takes three random steps and drops off the edge; the score line reads -101. | the three tables on one random walker. | `workshop/compiled/night-school.txt` |
 | 5 | [One line apart](episode-05.md) | Model-Free Control | Q-LEARNING steps off the edge; SARSA, a row inland, keeps walking. | SARSA against Q-LEARNING, falls per 100 and distance from the edge. | `workshop/compiled/night-school.txt` |
 | 6 | [Tell her less.](episode-06.md) | Value Function Approximation | three Tracers named Q-LEARNING, Q, 16 COARSE STATES and Q, ROW ONLY; the row-only one runs left, right, left along the edge. | falls per 100 training episodes, with intervals, for the three amounts of detail. | `workshop/compiled/night-school.txt` |
+| 7 | [The Tracer who learned to jump](episode-07.md) | Policy Gradient | a Tracer with POLICY GRADIENT over her head spawns at the edge row and runs straight off. Respawn. Same move. | POLICY GRADIENT against ACTOR-CRITIC, return per episode. | `workshop/compiled/night-school.txt` |
 | 11 | The Wall She Cannot See | Partial observability (lecture 1's thread, picked up) | A Tracer walks at an empty-looking square and stops dead, three times. | BLIND against REMEMBERS BUMPS on the short strip: test crossings reaching the goal. Then the same forgetting in a support chat. | `workshop/compiled/night-school-pomdp4.txt` |
 
-6 of the ten lecture outlines are written so far.
+7 of the ten lecture outlines are written so far.
 
 ## Footage this repository can produce
 
