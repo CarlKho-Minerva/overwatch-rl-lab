@@ -27,7 +27,8 @@ a deadly drop on every side.
 Log lines (docs/games.md):
     RLG,M,<game>,<version>,<autoplay>
     RLG,T,<game>,<name>,<expected>,<got>,<ok>
-    RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>
+    RLG,Q,<game>,<question id>                                   (the question is on screen)
+    RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
     RLG,E,<game>,<event name>,<numbers...>          (each game's own events)
     RLG,L,<game>,<seconds sampled>,<server load: mean over the whole game>,<highest peak over the whole game>
     RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
@@ -69,6 +70,7 @@ globalvar loadSumRun = 0
 globalvar loadPeakRun = 0
 globalvar qTxtTop = null
 globalvar qTxtLow = null
+globalvar qShown = 0
 playervar fellCount = 0
 playervar fell = false
 
@@ -195,6 +197,10 @@ def ask():
     qTxtTop = getLastCreatedText()
     createInWorldText(getAllPlayers(), qLine, learner.getEyePosition() + learner.getFacingDirection() * 5 + vect(0, 0.45, 0), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE)
     qTxtLow = getLastCreatedText()
+    # The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays
+    # the human build knows when to press, as a person does by looking).
+    qShown = NOW
+    LOG("RLG,Q,{},{}".format(GAME_ID, qId))
     if AUTOPLAY:
         wait(1.2)
         qAnswer = qAuto
@@ -207,7 +213,7 @@ def ask():
     predTotal += 1
     if qRight:
         predRight += 1
-    LOG("RLG,A,{},{},{},{},{}".format(GAME_ID, qId, qAnswer, qCorrect, 1 if qRight else 0))
+    LOG("RLG,A,{},{},{},{},{},{}".format(GAME_ID, qId, qAnswer, qCorrect, 1 if qRight else 0, NOW - qShown))
     coach = "{} {}".format("RIGHT." if qRight else ("NO ANSWER." if qAnswer < 0 else "NOT THIS TIME."), qWhy)
     wait(0.6 if AUTOPLAY else 5)
     learner.allowButton(Button.PRIMARY_FIRE)

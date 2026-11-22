@@ -59,73 +59,74 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: padPos
-        30: dirv
-        31: goal
-        32: pits
-        33: V
-        34: Vnew
-        35: Vsave
-        36: chg
-        37: newPos
-        38: lastCh
-        39: arrow
-        40: arrowOld
-        41: flip
-        42: qs
-        43: qBest
-        44: sweepN
-        45: nChg
-        46: maxChg
-        47: looks
-        48: looks0
-        49: keepOld
-        50: wrongN
-        51: showArrows
-        52: runId
-        53: nSweeps
-        54: dStart
-        55: dMax
-        56: vStart
-        57: walkSim
-        58: wantF
-        59: gotF
-        60: wantR
-        61: markPit
-        62: gotR
-        63: walking
-        64: walkRet
-        65: walkSteps
-        66: walkEnd
-        67: walkRestarts
-        68: walkT0
-        69: lastMove
-        70: curP
-        71: prevP
-        72: pitFrom
-        73: pitTo
-        74: pitOk
-        75: pitTries
-        76: ctrl
-        77: boardTxt
-        78: boardTxt2
-        79: padTxt
-        80: showDebrief
-        81: deb
-        82: npP
-        83: npA
-        84: npS
-        85: npR
-        86: npRow
-        87: npCol
-        88: lp
-        89: la
-        90: wp
-        91: mp
-        92: sp
-        93: dp
-        94: rp
-        95: wk
+        29: qShown
+        30: padPos
+        31: dirv
+        32: goal
+        33: pits
+        34: V
+        35: Vnew
+        36: Vsave
+        37: chg
+        38: newPos
+        39: lastCh
+        40: arrow
+        41: arrowOld
+        42: flip
+        43: qs
+        44: qBest
+        45: sweepN
+        46: nChg
+        47: maxChg
+        48: looks
+        49: looks0
+        50: keepOld
+        51: wrongN
+        52: showArrows
+        53: runId
+        54: nSweeps
+        55: dStart
+        56: dMax
+        57: vStart
+        58: walkSim
+        59: wantF
+        60: gotF
+        61: wantR
+        62: markPit
+        63: gotR
+        64: walking
+        65: walkRet
+        66: walkSteps
+        67: walkEnd
+        68: walkRestarts
+        69: walkT0
+        70: lastMove
+        71: curP
+        72: prevP
+        73: pitFrom
+        74: pitTo
+        75: pitOk
+        76: pitTries
+        77: ctrl
+        78: boardTxt
+        79: boardTxt2
+        80: padTxt
+        81: showDebrief
+        82: deb
+        83: npP
+        84: npA
+        85: npS
+        86: npR
+        87: npRow
+        88: npCol
+        89: lp
+        90: la
+        91: wp
+        92: mp
+        93: sp
+        94: dp
+        95: rp
+        96: wk
     player:
         0: fellCount
         1: fell
@@ -362,6 +363,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,3,{0}", Global.qId));
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
@@ -371,7 +375,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,3,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,3,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(5, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

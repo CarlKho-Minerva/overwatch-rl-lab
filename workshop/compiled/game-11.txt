@@ -59,56 +59,57 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: padL
-        30: padR
-        31: Vt
-        32: gi
-        33: gsweep
-        34: gp
-        35: pl
-        36: nStar
-        37: pStar
-        38: planText
-        39: acc
-        40: belief
-        41: nLat
-        42: hidden
-        43: roundN
-        44: score
-        45: pingCount
-        46: nSaidL
-        47: nSaidR
-        48: lastSaid
-        49: pingReq
-        50: fArmed
-        51: deciding
-        52: roomsOpen
-        53: barShown
-        54: barText
-        55: hudRound
-        56: hudPings
-        57: hudKeys
-        58: hudKeys2
-        59: enterNow
-        60: pingQ
-        61: pBefore
-        62: reading
-        63: firstReading
-        64: roundDone
-        65: room
-        66: roomEv
-        67: reward
-        68: autoStyle
-        69: autoRoom
-        70: onPad
-        71: fx
-        72: sombraFx
-        73: sombraTx
-        74: gain50
-        75: gain94
-        76: perfectV
-        77: nGood
-        78: debrief
+        29: qShown
+        30: padL
+        31: padR
+        32: Vt
+        33: gi
+        34: gsweep
+        35: gp
+        36: pl
+        37: nStar
+        38: pStar
+        39: planText
+        40: acc
+        41: belief
+        42: nLat
+        43: hidden
+        44: roundN
+        45: score
+        46: pingCount
+        47: nSaidL
+        48: nSaidR
+        49: lastSaid
+        50: pingReq
+        51: fArmed
+        52: deciding
+        53: roomsOpen
+        54: barShown
+        55: barText
+        56: hudRound
+        57: hudPings
+        58: hudKeys
+        59: hudKeys2
+        60: enterNow
+        61: pingQ
+        62: pBefore
+        63: reading
+        64: firstReading
+        65: roundDone
+        66: room
+        67: roomEv
+        68: reward
+        69: autoStyle
+        70: autoRoom
+        71: onPad
+        72: fx
+        73: sombraFx
+        74: sombraTx
+        75: gain50
+        76: gain94
+        77: perfectV
+        78: nGood
+        79: debrief
     player:
         0: fellCount
         1: fell
@@ -330,6 +331,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,11,{0}", Global.qId));
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
@@ -339,7 +343,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,11,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,11,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(5, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

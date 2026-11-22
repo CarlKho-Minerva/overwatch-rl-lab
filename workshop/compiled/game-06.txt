@@ -59,71 +59,72 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: padTxt
-        30: truth
-        31: descE
-        32: descT
-        33: descW
-        34: descS
-        35: allPads
-        36: autoPads
-        37: padPos
-        38: padCnt
-        39: padLast
-        40: padTop
-        41: padLow
-        42: sPad
-        43: sVal
-        44: uPad
-        45: uVal
-        46: desc
-        47: fit
-        48: fitErr
-        49: fitSq
-        50: fitD
-        51: gSum
-        52: gCnt
-        53: fi
-        54: pi
-        55: estE
-        56: estT
-        57: estW
-        58: estS
-        59: missE
-        60: missT
-        61: missW
-        62: m6
-        63: m60
-        64: mInf
-        65: mS
-        66: bestMap
-        67: bestV
-        68: stageNo
-        69: callPad
-        70: callNoise
-        71: callVal
-        72: scoutOpen
-        73: scoutReq
-        74: scoutN
-        75: herePad
-        76: pickPad
-        77: ringMode
-        78: lowMode
-        79: topMode
-        80: kk
-        81: q5Pads
-        82: wrongMax
-        83: stepsLine
-        84: legendLine
-        85: legend2
-        86: missHead
-        87: rowE
-        88: rowT
-        89: rowW
-        90: rowS
-        91: deb1
-        92: deb2
-        93: deb3
+        29: qShown
+        30: padTxt
+        31: truth
+        32: descE
+        33: descT
+        34: descW
+        35: descS
+        36: allPads
+        37: autoPads
+        38: padPos
+        39: padCnt
+        40: padLast
+        41: padTop
+        42: padLow
+        43: sPad
+        44: sVal
+        45: uPad
+        46: uVal
+        47: desc
+        48: fit
+        49: fitErr
+        50: fitSq
+        51: fitD
+        52: gSum
+        53: gCnt
+        54: fi
+        55: pi
+        56: estE
+        57: estT
+        58: estW
+        59: estS
+        60: missE
+        61: missT
+        62: missW
+        63: m6
+        64: m60
+        65: mInf
+        66: mS
+        67: bestMap
+        68: bestV
+        69: stageNo
+        70: callPad
+        71: callNoise
+        72: callVal
+        73: scoutOpen
+        74: scoutReq
+        75: scoutN
+        76: herePad
+        77: pickPad
+        78: ringMode
+        79: lowMode
+        80: topMode
+        81: kk
+        82: q5Pads
+        83: wrongMax
+        84: stepsLine
+        85: legendLine
+        86: legend2
+        87: missHead
+        88: rowE
+        89: rowT
+        90: rowW
+        91: rowS
+        92: deb1
+        93: deb2
+        94: deb3
     player:
         0: fellCount
         1: fell
@@ -372,6 +373,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,6,{0}", Global.qId));
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
@@ -381,7 +385,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,6,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,6,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(5, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

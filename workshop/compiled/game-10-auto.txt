@@ -59,63 +59,64 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: payTab
-        30: leftPos
-        31: rightPos
-        32: widowPos
-        33: widow
-        34: spawnTry
-        35: phase
-        36: peekN
-        37: phasePeeks
-        38: pick
-        39: pickOpen
-        40: pickTxt
-        41: autoPicks
-        42: nL
-        43: nN
-        44: aL
-        45: aA
-        46: herBR
-        47: herQ
-        48: drawU
-        49: aim
-        50: pay
-        51: score
-        52: ev
-        53: evSum
-        54: phasePay
-        55: dieRoll
-        56: dieSays
-        57: followed
-        58: tmo
-        59: beam
-        60: barHer
-        61: barHim
-        62: barHerTxt
-        63: barHimTxt
-        64: scoreTxt
-        65: infoTxt
-        66: mA
-        67: mB
-        68: mC
-        69: mD
-        70: mDen
-        71: gVal
-        72: gP
-        73: gQ
-        74: spT
-        75: spNL
-        76: spN
-        77: spML
-        78: spM
-        79: spTr
-        80: spWi
-        81: spLast
-        82: spFlips
-        83: spPay
-        84: spSnap
-        85: spI
+        29: qShown
+        30: payTab
+        31: leftPos
+        32: rightPos
+        33: widowPos
+        34: widow
+        35: spawnTry
+        36: phase
+        37: peekN
+        38: phasePeeks
+        39: pick
+        40: pickOpen
+        41: pickTxt
+        42: autoPicks
+        43: nL
+        44: nN
+        45: aL
+        46: aA
+        47: herBR
+        48: herQ
+        49: drawU
+        50: aim
+        51: pay
+        52: score
+        53: ev
+        54: evSum
+        55: phasePay
+        56: dieRoll
+        57: dieSays
+        58: followed
+        59: tmo
+        60: beam
+        61: barHer
+        62: barHim
+        63: barHerTxt
+        64: barHimTxt
+        65: scoreTxt
+        66: infoTxt
+        67: mA
+        68: mB
+        69: mC
+        70: mD
+        71: mDen
+        72: gVal
+        73: gP
+        74: gQ
+        75: spT
+        76: spNL
+        77: spN
+        78: spML
+        79: spM
+        80: spTr
+        81: spWi
+        82: spLast
+        83: spFlips
+        84: spPay
+        85: spSnap
+        86: spI
     player:
         0: fellCount
         1: fell
@@ -339,6 +340,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,10,{0}", Global.qId));
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
@@ -349,7 +353,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,10,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,10,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(0.6, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

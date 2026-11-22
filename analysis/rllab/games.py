@@ -2,7 +2,8 @@
 
     RLG,M,<game>,<version>,<autoplay>
     RLG,T,<game>,<name>,<expected>,<got>,<ok>
-    RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>
+    RLG,Q,<game>,<question id>                                   the question is on screen
+    RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
     RLG,E,<game>,<event name>,<values...>
     RLG,L,<game>,<seconds sampled>,<server load, mean over the game>,<highest peak over the game>
     RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
@@ -36,7 +37,7 @@ def _val(x: str):
 
 def parse(path) -> dict:
     """All RLG lines of one log file: {"M": [...], "T": [...], "A": [...], "E": [...], "X": [...]}, each a list of dicts."""
-    out = {"M": [], "T": [], "A": [], "E": [], "X": [], "L": [], "path": str(path)}
+    out = {"M": [], "T": [], "A": [], "E": [], "X": [], "L": [], "Q": [], "path": str(path)}
     for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
         m = LINE.match(line.strip())
         if not m:
@@ -51,7 +52,9 @@ def parse(path) -> dict:
         elif kind == "T" and len(f) >= 5:
             out["T"].append({"t": t, "game": f[0], "name": f[1], "expected": f[2], "got": f[3], "ok": f[4]})
         elif kind == "A" and len(f) >= 5:
-            out["A"].append({"t": t, "game": f[0], "qid": f[1], "answer": f[2], "correct": f[3], "right": f[4]})
+            out["A"].append({"t": t, "game": f[0], "qid": f[1], "answer": f[2], "correct": f[3], "right": f[4], "seconds": f[5] if len(f) > 5 else None})
+        elif kind == "Q" and len(f) >= 2:
+            out["Q"].append({"t": t, "game": f[0], "qid": f[1]})
         elif kind == "E" and len(f) >= 2:
             out["E"].append({"t": t, "game": f[0], "name": f[1], "v": f[2:]})
         elif kind == "L" and len(f) >= 4:

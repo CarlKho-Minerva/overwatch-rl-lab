@@ -59,40 +59,41 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: ringPos
-        30: ringName
-        31: vMc
-        32: vTd
-        33: rB
-        34: rO
-        35: tB
-        36: tO
-        37: legState
-        38: mud
-        39: legT
-        40: ret
-        41: counts
-        42: picks
-        43: walk
-        44: leg
-        45: nLegs
-        46: fullIdx
-        47: t0
-        48: tLeg
-        49: old
-        50: tgt
-        51: gSum
-        52: ii
-        53: histB
-        54: histO
-        55: swingIn
-        56: swingOut
-        57: swingB
-        58: swingO
-        59: board
-        60: status
-        61: deb
-        62: showDeb
+        29: qShown
+        30: ringPos
+        31: ringName
+        32: vMc
+        33: vTd
+        34: rB
+        35: rO
+        36: tB
+        37: tO
+        38: legState
+        39: mud
+        40: legT
+        41: ret
+        42: counts
+        43: picks
+        44: walk
+        45: leg
+        46: nLegs
+        47: fullIdx
+        48: t0
+        49: tLeg
+        50: old
+        51: tgt
+        52: gSum
+        53: ii
+        54: histB
+        55: histO
+        56: swingIn
+        57: swingOut
+        58: swingB
+        59: swingO
+        60: board
+        61: status
+        62: deb
+        63: showDeb
     player:
         0: fellCount
         1: fell
@@ -320,6 +321,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,4,{0}", Global.qId));
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
@@ -330,7 +334,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,4,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,4,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(0.6, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

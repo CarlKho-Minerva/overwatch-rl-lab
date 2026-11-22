@@ -59,67 +59,68 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: odds
-        30: padPos
-        31: label
-        32: payTab
-        33: coinTab
-        34: lnTab
-        35: gI
-        36: gU
-        37: gV
-        38: setupDone
-        39: myN
-        40: myS
-        41: myT
-        42: myTot
-        43: myReg
-        44: myUb
-        45: wantOpen
-        46: canOpen
-        47: roundEnd
-        48: roundNo
-        49: autoBox
-        50: oBox
-        51: oK
-        52: oPay
-        53: sN
-        54: sS
-        55: sTot
-        56: sReg
-        57: sA
-        58: sPay
-        59: sK
-        60: sTn
-        61: sX
-        62: sV
-        63: armPick
-        64: rpK
-        65: rpR
-        66: rpT
-        67: rpA
-        68: rpN
-        69: rpS
-        70: rpV
-        71: rpX
-        72: rpI
-        73: rpC
-        74: rpSum
-        75: rpReg
-        76: replayDone
-        77: replayT0
-        78: beamsOn
-        79: beamEnd
-        80: padTxt
-        81: ubTxt
-        82: hudMine
-        83: hudStrat
-        84: hudReg
-        85: hudGreedy
-        86: hudRp
-        87: showRp
-        88: showEnd
-        89: endLine
+        29: qShown
+        30: odds
+        31: padPos
+        32: label
+        33: payTab
+        34: coinTab
+        35: lnTab
+        36: gI
+        37: gU
+        38: gV
+        39: setupDone
+        40: myN
+        41: myS
+        42: myT
+        43: myTot
+        44: myReg
+        45: myUb
+        46: wantOpen
+        47: canOpen
+        48: roundEnd
+        49: roundNo
+        50: autoBox
+        51: oBox
+        52: oK
+        53: oPay
+        54: sN
+        55: sS
+        56: sTot
+        57: sReg
+        58: sA
+        59: sPay
+        60: sK
+        61: sTn
+        62: sX
+        63: sV
+        64: armPick
+        65: rpK
+        66: rpR
+        67: rpT
+        68: rpA
+        69: rpN
+        70: rpS
+        71: rpV
+        72: rpX
+        73: rpI
+        74: rpC
+        75: rpSum
+        76: rpReg
+        77: replayDone
+        78: replayT0
+        79: beamsOn
+        80: beamEnd
+        81: padTxt
+        82: ubTxt
+        83: hudMine
+        84: hudStrat
+        85: hudReg
+        86: hudGreedy
+        87: hudRp
+        88: showRp
+        89: showEnd
+        90: endLine
     player:
         0: fellCount
         1: fell
@@ -363,6 +364,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,9,{0}", Global.qId));
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
@@ -373,7 +377,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,9,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,9,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(0.6, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

@@ -59,50 +59,51 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: heroName
-        30: botPos
-        31: youPos
-        32: autoPicks
-        33: botH
-        34: botP
-        35: smMax
-        36: smE
-        37: smS
-        38: base
-        39: alpha
-        40: adv
-        41: dPick
-        42: li
-        43: bPick
-        44: bR
-        45: drawK
-        46: drawU
-        47: youPick
-        48: habit
-        49: pickOpen
-        50: timedOut
-        51: rnd
-        52: phase
-        53: roundsLeft
-        54: pBefore
-        55: cntB
-        56: nB
-        57: youF
-        58: exYou
-        59: exBot
-        60: exF
-        61: winsYou
-        62: winsBot
-        63: draws
-        64: botFx
-        65: youFx
-        66: worldTxt
-        67: barTxt
-        68: oddsHead
-        69: botExTxt
-        70: info
-        71: nDummies
-        72: holdT
+        29: qShown
+        30: heroName
+        31: botPos
+        32: youPos
+        33: autoPicks
+        34: botH
+        35: botP
+        36: smMax
+        37: smE
+        38: smS
+        39: base
+        40: alpha
+        41: adv
+        42: dPick
+        43: li
+        44: bPick
+        45: bR
+        46: drawK
+        47: drawU
+        48: youPick
+        49: habit
+        50: pickOpen
+        51: timedOut
+        52: rnd
+        53: phase
+        54: roundsLeft
+        55: pBefore
+        56: cntB
+        57: nB
+        58: youF
+        59: exYou
+        60: exBot
+        61: exF
+        62: winsYou
+        63: winsBot
+        64: draws
+        65: botFx
+        66: youFx
+        67: worldTxt
+        68: barTxt
+        69: oddsHead
+        70: botExTxt
+        71: info
+        72: nDummies
+        73: holdT
     player:
         0: fellCount
         1: fell
@@ -327,6 +328,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,7,{0}", Global.qId));
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
@@ -336,7 +340,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,7,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,7,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(5, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

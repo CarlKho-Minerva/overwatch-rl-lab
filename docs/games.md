@@ -39,7 +39,8 @@ learner.
 ```
 RLG,M,<game>,<version>,<autoplay>
 RLG,T,<game>,<name>,<expected>,<got>,<ok>
-RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>
+RLG,Q,<game>,<question id>
+RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
 RLG,E,<game>,<event name>,<values...>
 RLG,L,<game>,<seconds sampled>,<server load, mean over the game>,<highest peak over the game>
 RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
@@ -74,6 +75,22 @@ RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<s
   it puts him home.
 - **Left and right depend on where he stands.** A prompt said "the right-hand pit" for a pit that was on the left
   from the start pad. The board now labels the thing itself.
+- **On Tracer the right mouse button is also Blink.** A right-click answer threw the player 7.5 m forward, off
+  his pad in two games and toward the edge in a third. Disallowing secondary fire does not stop it: Blink is ability
+  1. The core switches ability 1 off while a question is up (`setAbility1Enabled`, so a game that keeps Blink off
+  for good with `disallowButton` is not undone), and a game that takes a right click outside a question keeps Blink
+  off itself.
+- **`destroyAllInWorldText` destroys everyone's text.** Three games redrew their boards with it and wiped the core's
+  floating question for the rest of the game: a person saw the options row vanish after the first redraw. Games now
+  remove only the text ids they made, and the core makes the question's text for each question.
+- **Text drawn over text cannot be read, and the top of the screen is shared.** The left block is one column whose
+  rows are centred on its widest row; the right block is the same from the right edge; a top-centre row runs into
+  both. Measured at 16:9, one character takes 0.80% of the screen's width in the header slot, 0.47% in the subheader
+  slot and 0.61% in the text slot. The rule the games follow: right block rows at most 58 text characters, left
+  block at most 88 (110 for the coach line), no top-centre rows, progress-bar labels at most 44.
+- **The log has to say when a question appears.** A script that presses before the question is up is not playing
+  like a person (and on Tracer a right press is a Blink). The core writes `RLG,Q` when the question is on screen and
+  the answer line now ends with the seconds the answer took.
 - **A bot is never late and never holds a key down.** Three defects could only happen to a person: a pick that timed
   out into an endless repeat, a key held across two reads, a locked room that said nothing. Each was found by
   reading the human branch line by line, then by playing it.

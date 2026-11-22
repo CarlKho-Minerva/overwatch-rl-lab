@@ -59,60 +59,61 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: seed
-        30: seed2
-        31: gap
-        32: nRep
-        33: raceNo
-        34: showRace
-        35: countStale
-        36: raceGo
-        37: paused
-        38: botP
-        39: botD
-        40: REPS
-        41: pickI
-        42: usedR
-        43: picking
-        44: r1
-        45: r2
-        46: walking
-        47: walkDone
-        48: walkCur
-        49: walkPos
-        50: walkCol
-        51: walkRow
-        52: walkCell
-        53: walkDC
-        54: walkDR
-        55: walkA
-        56: walkK
-        57: walkRew
-        58: walkS2
-        59: walkBumps
-        60: autoPath
-        61: autoI
-        62: drawI
-        63: revI
-        64: knowP
-        65: knowD
-        66: sTotP
-        67: sTotD
-        68: sFsP
-        69: sFsD
-        70: sFix
-        71: sThrough
-        72: totD1
-        73: ctrl
-        74: raceHead
-        75: hudP
-        76: hudD
-        77: hudTot
-        78: hudTot2
-        79: debriefOn
-        80: db1
-        81: db2
-        82: db3
+        29: qShown
+        30: seed
+        31: seed2
+        32: gap
+        33: nRep
+        34: raceNo
+        35: showRace
+        36: countStale
+        37: raceGo
+        38: paused
+        39: botP
+        40: botD
+        41: REPS
+        42: pickI
+        43: usedR
+        44: picking
+        45: r1
+        46: r2
+        47: walking
+        48: walkDone
+        49: walkCur
+        50: walkPos
+        51: walkCol
+        52: walkRow
+        53: walkCell
+        54: walkDC
+        55: walkDR
+        56: walkA
+        57: walkK
+        58: walkRew
+        59: walkS2
+        60: walkBumps
+        61: autoPath
+        62: autoI
+        63: drawI
+        64: revI
+        65: knowP
+        66: knowD
+        67: sTotP
+        68: sTotD
+        69: sFsP
+        70: sFsD
+        71: sFix
+        72: sThrough
+        73: totD1
+        74: ctrl
+        75: raceHead
+        76: hudP
+        77: hudD
+        78: hudTot
+        79: hudTot2
+        80: debriefOn
+        81: db1
+        82: db2
+        83: db3
     player:
         0: fellCount
         1: fell
@@ -409,6 +410,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,8,{0}", Global.qId));
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
         Destroy In-World Text(Global.qTxtTop);
@@ -418,7 +422,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,8,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,8,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(5, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));

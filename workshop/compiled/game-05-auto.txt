@@ -59,68 +59,69 @@ variables {
         26: loadPeakRun
         27: qTxtTop
         28: qTxtLow
-        29: evV
-        30: evLane
-        31: evEps
-        32: evStep
-        33: evGoal
-        34: evFall
-        35: evOut
-        36: evSweeps
-        37: evSweep
-        38: evK
-        39: evD
-        40: evDelta
-        41: evSum
-        42: evP
-        43: evPol
-        44: evR2
-        45: evC2
-        46: evS2
-        47: evX
-        48: vEdge0
-        49: vIn0
-        50: vEdge
-        51: vIn
-        52: fEdge
-        53: fIn
-        54: fQuick
-        55: crossing
-        56: lane
-        57: laneActive
-        58: laneChoice
-        59: laneHead
-        60: boopsOn
-        61: curCell
-        62: seenCell
-        63: newCell
-        64: roll
-        65: mv
-        66: r2
-        67: c2
-        68: stepR
-        69: ret
-        70: steps
-        71: boops
-        72: outcome
-        73: edgeSteps
-        74: tStart
-        75: tgtPos
-        76: realFall
-        77: lucio
-        78: autoLanes
-        79: dirName
-        80: laneName
-        81: outName
-        82: hudRun
-        83: hudRes
-        84: hudModel
-        85: hudModel2
-        86: db1
-        87: db2
-        88: db3
-        89: db4
-        90: fxI
+        29: qShown
+        30: evV
+        31: evLane
+        32: evEps
+        33: evStep
+        34: evGoal
+        35: evFall
+        36: evOut
+        37: evSweeps
+        38: evSweep
+        39: evK
+        40: evD
+        41: evDelta
+        42: evSum
+        43: evP
+        44: evPol
+        45: evR2
+        46: evC2
+        47: evS2
+        48: evX
+        49: vEdge0
+        50: vIn0
+        51: vEdge
+        52: vIn
+        53: fEdge
+        54: fIn
+        55: fQuick
+        56: crossing
+        57: lane
+        58: laneActive
+        59: laneChoice
+        60: laneHead
+        61: boopsOn
+        62: curCell
+        63: seenCell
+        64: newCell
+        65: roll
+        66: mv
+        67: r2
+        68: c2
+        69: stepR
+        70: ret
+        71: steps
+        72: boops
+        73: outcome
+        74: edgeSteps
+        75: tStart
+        76: tgtPos
+        77: realFall
+        78: lucio
+        79: autoLanes
+        80: dirName
+        81: laneName
+        82: outName
+        83: hudRun
+        84: hudRes
+        85: hudModel
+        86: hudModel2
+        87: db1
+        88: db2
+        89: db3
+        90: db4
+        91: fxI
     player:
         0: fellCount
         1: fell
@@ -342,6 +343,9 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Set Global Variable(qTxtTop, Last Text ID);
         Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Set Global Variable(qTxtLow, Last Text ID);
+        "The moment the question is on screen, so the log shows how long the prediction took (and so a script that plays\nthe human build knows when to press, as a person does by looking)."
+        Set Global Variable(qShown, Total Time Elapsed);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,Q,5,{0}", Global.qId));
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
@@ -352,7 +356,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         If(Global.qRight);
             Modify Global Variable(predRight, Add, 1);
         End;
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,5,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,5,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1},{2}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0), Subtract(Total Time Elapsed, Global.qShown))));
         Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
         Wait(0.6, Ignore Condition);
         Allow Button(Global.learner, Button(Primary Fire));
