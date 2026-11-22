@@ -51,9 +51,14 @@ def test_golden_log_matches_reference(path):
     rules = ns.Rules(r_step=m.header["r_step"], r_goal=m.header["r_goal"], r_fall=m.header["r_fall"],
                      r_timeout=m.header["r_timeout"], max_steps=m.header["max_steps"], gamma=m.header["gamma_milli"] / 1000)
     eps = ns.walk(GOLDEN_PLAN, rules)
-    seen_algos, compared = set(), 0
+    seen_algos, compared, slipped = set(), 0, 0
     for (bot, run), info in m.runs.items():
         if info.get("complete") != 1:
+            continue
+        if info.get("slips", 0) or info.get("steps") != len(GOLDEN_PLAN):
+            # The game's physics put a foot wrong (about one step in several thousand), so this bot's walk is not the
+            # scripted one. Its tables cannot be compared with the reference walk; the other runs still are.
+            slipped += 1
             continue
         algo = info["algo"]
         rows = m.qrows.get((bot, run), {})
@@ -86,6 +91,7 @@ def test_golden_log_matches_reference(path):
                 compared += 1
         seen_algos.add(algo)
     assert compared > 200
+    assert slipped <= 3, f"{slipped} runs slipped: too many for the walk to count as scripted"
     assert seen_algos >= {ns.SARSA, ns.QL, ns.ESARSA, ns.MC, ns.LAMBDA, ns.RANDOM, ns.DP, ns.PG}
 
 

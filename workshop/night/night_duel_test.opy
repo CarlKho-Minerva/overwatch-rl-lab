@@ -37,4 +37,6 @@ Four conditions, rotated like the others:
 #!define CONDITION_AGGS [0, 0, 3, 3]
 #!define CONDITION_BLOCKS [1, 2, 1, 2]
 
+#!define CONDITION_ORDER [0, 1, 2, 3]
+
 #!include "night_lab.opy"

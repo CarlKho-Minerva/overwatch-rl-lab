@@ -70,7 +70,7 @@ enum Outcome:
     TIMEOUT
 
 # ---------------------------------------------------------------------------
-# Conditions. A bot's condition for a run = (bot index + a random offset drawn at match start + run number) mod NCOND,
+# Conditions. A bot's condition for a run = entry (bot index + a random offset drawn at match start + run number) of condOrder,
 # so within a match the bots cover different conditions and across matches each bot meets all of them.
 #   eps  -1 = decays as 1 / (1 + episode / 5), floor 0.01
 # ---------------------------------------------------------------------------
@@ -85,6 +85,7 @@ globalvar cLam = CONDITION_LAMBDAS
 globalvar cBonus = CONDITION_BONUSES
 globalvar cTrain = CONDITION_TRAIN_EPS
 globalvar cAgg = CONDITION_AGGS
+globalvar condOrder = CONDITION_ORDER     # which conditions the rotation walks through (all of them, or a weighted list)
 globalvar cBlock = CONDITION_BLOCKS     # duel build: 0 no blocker, 1 a blocker that always stands in row 0, 2 a blocker that learns where to stand
 
 # ---------------------------------------------------------------------------
@@ -429,7 +430,7 @@ rule "Init: spawn the bots, measure their run speed, start the block":
         LOG("NS,FAIL,throttle,{},{},{}".format(runSpeed, calP0, calP1))
         return
     actTimeout = 2.5 * cell / runSpeed + 0.25
-    condOffset = random.randint(0, NCOND - 1) if FORCE_OFFSET < 0 else FORCE_OFFSET
+    condOffset = random.randint(0, len(condOrder) - 1) if FORCE_OFFSET < 0 else FORCE_OFFSET
     feat = [bots[0], bots.last()]
     matchT0 = NOW
     # M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,
@@ -702,7 +703,7 @@ def planDP():
 
 def startRun():
     @Name "Run: pick the condition, clear the tables, log the header"
-    eventPlayer.cond = (eventPlayer.bid + condOffset + eventPlayer.runCount) % NCOND
+    eventPlayer.cond = condOrder[(eventPlayer.bid + condOffset + eventPlayer.runCount) % len(condOrder)]
     eventPlayer.algo = cAlgo[eventPlayer.cond]
     eventPlayer.alpha = cAlpha[eventPlayer.cond]
     eventPlayer.eps0 = cEps[eventPlayer.cond]

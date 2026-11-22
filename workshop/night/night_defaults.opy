@@ -1,5 +1,5 @@
 # Defaults of the Night School build. A variant redefines the few it wants to change, then includes night.opy.
-#!define BUILD_VERSION 208
+#!define BUILD_VERSION 210
 #!define DEF_BOTS_PER_TEAM 5
 #!define DEF_MOVE_SPEED 200
 #!define DEF_EVAL_EPS 10
@@ -54,3 +54,6 @@
 #!define BLOCK_COL 6
 #!define PIN_BLOCKER false
 #!define CONDITION_BLOCKS [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+# The order the rotation walks through. A variant can repeat conditions to give them more runs (night_fill.opy).
+#!define CONDITION_ORDER [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
