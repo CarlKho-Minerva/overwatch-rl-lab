@@ -31,7 +31,7 @@ the bump; her square and the wall. Measures and comparisons were committed befor
 ([docs](docs/night-school.md)), and a rules-only simulator (`node analysis/sim/hidden_wall_sim.js`) gave the prediction
 for the second design before the game did.
 
-- Short strip, wall in any of four rows, no way round (3, 4 and 3 runs): test crossings reaching the goal were 52% for the runner told only her square, 100% for the one who also remembers a bump, 87% for the one shown the wall. Remembering against blind: +48 points (95% interval 20 to 100, shuffle probability 0.029), a real difference by the rule set in advance.
+- Short strip, wall in any of four rows, no way round (6, 8 and 6 runs): test crossings reaching the goal were 38% for the runner told only her square, 86% for the one who also remembers a bump, 91% for the one shown the wall. Remembering against blind: +48 points (95% interval 10 to 86, shuffle probability 0.046), a real difference by the rule set in advance.
 - Long strip, wall in one of two rows, a way round exists (3, 4 and 3 runs): test crossings reaching the goal were 67% for the runner told only her square, 50% for the one who also remembers a bump, 50% for the one shown the wall. Remembering against blind: -17 points (95% interval -75 to 50, shuffle probability 1.000), inconclusive by the rule set in advance.
 
 The same three conditions on a local language model (`llm/hidden_order.py`, a small support task where the exact

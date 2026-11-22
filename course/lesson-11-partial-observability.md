@@ -40,18 +40,18 @@ random moves off, the share that reach the goal, and the steps taken (an unfinis
 
 | | BLIND | REMEMBERS BUMPS | SEES THE WALL |
 |---|---|---|---|
-| Finished runs (20 test crossings each) | 3 | 4 | 3 |
-| Test crossings reaching the goal (95% interval) | 52% (0 to 80) | 100% (100 to 100) | 87% (60 to 100) |
-| Steps per test crossing, unfinished = 40 (95% interval) | 22.4 (13.6 to 40.0) | 6.7 (5.7 to 7.7) | 10.1 (5.3 to 19.5) |
-| Runs where all 20 got through | 0 of 3 | 4 of 4 | 2 of 3 |
-| Runs where none got through | 1 of 3 | 0 of 4 | 0 of 3 |
+| Finished runs (20 test crossings each) | 6 | 8 | 6 |
+| Test crossings reaching the goal (95% interval) | 38% (12 to 64) | 86% (61 to 100) | 91% (78 to 100) |
+| Steps per test crossing, unfinished = 40 (95% interval) | 27.4 (18.1 to 36.1) | 11.7 (6.3 to 20.3) | 8.6 (5.3 to 13.4) |
+| Runs where all 20 got through | 0 of 6 | 6 of 8 | 4 of 6 |
+| Runs where none got through | 3 of 6 | 1 of 8 | 0 of 6 |
 | Simulation by the rules alone: reaching the goal, steps | 47%, 24.5 | 98%, 7.2 | 100%, 6.0 |
 
-In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 100%, the one who sees the wall 87%. One remembered bump is the difference between getting stuck and getting through. Seeing against remembering is not separated in these runs (10.1 steps a crossing against 6.7, and the interval includes zero). The simulation expects seeing to save about one step, the price of the bump.
+In words: with no row that is always open, the blind runner got through 38% of her test crossings, the one who remembers bumps 86%, the one who sees the wall 91%. One remembered bump is the difference between getting stuck and getting through. Seeing against remembering is not separated in these runs (8.6 steps a crossing against 11.7, and the interval includes zero). The simulation expects seeing to save about one step, the price of the bump.
 
-Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 48 points higher (95% interval 20 to 100 points, shuffle probability 0.029, 4 and 3 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 13 points lower (95% interval -40 to 0 points, shuffle probability 0.424, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 15.8 lower (95% interval -33.1 to -6.2, shuffle probability 0.029, 4 and 3 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, steps per test crossing: 3.4 higher (95% interval -2.0 to 12.7, shuffle probability 0.620, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
+Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 48 points higher (95% interval 10 to 86 points, shuffle probability 0.046, 8 and 6 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 5 points higher (95% interval -16 to 35 points, shuffle probability 0.959, 6 and 8 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 15.7 lower (95% interval -28.3 to -2.5, shuffle probability 0.052, 8 and 6 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, steps per test crossing: 3.1 lower (95% interval -12.9 to 4.5, shuffle probability 0.717, 6 and 8 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
 
-800 logged steps were rebuilt outside the game (14 bumps), with 0 mismatches.
+1,200 logged steps were rebuilt outside the game (24 bumps), with 0 mismatches.
 
 ![One dot per run: share of test crossings reaching the goal, and steps per test crossing](../analysis/figures/night/fig_pomdp4_eval.png)
 

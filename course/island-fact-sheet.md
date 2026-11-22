@@ -148,6 +148,12 @@ The blind runner facing a hidden blocker is a partially observable problem: the 
 SARSA: 4 falls in its last 40 training episodes; Q-learning: 10 in 40. With exploration off, Q-learning crossed cleanly 12 of 12 times in 13 steps;
 the SARSA table sent her pacing between two squares until the step limit. That lead is what the overnight repeats confirmed.
 
+## Speed: what the script measured
+
+- The Workshop's speed setting (slow motion) cannot go above 100%: the game never runs faster than real time.
+- At double running speed the bot slides 0.5 m after she stops running (the script measures this at the start of every match and cuts each run that much short); the single-bot build at normal speed measured 0.25 m.
+- Server load, as the game reports it to the script, peaked at 147% of budget over the night and averaged 39%.
+
 ## How the prediction tables average
 
 - RANDOM WALK's Monte Carlo value table: every-visit, plain running average (step 1/k on the k-th visit to a square).
