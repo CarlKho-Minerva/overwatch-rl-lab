@@ -43,7 +43,8 @@ macro NCOLS = 12
 macro NROWS = 4
 macro NCELLS = 48
 macro NA = 4
-macro NQ = 192
+macro NSTATES = NCELLS * STATE_MULT     # 48, or 192 when the runner also sees which row a blocker stands in
+macro NQ = NSTATES * NA
 macro START_CELL = 0
 macro GOAL_CELL = 11
 macro MARGIN = 0.5
@@ -84,6 +85,7 @@ globalvar cLam = CONDITION_LAMBDAS
 globalvar cBonus = CONDITION_BONUSES
 globalvar cTrain = CONDITION_TRAIN_EPS
 globalvar cAgg = CONDITION_AGGS
+globalvar cBlock = CONDITION_BLOCKS     # duel build: 0 no blocker, 1 a blocker that always stands in row 0, 2 a blocker that learns where to stand
 
 # ---------------------------------------------------------------------------
 # Workshop Settings (lobby > Settings > Workshop Settings)
@@ -94,8 +96,8 @@ globalvar cfgEvalEps = createWorkshopSettingInt("Night School", "Greedy evaluati
 globalvar cfgSoftMin = createWorkshopSettingInt("Night School", "No new run after this many minutes", DEF_SOFT_MIN, 1, 240, 3)
 globalvar cfgRunMaxMin = createWorkshopSettingInt("Night School", "Longest run (minutes)", DEF_RUN_MAX_MIN, 1, 240, 4)
 globalvar cfgAutoRestart = createWorkshopSettingBool("Night School", "Restart the match by itself when the block ends", DEF_AUTO_RESTART, 5)
-globalvar cfgMaxSteps = createWorkshopSettingInt("Night School", "Episode step limit (training)", 100, 10, 500, 6)
-globalvar cfgEvalMaxSteps = createWorkshopSettingInt("Night School", "Episode step limit (evaluation)", 60, 10, 500, 7)
+globalvar cfgMaxSteps = createWorkshopSettingInt("Night School", "Episode step limit (training)", DEF_MAX_STEPS, 10, 500, 6)
+globalvar cfgEvalMaxSteps = createWorkshopSettingInt("Night School", "Episode step limit (evaluation)", DEF_EVAL_MAX_STEPS, 10, 500, 7)
 globalvar cfgCell = createWorkshopSettingFloat("Night School", "Cell size (m)", 2, 1.5, 3, 8)
 globalvar gamma = createWorkshopSettingFloat("Night School", "Discount factor gamma", 1, 0, 1, 9)
 globalvar rStep = createWorkshopSettingFloat("Rewards", "Reward per action", -1, -50, 0, 0)
@@ -157,6 +159,8 @@ globalvar hudHead = ""
 globalvar hudLine = []
 globalvar hudFeat = ["", ""]
 globalvar hudI
+globalvar duelT1 = []
+globalvar duelT2 = []
 globalvar logQ = []
 globalvar flushN
 globalvar flushI
@@ -211,6 +215,14 @@ playervar curS
 playervar curCell
 playervar nextCell
 playervar agg = 0
+playervar isBlocker = false
+playervar partner = null        # the runner's blocker (duel build)
+playervar blockMode = 0
+playervar station = -1          # the row the blocker stands in this episode
+playervar seenRow = 0           # what the runner is told about it (0 when it is not told)
+playervar Qb = [0, 0, 0, 0]     # the blocker's score for each row, learned as a four-armed bandit
+playervar Nb = [0, 0, 0, 0]
+playervar bumps = 0
 playervar curA
 playervar curExplore
 playervar nextS
@@ -296,8 +308,9 @@ rule "Log: write the queued lines in one frame, once a second":
 macro BELOW = (eventPlayer.getPosition().y < floorY - 1.2)
 # What the bot is told about where it stands (Lecture 6). 0: the exact cell, 48 states. 1: the row and which
 # quarter of the strip, 16 states. 2: the row only, 4 states. The real cell still decides what happens to it.
+#                                          3: the exact cell and the row the blocker stands in this episode, 192 states.
 macro AGG(c):
-    (c if eventPlayer.agg == 0 else (floor(c / NCOLS) * 4 + floor((c % NCOLS) / 3) if eventPlayer.agg == 1 else floor(c / NCOLS)))
+    (c if eventPlayer.agg == 0 else (floor(c / NCOLS) * 4 + floor((c % NCOLS) / 3) if eventPlayer.agg == 1 else (floor(c / NCOLS) if eventPlayer.agg == 2 else c + NCELLS * eventPlayer.seenRow)))
 macro onPlatform(p):
     abs(raycast(p + vect(0, 2, 0), p - vect(0, 2, 0), null, null, false).getHitPosition().y - floorY) < 0.3
 
@@ -371,6 +384,20 @@ rule "Init: spawn the bots, measure their run speed, start the block":
                 wait(0.25)
             wait(1.5)
     bots = [p for p in getPlayers(Team.1) if p.isDummy()].concat([p for p in getPlayers(Team.2) if p.isDummy()])
+    if DUEL:
+        # Lecture 10 build: one runner per strip, and one blocker from the other team standing on the same strip.
+        # Enemy heroes cannot walk through each other, so the blocker's body is a real obstacle.
+        duelT1 = [p for p in getPlayers(Team.1) if p.isDummy()]
+        duelT2 = [p for p in getPlayers(Team.2) if p.isDummy()]
+        bots = [duelT1[0], duelT2[0]]
+        duelT1[0].partner = duelT2[1]
+        duelT2[0].partner = duelT1[1]
+        duelT2[1].isBlocker = true
+        duelT1[1].isBlocker = true
+        duelT2[1].side = 0
+        duelT1[1].side = 1
+        duelT2[1].startForcingPosition(vect((edgeXMin + edgeXMax) / 2 - 3, floorY, (edgeZMin + edgeZMax) / 2), false)
+        duelT1[1].startForcingPosition(vect((edgeXMin + edgeXMax) / 2 + 3, floorY, (edgeZMin + edgeZMax) / 2), false)
     nBots = len(bots)
     if nBots < 1:
         calStage = -1
@@ -685,6 +712,13 @@ def startRun():
     eventPlayer.bonus = cBonus[eventPlayer.cond]
     eventPlayer.trainEps = cTrain[eventPlayer.cond]
     eventPlayer.agg = cAgg[eventPlayer.cond]
+    eventPlayer.blockMode = cBlock[eventPlayer.cond]
+    eventPlayer.seenRow = 0
+    eventPlayer.bumps = 0
+    if entityExists(eventPlayer.partner):
+        eventPlayer.partner.Qb = [0, 0, 0, 0]
+        eventPlayer.partner.Nb = [0, 0, 0, 0]
+        eventPlayer.partner.station = -1
     eventPlayer.Q = []
     eventPlayer.Q[NQ - 1] = 0
     if cQInit[eventPlayer.cond] != 0:
@@ -701,7 +735,7 @@ def startRun():
     eventPlayer.mR = []
     eventPlayer.mSeen = []
     eventPlayer.Vtd = []
-    eventPlayer.Vtd[NCELLS - 1] = 0
+    eventPlayer.Vtd[NSTATES - 1] = 0
     eventPlayer.Vmc = []
     eventPlayer.Vmc[NCELLS - 1] = 0
     eventPlayer.Vtd2 = []
@@ -743,8 +777,8 @@ def logTables():
             logBytes += 400
             wait()
         return
-    # Q: bot, run, cell, the four values (action preferences for the policy-gradient bot), visits to the cell
-    for eventPlayer.k in range(NCELLS):
+    # Q: bot, run, state, the four values (action preferences for the policy-gradient bots), visits to the state
+    for eventPlayer.k in range(NSTATES):
         eventPlayer.u = eventPlayer.Nsa[eventPlayer.k * NA] + eventPlayer.Nsa[eventPlayer.k * NA + 1] + eventPlayer.Nsa[eventPlayer.k * NA + 2] + eventPlayer.Nsa[eventPlayer.k * NA + 3]
         if eventPlayer.u > 0 or (eventPlayer.algo == Alg.DP and eventPlayer.k != GOAL_CELL):
             if eventPlayer.algo == Alg.PG or eventPlayer.algo == Alg.AC:
@@ -761,12 +795,33 @@ def endRun():
     #    evaluation episodes, goals, falls, timeouts, real steps, slips, seconds
     LOG("NS,F,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.cond, 1 if (eventPlayer.epCount >= eventPlayer.trainEps and eventPlayer.evalCount >= (0 if eventPlayer.algo == Alg.RANDOM else cfgEvalEps)) else 0, eventPlayer.epCount, eventPlayer.cntGoal, eventPlayer.cntFell, eventPlayer.cntTimeout, eventPlayer.evalCount, eventPlayer.evGoal, eventPlayer.evFell, eventPlayer.evTimeout, eventPlayer.runSteps, eventPlayer.runSlips, NOW - eventPlayer.runT0))
     logBytes += 80
+    if eventPlayer.blockMode > 0 and entityExists(eventPlayer.partner):
+        # B: bot, run, the blocker's score for rows 0 to 3, then how many training episodes it stood in each
+        LOG("NS,B,{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.partner.Qb[0], eventPlayer.partner.Qb[1], eventPlayer.partner.Qb[2], eventPlayer.partner.Qb[3], eventPlayer.partner.Nb[0], eventPlayer.partner.Nb[1], eventPlayer.partner.Nb[2], eventPlayer.partner.Nb[3]))
+        logBytes += 70
     logTables()
 
 def runEpisode():
     @Name "Run: one episode"
     if eventPlayer.eps0 < 0:
         eventPlayer.eps = max(0.01, 1 / (1 + eventPlayer.epCount / 5))
+    if eventPlayer.blockMode > 0 and entityExists(eventPlayer.partner):
+        # The blocker picks a row for this episode: always row 0, or (learning) the row its scores rate best,
+        # with one random pick in ten. It stands mid-strip and is pinned there for the episode.
+        if eventPlayer.blockMode == 1:
+            eventPlayer.partner.station = 0
+        else:
+            eventPlayer.rowMax = sorted(eventPlayer.partner.Qb).last()
+            eventPlayer.partner.station = random.choice([0, 1, 2, 3].filter(lambda x: eventPlayer.partner.Qb[x] >= eventPlayer.rowMax - 0.0001))
+            if eventPlayer.isTraining and random.uniform(0, 1) < 0.1:
+                eventPlayer.partner.station = random.randint(0, 3)
+        # A second "start forcing position" on a bot that is already pinned does nothing (seen in the game, 2026-11-22:
+        # the blockers stayed where the setup had parked them). Release, move, pin again.
+        eventPlayer.partner.stopForcingPosition()
+        eventPlayer.partner.teleport(cellPos[eventPlayer.side * NCELLS + eventPlayer.partner.station * NCOLS + BLOCK_COL])
+        if PIN_BLOCKER:
+            eventPlayer.partner.startForcingPosition(cellPos[eventPlayer.side * NCELLS + eventPlayer.partner.station * NCOLS + BLOCK_COL], false)
+        eventPlayer.seenRow = eventPlayer.partner.station if eventPlayer.agg == 3 else 0
     resetBot()
     eventPlayer.epSteps = 0
     eventPlayer.epReturn = 0
@@ -828,14 +883,22 @@ def runEpisode():
             eventPlayer.evFell += 1
         else:
             eventPlayer.evTimeout += 1
+    if eventPlayer.blockMode > 0 and entityExists(eventPlayer.partner):
+        # Zero-sum: what the runner lost, the blocker won. The blocker's score for the row it chose moves a tenth
+        # of the way toward that (only while the runner is training, so evaluation leaves both sides frozen).
+        if eventPlayer.isTraining:
+            eventPlayer.partner.Nb[eventPlayer.partner.station] += 1
+            if eventPlayer.blockMode == 2:
+                eventPlayer.partner.Qb[eventPlayer.partner.station] += 0.1 * ((0 - eventPlayer.epReturn) - eventPlayer.partner.Qb[eventPlayer.partner.station])
     eventPlayer.runSlips += eventPlayer.epSlips
     eventPlayer.lastReturn = eventPlayer.epReturn
     eventPlayer.lastOutcome = eventPlayer.outcome
     totalEpisodes += 1
     totalSteps += eventPlayer.epSteps
     # E: bot, run, episode (evaluation episodes continue the count), mode (0 training, 1 evaluation), return, steps,
-    #    outcome (1 goal, 2 fell, 3 timeout), mean distance from the edge (m), slips, seconds since match start
-    LOG("NS,E,{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount + eventPlayer.evalCount, 0 if eventPlayer.isTraining else 1, eventPlayer.epReturn, eventPlayer.epSteps, eventPlayer.outcome, eventPlayer.epEdgeSum / max(1, eventPlayer.epSteps), eventPlayer.epSlips, NOW - matchT0))
+    #    outcome (1 goal, 2 fell, 3 timeout), mean distance from the edge (m), slips, seconds since match start,
+    #    the row the blocker stood in (-1 when there is no blocker)
+    LOG("NS,E,{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount + eventPlayer.evalCount, 0 if eventPlayer.isTraining else 1, eventPlayer.epReturn, eventPlayer.epSteps, eventPlayer.outcome, eventPlayer.epEdgeSum / max(1, eventPlayer.epSteps), eventPlayer.epSlips, NOW - matchT0, eventPlayer.partner.station if eventPlayer.blockMode > 0 else -1))
     logBytes += 50
     if eventPlayer.algo == Alg.RANDOM and eventPlayer.isTraining and (eventPlayer.epCount == 10 or eventPlayer.epCount == 30 or eventPlayer.epCount == 100):
         logTables()
@@ -844,6 +907,7 @@ rule "Bot: run after run until the block ends":
     @Event eachPlayer
     @Condition eventPlayer.isDummy()
     @Condition eventPlayer.bid >= 0
+    @Condition eventPlayer.isBlocker == false
     @Condition calStage == 2
     wait(0.5 + eventPlayer.bid * 0.35)
     while calStage == 2 and not stopping and NOW - matchT0 < cfgSoftMin * 60:
@@ -897,7 +961,8 @@ rule "Telemetry: server load once a minute":
 rule "Host: force a hero so the match needs no click":
     @Event eachPlayer
     @Condition eventPlayer.isDummy() == false
-    eventPlayer.startForcingHero(Hero.MERCY)
+    # Soldier: 76 has no ability that puts a prompt on team-mates (Mercy's did, over the bots).
+    eventPlayer.startForcingHero(Hero.SOLDIER)
 
 rule "Host: place the observer above the island":
     @Event eachPlayer

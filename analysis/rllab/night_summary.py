@@ -357,6 +357,94 @@ def policy_figure(matches, conds, out: Path, name: str, title: str):
     return name
 
 
+DUEL_NAMES = ["Runner blind, blocker fixed", "Runner blind, blocker learns", "Runner sees, blocker fixed", "Runner sees, blocker learns"]
+
+
+def duel_summary(matches, out: Path, n_last=40):
+    """Lecture 10 build (version 1001): a runner against a blocker. Returns a dict, and draws one figure."""
+    duel = [m for m in matches if m.header.get("version") == 1001]
+    runs = []
+    for m in duel:
+        eps_by: dict = {}
+        for e in m.episodes:
+            eps_by.setdefault((e["bot"], e["run"]), []).append(e)
+        for key, info in sorted(m.runs.items()):
+            if "cond" not in info:
+                continue
+            tr = [e for e in eps_by.get(key, []) if e["mode"] == 0]
+            ev = [e for e in eps_by.get(key, []) if e["mode"] == 1]
+            done = info.get("complete") == 1 or (info.get("seconds") or 0) >= m.header.get("run_max_min", 9) * 60 - 2
+            if not done or len(tr) < 40:
+                continue
+            runs.append({"cond": info["cond"], "train": tr, "eval": ev, "blocker_q": info.get("blocker_q"), "blocker_n": info.get("blocker_n")})
+    if not runs:
+        return None
+    D = {"matches": len(duel), "runs": len(runs), "conditions": {}}
+    for c in range(4):
+        rs = [r for r in runs if r["cond"] == c]
+        if not rs:
+            continue
+        d = {"name": DUEL_NAMES[c], "runs": len(rs)}
+        d["last_return"] = mean(mean(e["ret"] for e in r["train"][-n_last:]) for r in rs)
+        d["first_return"] = mean(mean(e["ret"] for e in r["train"][:n_last]) for r in rs)
+        d["goal_rate_last"] = mean(mean(1 if e["outcome"] == 1 else 0 for e in r["train"][-n_last:]) for r in rs)
+        d["timeouts_per_100"] = mean(100 * sum(e["outcome"] == 3 for e in r["train"]) / len(r["train"]) for r in rs)
+        d["falls_per_100"] = mean(100 * sum(e["outcome"] == 2 for e in r["train"]) / len(r["train"]) for r in rs)
+        d["bumps_per_episode"] = mean(mean(e["slips"] for e in r["train"]) for r in rs)
+        d["goal_steps_last"] = mean(mean([e["steps"] for e in r["train"][-n_last:] if e["outcome"] == 1] or [float("nan")]) for r in rs)
+        ev = [r for r in rs if r["eval"]]
+        d["eval_goal_rate"] = mean(mean(1 if e["outcome"] == 1 else 0 for e in r["eval"]) for r in ev) if ev else None
+        d["eval_return"] = mean(mean(e["ret"] for e in r["eval"]) for r in ev) if ev else None
+        # where the blocker stood: share of training episodes in each row, first and last third
+        def shares(eps):
+            n = max(1, len(eps))
+            return [sum(1 for e in eps if e.get("station") == row) / n for row in range(4)]
+        d["rows_first_third"] = [mean(x) for x in zip(*[shares(r["train"][: len(r["train"]) // 3]) for r in rs])]
+        d["rows_last_third"] = [mean(x) for x in zip(*[shares(r["train"][-(len(r["train"]) // 3):]) for r in rs])]
+        # how often the blocker's favourite row (per window of 20 episodes) changed
+        changes = []
+        for r in rs:
+            fav = []
+            for i in range(0, len(r["train"]) - 19, 20):
+                w = [e.get("station") for e in r["train"][i:i + 20]]
+                fav.append(max(range(4), key=lambda row: w.count(row)))
+            changes.append(sum(1 for a, b in zip(fav, fav[1:]) if a != b))
+        d["favourite_row_changes"] = mean(changes)
+        d["blocker_q"] = [mean(x) for x in zip(*[r["blocker_q"] for r in rs if r.get("blocker_q")])] if any(r.get("blocker_q") for r in rs) else None
+        D["conditions"][c] = d
+    plt = plt_style()
+    conds = [c for c in range(4) if c in D["conditions"]]
+    fig, axes = plt.subplots(2, len(conds), figsize=(3.2 * len(conds) + 0.6, 5.0), dpi=160, squeeze=False, sharex=True)
+    row_cols = ["#ff5a5f", "#ffd166", "#7bd389", "#6fb3ff"]
+    for j, c in enumerate(conds):
+        rs = [r for r in runs if r["cond"] == c]
+        n = min(len(r["train"]) for r in rs)
+        avg = [mean(r["train"][i]["ret"] for r in rs) for i in range(n)]
+        sm = [mean(avg[max(0, i - 9): i + 1]) for i in range(n)]
+        ax = axes[0][j]
+        ax.plot(range(1, n + 1), sm, color=INK, lw=1.8)
+        ax.set_title(f"{DUEL_NAMES[c]}\n({len(rs)} run{'' if len(rs) == 1 else 's'})", fontsize=9, color=INK, loc="left")
+        ax.set_ylim(-160, 45)
+        ax.grid(True, axis="y", lw=0.6)
+        if j == 0:
+            ax.set_ylabel("runner's return")
+        ax = axes[1][j]
+        win = 10
+        xs = list(range(win, n + 1, win))
+        stack = [[mean(sum(1 for e in r["train"][x - win:x] if e.get("station") == row) / win for r in rs) for x in xs] for row in range(4)]
+        ax.stackplot(xs, *stack, colors=row_cols, alpha=0.85, labels=["edge row", "row 2", "row 3", "inland row"])
+        ax.set_ylim(0, 1)
+        ax.set_xlabel("training episode")
+        if j == 0:
+            ax.set_ylabel("where the blocker stood")
+            ax.legend(frameon=False, fontsize=7, loc="lower left")
+    fig.tight_layout()
+    fig.savefig(out / "fig_duel.png")
+    plt.close(fig)
+    D["figure"] = "fig_duel.png"
+    return D
+
+
 def main(argv):
     logs, out = Path(argv[0]), Path(argv[1])
     out.mkdir(parents=True, exist_ok=True)
@@ -369,6 +457,10 @@ def main(argv):
         made = policy_figure(matches, conds, out, name, title)
         if made:
             S["figures"].append(made)
+    D = duel_summary(matches, out)
+    if D:
+        S["duel"] = D
+        S["figures"].append(D["figure"])
     (out / "summary.json").write_text(json.dumps(S, indent=1, default=str))
     print(f"{S['n_matches']} matches, {S['n_runs_complete']} complete runs of {S['n_runs']}, {S['n_episodes']} episodes, {S['n_steps']} real steps, "
           f"{S['game_hours']:.2f} h, {S['steps_per_sec']:.1f} steps/s; replay {S['replay_checked'] - S['replay_bad']}/{S['replay_checked']}; figures {len(S['figures'])}")

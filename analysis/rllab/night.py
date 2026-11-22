@@ -55,7 +55,7 @@ M_FIELDS = ["version", "bots", "team1_bots", "cell", "run_speed", "coast", "move
 H_FIELDS = ["bot", "run", "cond", "algo", "eps_milli", "alpha_milli", "q_init", "plan_n", "lam_milli", "bonus", "train_eps", "side", "t0", "agg"]
 F_FIELDS = ["bot", "run", "cond", "complete", "train_done", "goals", "falls", "timeouts", "eval_done", "eval_goals",
             "eval_falls", "eval_timeouts", "steps", "slips", "seconds"]
-E_FIELDS = ["bot", "run", "ep", "mode", "ret", "steps", "outcome", "edge", "slips", "t"]
+E_FIELDS = ["bot", "run", "ep", "mode", "ret", "steps", "outcome", "edge", "slips", "t", "station"]
 S_FIELDS = ["bot", "run", "t", "s", "a", "r", "s2", "a2", "terminal", "explore", "q_old", "q_new", "target", "eps_milli"]
 X_FIELDS = ["reason", "seconds", "episodes", "steps", "log_bytes", "load", "load_avg", "load_peak"]
 L_FIELDS = ["seconds", "load", "load_avg", "load_peak", "episodes", "steps", "log_bytes"]
@@ -89,6 +89,8 @@ def parse(path) -> Match:
             m.qrows.setdefault((vals[0], vals[1]), {})[vals[2]] = (vals[3:7], vals[7])
         elif kind == "P":
             m.ptables.append({"bot": vals[0], "run": vals[1], "ep": vals[2], "kind": vals[3], "row": vals[4], "values": vals[5:17]})
+        elif kind == "B":
+            m.runs.setdefault((vals[0], vals[1]), {}).update({"blocker_q": vals[2:6], "blocker_n": vals[6:10]})
         elif kind == "V":
             m.sweeps.append({"bot": vals[0], "run": vals[1], "sweep": vals[2], "delta": vals[3]})
         elif kind == "L":

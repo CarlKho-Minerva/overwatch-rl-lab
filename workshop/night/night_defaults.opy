@@ -1,5 +1,5 @@
 # Defaults of the Night School build. A variant redefines the few it wants to change, then includes night.opy.
-#!define BUILD_VERSION 207
+#!define BUILD_VERSION 208
 #!define DEF_BOTS_PER_TEAM 5
 #!define DEF_MOVE_SPEED 200
 #!define DEF_EVAL_EPS 10
@@ -7,6 +7,8 @@
 #!define DEF_SOFT_MIN 14
 #!define DEF_RUN_MAX_MIN 18
 #!define DEF_AUTO_RESTART true
+#!define DEF_MAX_STEPS 100
+#!define DEF_EVAL_MAX_STEPS 60
 # Per-step lines (for checking the update arithmetic) are logged for this many steps at the start of each run.
 #!define STEP_LOG_STEPS 30
 #!define CAM_HEIGHT 38
@@ -45,3 +47,10 @@
 #!define SCRIPTED false
 #!define SCRIPT_PLAN [0]
 #!define FORCE_OFFSET (-1)
+
+# Lecture 10 build only (night_duel.opy): a blocker per strip, and a runner that may be told the blocker's row.
+#!define DUEL false
+#!define STATE_MULT 1
+#!define BLOCK_COL 6
+#!define PIN_BLOCKER false
+#!define CONDITION_BLOCKS [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
