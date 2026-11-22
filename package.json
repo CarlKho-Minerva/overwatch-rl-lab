@@ -1,0 +1,15 @@
+{
+  "name": "overwatch-rl-lab",
+  "version": "0.1.0",
+  "description": "Tabular reinforcement learning experiments that run inside the Overwatch 2 Workshop, on Workshop Island.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/build.mjs && .venv\\Scripts\\python -m pytest -q",
+    "notebook": ".venv\\Scripts\\python tools/make_notebook.py"
+  },
+  "devDependencies": {
+    "overpy": "^9.7.21"
+  }
+}

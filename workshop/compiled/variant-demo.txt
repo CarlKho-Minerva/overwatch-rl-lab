@@ -1,0 +1,977 @@
+settings
+{
+	main
+	{
+		Mode Name: "Overwatch RL Lab"
+		Description: "Tabular SARSA and Q-learning on Workshop Island. A Tracer dummy bot learns a cliff walk on the real island edge. github.com/CarlKho-Minerva/overwatch-rl-lab"
+	}
+	modes
+	{
+		Skirmish
+		{
+			enabled maps
+			{
+				Workshop Island
+			}
+		}
+		General
+		{
+			Hero Limit: Off
+			Kill Cam: Off
+			Spawn Health Packs: Disabled
+		}
+	}
+}
+
+variables {
+    global:
+        0: cfgExperiment
+        1: paused
+        2: cfgMaxSteps
+        3: cfgSlowMo
+        4: camOn
+        5: algo
+        6: alpha
+        7: gamma
+        8: epsilon
+        9: wantTraining
+        10: cfgQInit
+        11: rStep
+        12: rGoal
+        13: rFall
+        14: rTimeout
+        15: rKilled
+        16: rHit
+        17: cfgCell
+        18: cfgMargin
+        19: cfgClosedLoop
+        20: cfgDurationScale
+        21: cfgMoveSpeed
+        22: cfgWidowInterval
+        23: cfgWidowRange
+        24: cfgWidowDamage
+        25: cfgWidowStandoff
+        26: cfgObserveHealth
+        27: cfgBlink
+        28: cfgLogSteps
+        29: cfgLogQEvery
+        30: cfgShowCal
+        31: i
+        32: j
+        33: calStage
+        34: calMsg
+        35: floorY
+        36: isleCenter
+        37: edgeXMin
+        38: edgeXMax
+        39: edgeZMin
+        40: edgeZMax
+        41: probeDir
+        42: probeLo
+        43: probeHi
+        44: probeMid
+        45: runSpeed
+        46: coastDist
+        47: calP0
+        48: calP1
+        49: calT0
+        50: cell
+        51: gridOrigin
+        52: cellPos
+        53: startPos
+        54: goalPos
+        55: stripCenter
+        56: widowPos
+        57: hostPos
+        58: camEye
+        59: camLook
+        60: actDuration
+        61: actTimeout
+        62: tracer
+        63: widow
+        64: tracerDied
+        65: tracerDiedEnv
+        66: curS
+        67: curA
+        68: curCell
+        69: nextS
+        70: nextA
+        71: nextCell
+        72: reward
+        73: terminal
+        74: outcome
+        75: stepCol
+        76: stepRow
+        77: tgtCol
+        78: tgtRow
+        79: tgtPos
+        80: actDir
+        81: obsP
+        82: obsCell
+        83: obsS
+        84: useHealthBit
+        85: useBlink
+        86: nAct
+        87: epSteps
+        88: epReturn
+        89: epEdgeSum
+        90: epHits
+        91: stepHits0
+        92: Q
+        93: polGlyph
+        94: selS
+        95: selA
+        96: selExplore
+        97: rowQ
+        98: rowMax
+        99: glyphS
+        100: tdTarget
+        101: qOld
+        102: isTraining
+        103: curExplore
+        104: nextExplore
+        105: demoPlan
+        106: nextShotT
+        107: shotsFired
+        108: episodeActive
+        109: runId
+        110: epCount
+        111: cnt
+        112: recentRet
+        113: recentSum
+        114: histReturn
+        115: histOutcome
+        116: lastReturn
+        117: lastOutcome
+        118: lastSteps
+        119: lastTraining
+        120: pendingReset
+        121: pendingAlgoSwitch
+}
+
+subroutines {
+    0: probeEdge
+    1: layoutArena
+    2: resetTracer
+    3: observeState
+    4: stepEnv
+    5: chooseAction
+    6: updateGlyph
+    7: resetLearning
+    8: runEpisode
+    9: logRunHeader
+    10: logEpisode
+    11: logStep
+    12: logQTable
+}
+
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(cfgExperiment, 2);
+        Set Global Variable(paused, Workshop Setting Toggle(Custom String("1 Experiment"), Custom String("Start paused"), False, 1));
+        Set Global Variable(cfgMaxSteps, Workshop Setting Integer(Custom String("1 Experiment"), Custom String("Episode duration 󠀨max steps󠀩"), 100, 10, 500, 2));
+        Set Global Variable(cfgSlowMo, Workshop Setting Integer(Custom String("1 Experiment"), Custom String("Game speed percent"), 100, 10, 100, 3));
+        Set Global Variable(camOn, Workshop Setting Toggle(Custom String("1 Experiment"), Custom String("Overhead camera for the host"), True, 4));
+        Set Global Variable(algo, Workshop Setting Combo(Custom String("2 Learning"), Custom String("Algorithm"), 0, Array(Custom String("SARSA"), Custom String("Q-learning")), 0));
+        Set Global Variable(alpha, Workshop Setting Real(Custom String("2 Learning"), Custom String("Learning rate alpha"), 0.5, 0, 1, 1));
+        Set Global Variable(gamma, Workshop Setting Real(Custom String("2 Learning"), Custom String("Discount factor gamma"), 1, 0, 1, 2));
+        Set Global Variable(epsilon, Workshop Setting Real(Custom String("2 Learning"), Custom String("Exploration probability epsilon"), 0.1, 0, 1, 3));
+        Set Global Variable(wantTraining, Compare(Workshop Setting Combo(Custom String("2 Learning"), Custom String("Start mode"), 0, Array(Custom String("Training"), Custom String("Greedy evaluation")), 4), ==, 0));
+        Set Global Variable(cfgQInit, Workshop Setting Real(Custom String("2 Learning"), Custom String("Initial Q-value"), 0, -1000, 1000, 5));
+        Set Global Variable(rStep, Workshop Setting Real(Custom String("3 Rewards"), Custom String("Reward per action"), -1, -50, 0, 0));
+        Set Global Variable(rGoal, Workshop Setting Real(Custom String("3 Rewards"), Custom String("Reward for reaching the goal"), 50, 0, 1000, 1));
+        Set Global Variable(rFall, Workshop Setting Real(Custom String("3 Rewards"), Custom String("Reward for falling off the island"), -100, -1000, 0, 2));
+        Set Global Variable(rTimeout, Workshop Setting Real(Custom String("3 Rewards"), Custom String("Reward for timeout"), -50, -1000, 0, 3));
+        Set Global Variable(rKilled, Workshop Setting Real(Custom String("3 Rewards"), Custom String("Reward for being killed by Widowmaker"), -100, -1000, 0, 4));
+        Set Global Variable(rHit, Workshop Setting Real(Custom String("3 Rewards"), Custom String("Reward per hit taken"), 0, -200, 0, 5));
+        Set Global Variable(cfgCell, Workshop Setting Real(Custom String("4 Arena"), Custom String("Cell size 󠀨m󠀩"), 2, 1.5, 3, 0));
+        Set Global Variable(cfgMargin, Workshop Setting Real(Custom String("4 Arena"), Custom String("Gap between grid and island edge 󠀨m󠀩"), 0.5, 0, 0.75, 1));
+        Set Global Variable(cfgClosedLoop, Workshop Setting Toggle(Custom String("4 Arena"), Custom String("Stop each move at the cell centre 󠀨off = fixed duration󠀩"), True, 2));
+        Set Global Variable(cfgDurationScale, Workshop Setting Integer(Custom String("4 Arena"), Custom String("Fixed-duration move length percent"), 100, 25, 300, 3));
+        Set Global Variable(cfgMoveSpeed, Workshop Setting Integer(Custom String("4 Arena"), Custom String("Tracer move speed percent"), 100, 50, 200, 4));
+        Set Global Variable(cfgWidowInterval, Workshop Setting Real(Custom String("5 Widowmaker"), Custom String("Seconds between shots"), 2, 0.5, 10, 0));
+        Set Global Variable(cfgWidowRange, Workshop Setting Real(Custom String("5 Widowmaker"), Custom String("Firing range 󠀨m󠀩"), 11, 1, 100, 1));
+        Set Global Variable(cfgWidowDamage, Workshop Setting Integer(Custom String("5 Widowmaker"), Custom String("Damage percent"), 100, 0, 500, 2));
+        Set Global Variable(cfgWidowStandoff, Workshop Setting Real(Custom String("5 Widowmaker"), Custom String("Distance behind the grid 󠀨m󠀩"), 6, 2, 25, 3));
+        Set Global Variable(cfgObserveHealth, Workshop Setting Toggle(Custom String("5 Widowmaker"), Custom String("Tracer observes her own health"), True, 4));
+        Set Global Variable(cfgBlink, Workshop Setting Toggle(Custom String("5 Widowmaker"), Custom String("Enable Blink as a fifth action"), False, 5));
+        Set Global Variable(cfgLogSteps, Workshop Setting Toggle(Custom String("6 Logging"), Custom String("Log every step to the Inspector"), True, 0));
+        Set Global Variable(cfgLogQEvery, Workshop Setting Integer(Custom String("6 Logging"), Custom String("Log the Q-table every N episodes 󠀨0 = never󠀩"), 50, 0, 1000, 1));
+        Set Global Variable(cfgShowCal, Workshop Setting Toggle(Custom String("6 Logging"), Custom String("Show calibration HUD"), True, 2));
+        Set Global Variable(calMsg, Custom String("measuring the island"));
+        Set Global Variable(cellPos, Empty Array);
+        Set Global Variable(tracerDied, False);
+        Set Global Variable(tracerDiedEnv, False);
+        Set Global Variable(Q, Empty Array);
+        Set Global Variable(polGlyph, Empty Array);
+        Set Global Variable(isTraining, True);
+        Set Global Variable(curExplore, False);
+        Set Global Variable(nextExplore, False);
+        Set Global Variable(demoPlan, Array(2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3));
+        Set Global Variable(episodeActive, False);
+        Set Global Variable(cnt, Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(recentRet, Empty Array);
+        Set Global Variable(histReturn, Empty Array);
+        Set Global Variable(histOutcome, Empty Array);
+        Set Global Variable(lastTraining, True);
+        Set Global Variable(pendingReset, False);
+        Set Global Variable(pendingAlgoSwitch, False);
+    }
+}
+
+rule ("Calibration: find one edge (binary search on downward rays)") {
+    event {
+        Subroutine;
+        probeEdge;
+    }
+    actions {
+        Set Global Variable(probeLo, 0);
+        Set Global Variable(probeHi, 4);
+        While(And(Compare(Absolute Value(Subtract(Y Component Of(Ray Cast Hit Position(Add(Add(Global.isleCenter, Multiply(Global.probeDir, Global.probeHi)), Vector(0, 2, 0)), Subtract(Add(Global.isleCenter, Multiply(Global.probeDir, Global.probeHi)), Vector(0, 2, 0)), Null, Null, False)), Global.floorY)), <, 0.3), Compare(Global.probeHi, <, 512)));
+            Set Global Variable(probeLo, Global.probeHi);
+            Modify Global Variable(probeHi, Multiply, 2);
+        End;
+        For Global Variable(i, 0, 16, 1);
+            Set Global Variable(probeMid, Divide(Add(Global.probeLo, Global.probeHi), 2));
+            If(Compare(Absolute Value(Subtract(Y Component Of(Ray Cast Hit Position(Add(Add(Global.isleCenter, Multiply(Global.probeDir, Global.probeMid)), Vector(0, 2, 0)), Subtract(Add(Global.isleCenter, Multiply(Global.probeDir, Global.probeMid)), Vector(0, 2, 0)), Null, Null, False)), Global.floorY)), <, 0.3));
+                Set Global Variable(probeLo, Global.probeMid);
+            Else;
+                Set Global Variable(probeHi, Global.probeMid);
+            End;
+        End;
+        Wait(0.016, Ignore Condition);
+    }
+}
+
+rule ("Calibration: measure the island") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "Skirmish has a 30 minute match clock. Freeze it so a long run is not cut off."
+        Pause Match Time;
+        Wait(1, Ignore Condition);
+        Set Global Variable(isleCenter, Ray Cast Hit Position(Vector(0, 60, 0), Vector(0, -60, 0), Null, Null, False));
+        If(Compare(Y Component Of(Global.isleCenter), <, -59));
+            Set Global Variable(calMsg, Custom String("no floor under the map origin: stand on the island (host)"));
+            Wait Until(And(Has Spawned(Host Player), Is On Ground(Host Player)), 99999);
+            Wait(0.5, Ignore Condition);
+            Set Global Variable(isleCenter, Position Of(Host Player));
+        End;
+        Set Global Variable(floorY, Y Component Of(Global.isleCenter));
+        Set Global Variable(probeDir, Left);
+        Call Subroutine(probeEdge);
+        Set Global Variable(edgeXMax, Add(X Component Of(Global.isleCenter), Global.probeLo));
+        Set Global Variable(probeDir, Right);
+        Call Subroutine(probeEdge);
+        Set Global Variable(edgeXMin, Subtract(X Component Of(Global.isleCenter), Global.probeLo));
+        Set Global Variable(probeDir, Forward);
+        Call Subroutine(probeEdge);
+        Set Global Variable(edgeZMax, Add(Z Component Of(Global.isleCenter), Global.probeLo));
+        Set Global Variable(probeDir, Backward);
+        Call Subroutine(probeEdge);
+        Set Global Variable(edgeZMin, Subtract(Z Component Of(Global.isleCenter), Global.probeLo));
+        If(Or(Or(Compare(Subtract(Global.edgeXMax, Global.edgeXMin), <, 22), Compare(Subtract(Global.edgeZMax, Global.edgeZMin), <, 14)), Compare(Subtract(Global.edgeXMax, Global.edgeXMin), >, 500)));
+            Set Global Variable(calStage, -1);
+            Set Global Variable(calMsg, Custom String("island measurement looks wrong (see calibration HUD). Is the map Workshop Island?"));
+            Abort;
+        End;
+        Call Subroutine(layoutArena);
+        Set Global Variable(calStage, 1);
+        Set Global Variable(calMsg, Custom String("spawning bots"));
+    }
+}
+
+rule ("Arena: place the grid from the measured edges") {
+    event {
+        Subroutine;
+        layoutArena;
+    }
+    actions {
+        Set Global Variable(cell, Min(Global.cfgCell, Divide(Subtract(Subtract(Global.edgeXMax, Global.edgeXMin), 4), 12)));
+        Set Global Variable(gridOrigin, Vector(Subtract(Divide(Add(Global.edgeXMin, Global.edgeXMax), 2), Divide(Multiply(12, Global.cell), 2)), Global.floorY, Add(Global.edgeZMin, Global.cfgMargin)));
+        For Global Variable(i, 0, 48, 1);
+            Set Global Variable At Index(cellPos, Global.i, Add(Global.gridOrigin, Vector(Multiply(Add(Modulo(Global.i, 12), 0.5), Global.cell), 0, Multiply(Add(Round To Integer(Divide(Global.i, 12), Down), 0.5), Global.cell))));
+        End;
+        Set Global Variable(startPos, First Of(Global.cellPos));
+        Set Global Variable(goalPos, Value In Array(Global.cellPos, 11));
+        Set Global Variable(stripCenter, Add(Global.gridOrigin, Vector(Divide(Multiply(12, Global.cell), 2), 0, Divide(Multiply(4, Global.cell), 2))));
+        Set Global Variable(widowPos, Vector(X Component Of(Global.stripCenter), Global.floorY, Min(Add(Add(Z Component Of(Global.gridOrigin), Multiply(4, Global.cell)), Global.cfgWidowStandoff), Subtract(Global.edgeZMax, 2))));
+        Set Global Variable(hostPos, Vector(Add(X Component Of(Global.stripCenter), 3), Global.floorY, Min(Add(Z Component Of(Global.widowPos), 3), Subtract(Global.edgeZMax, 1))));
+        Set Global Variable(camEye, Add(Global.stripCenter, Vector(0, 21, 15)));
+        Set Global Variable(camLook, Add(Global.stripCenter, Vector(0, 0, 1.5)));
+    }
+}
+
+rule ("Arena: spawn Tracer and Widowmaker, then measure Tracer's run speed") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.calStage == 1;
+    }
+    actions {
+        If(Compare(Global.cfgSlowMo, <, 100));
+            Set Slow Motion(Global.cfgSlowMo);
+        End;
+        Create Dummy Bot(Hero(Tracer), Team 1, -1, Global.startPos, Left);
+        Set Global Variable(tracer, Last Created Entity);
+        Create Dummy Bot(Hero(Widowmaker), Team 2, -1, Global.widowPos, Backward);
+        Set Global Variable(widow, Last Created Entity);
+        Wait(1.5, Ignore Condition);
+        If(Or(Not(And(Entity Exists(Global.tracer), Entity Exists(Global.widow))), Compare(Global.tracer, ==, Global.widow)));
+            Set Global Variable(calStage, -1);
+            Set Global Variable(calMsg, Custom String("the dummy bots did not spawn: leave a free slot on Team 1 and on Team 2"));
+            Abort;
+        End;
+        Set Move Speed(Global.tracer, Global.cfgMoveSpeed);
+        Set Damage Dealt(Global.widow, If-Then-Else(Compare(Global.cfgExperiment, ==, 1), Global.cfgWidowDamage, 0));
+        Start Facing(Global.widow, Direction Towards(Eye Position(Global.widow), Add(Position Of(Global.tracer), Up)), 720, To World, Direction and Turn Rate);
+        "Speed run: from the middle row, along +x."
+        Set Global Variable(calMsg, Custom String("measuring Tracer's run speed"));
+        Start Forcing Player Position(Global.tracer, Value In Array(Global.cellPos, 24), False);
+        Wait(0.25, Ignore Condition);
+        Stop Forcing Player Position(Global.tracer);
+        Set Facing(Global.tracer, Left, To World);
+        Wait(0.4, Ignore Condition);
+        Start Throttle In Direction(Global.tracer, Left, 1, To World, Replace existing throttle, None);
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(calP0, Position Of(Global.tracer));
+        Set Global Variable(calT0, Total Time Elapsed);
+        Wait(0.8, Ignore Condition);
+        Set Global Variable(calP1, Position Of(Global.tracer));
+        Set Global Variable(runSpeed, Divide(Distance Between(Global.calP0, Global.calP1), Subtract(Total Time Elapsed, Global.calT0)));
+        Stop Throttle In Direction(Global.tracer);
+        Wait(0.5, Ignore Condition);
+        Set Global Variable(coastDist, Distance Between(Global.calP1, Position Of(Global.tracer)));
+        If(Compare(Global.runSpeed, <, 1));
+            Set Global Variable(calStage, -1);
+            Set Global Variable(calMsg, Custom String("Tracer did not move under throttle control"));
+            Abort;
+        End;
+        Set Global Variable(actDuration, Divide(Multiply(Divide(Global.cell, Global.runSpeed), Global.cfgDurationScale), 100));
+        Set Global Variable(actTimeout, Add(Divide(Multiply(2.5, Global.cell), Global.runSpeed), 0.25));
+        Set Global Variable(calStage, 2);
+        Set Global Variable(calMsg, Custom String("ready"));
+    }
+}
+
+rule ("Arena: put Tracer back on the start cell") {
+    event {
+        Subroutine;
+        resetTracer;
+    }
+    actions {
+        Stop Throttle In Direction(Global.tracer);
+        If(Is Dead(Global.tracer));
+            Resurrect(Global.tracer);
+            Wait(0.25, Ignore Condition);
+            If(Is Dead(Global.tracer));
+                Respawn(Global.tracer);
+                Wait Until(Is Alive(Global.tracer), 3);
+            End;
+        End;
+        Start Forcing Player Position(Global.tracer, Global.startPos, False);
+        Wait(0.15, Ignore Condition);
+        Stop Forcing Player Position(Global.tracer);
+        Set Facing(Global.tracer, Left, To World);
+        Heal(Global.tracer, Null, 9999);
+        If(Global.cfgBlink);
+            Set Ability Charge(Global.tracer, Button(Ability 1), 3);
+        End;
+        Wait Until(Is On Ground(Global.tracer), 1);
+        Set Global Variable(tracerDied, False);
+        Set Global Variable(tracerDiedEnv, False);
+    }
+}
+
+rule ("Arena: Tracer died") {
+    event {
+        Player Died;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.tracer;
+    }
+    actions {
+        Set Global Variable(tracerDiedEnv, Event Was Environment);
+        Set Global Variable(tracerDied, True);
+    }
+}
+
+rule ("Arena: Tracer took damage from Widowmaker") {
+    event {
+        Player Took Damage;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.tracer;
+        Attacker == Global.widow;
+    }
+    actions {
+        Modify Global Variable(epHits, Add, 1);
+    }
+}
+
+rule ("Environment: read the state from Tracer's real position") {
+    event {
+        Subroutine;
+        observeState;
+    }
+    actions {
+        Set Global Variable(obsP, Position Of(Global.tracer));
+        Set Global Variable(obsCell, Add(Multiply(Min(Max(Round To Integer(Divide(Subtract(Z Component Of(Global.obsP), Z Component Of(Global.gridOrigin)), Global.cell), Down), 0), 3), 12), Min(Max(Round To Integer(Divide(Subtract(X Component Of(Global.obsP), X Component Of(Global.gridOrigin)), Global.cell), Down), 0), 11)));
+        Set Global Variable(obsS, Global.obsCell);
+        If(And(Global.useHealthBit, Compare(Normalized Health(Global.tracer), <=, 0.5)));
+            Modify Global Variable(obsS, Add, 48);
+        End;
+        If(And(Global.useBlink, Compare(Ability Charge(Global.tracer, Button(Ability 1)), <, 1)));
+            Modify Global Variable(obsS, Add, 96);
+        End;
+    }
+}
+
+rule ("Environment: carry out action curA and observe the result") {
+    event {
+        Subroutine;
+        stepEnv;
+    }
+    actions {
+        Set Global Variable(stepCol, Modulo(Global.curCell, 12));
+        Set Global Variable(stepRow, Round To Integer(Divide(Global.curCell, 12), Down));
+        Set Global Variable(actDir, Value In Array(Array(Left, Right, Forward, Backward, Left), Global.curA));
+        Set Global Variable(tgtCol, Add(Global.stepCol, Value In Array(Array(1, -1, 0, 0, 0), Global.curA)));
+        Set Global Variable(tgtRow, Add(Global.stepRow, Value In Array(Array(0, 0, 1, -1, 0), Global.curA)));
+        Set Global Variable(reward, Global.rStep);
+        Set Global Variable(terminal, False);
+        Set Global Variable(outcome, 0);
+        Set Global Variable(stepHits0, Global.epHits);
+        If(Compare(Global.curA, ==, 4));
+            Set Facing(Global.tracer, Global.actDir, To World);
+            Start Throttle In Direction(Global.tracer, Global.actDir, 1, To World, Replace existing throttle, None);
+            Wait(0.064, Ignore Condition);
+            Press Button(Global.tracer, Button(Ability 1));
+            Wait(0.1, Ignore Condition);
+            Stop Throttle In Direction(Global.tracer);
+            Wait Until(Or(Or(Compare(Horizontal Speed Of(Global.tracer), <, 0.2), Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2))), Global.tracerDied), 0.4);
+        Else If(Or(Or(Compare(Global.tgtCol, <, 0), Compare(Global.tgtCol, >=, 12)), Compare(Global.tgtRow, >=, 4)));
+            "Blocked: no movement, the step still counts."
+            Wait(0.064, Ignore Condition);
+        Else;
+            Set Global Variable(tgtPos, Add(Global.gridOrigin, Vector(Multiply(Add(Global.tgtCol, 0.5), Global.cell), 0, Multiply(Add(Global.tgtRow, 0.5), Global.cell))));
+            Set Facing(Global.tracer, Global.actDir, To World);
+            Start Throttle In Direction(Global.tracer, Global.actDir, 1, To World, Replace existing throttle, None);
+            If(Not(Global.cfgClosedLoop));
+                "Open loop: run for a fixed time, wherever that leaves her."
+                Wait Until(Or(Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2)), Global.tracerDied), Global.actDuration);
+            Else If(Compare(Global.tgtRow, <, 0));
+                "Closed loop, off the edge: keep running until she is actually falling."
+                Wait Until(Or(Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2)), Global.tracerDied), Global.actTimeout);
+            Else;
+                "Closed loop: cut the throttle so she coasts to a stop on the cell centre."
+                Wait Until(Or(Or(Compare(Dot Product(Subtract(Global.tgtPos, Position Of(Global.tracer)), Global.actDir), <=, Global.coastDist), Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2))), Global.tracerDied), Global.actTimeout);
+            End;
+            Stop Throttle In Direction(Global.tracer);
+            If(Compare(Global.tgtRow, <, 0));
+                Wait Until(Or(Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2)), Global.tracerDied), 1);
+            Else;
+                Wait Until(Or(Or(Compare(Horizontal Speed Of(Global.tracer), <, 0.2), Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2))), Global.tracerDied), 0.4);
+            End;
+        End;
+        Call Subroutine(observeState);
+        Set Global Variable(nextCell, Global.obsCell);
+        Set Global Variable(nextS, Global.obsS);
+        If(And(And(Global.tracerDied, Not(Global.tracerDiedEnv)), Compare(Y Component Of(Position Of(Global.tracer)), >=, Subtract(Global.floorY, 1.2))));
+            Set Global Variable(terminal, True);
+            Set Global Variable(outcome, 4);
+            Modify Global Variable(reward, Add, Global.rKilled);
+        Else If(Or(Compare(Y Component Of(Position Of(Global.tracer)), <, Subtract(Global.floorY, 1.2)), Global.tracerDied));
+            Set Global Variable(terminal, True);
+            Set Global Variable(outcome, 2);
+            Modify Global Variable(reward, Add, Global.rFall);
+        Else If(Compare(Global.nextCell, ==, 11));
+            Set Global Variable(terminal, True);
+            Set Global Variable(outcome, 1);
+            Modify Global Variable(reward, Add, Global.rGoal);
+            Modify Global Variable(epEdgeSum, Add, Subtract(Z Component Of(Global.obsP), Global.edgeZMin));
+        Else;
+            Modify Global Variable(epEdgeSum, Add, Subtract(Z Component Of(Global.obsP), Global.edgeZMin));
+            If(Compare(Add(Global.epSteps, 1), >=, Global.cfgMaxSteps));
+                Set Global Variable(terminal, True);
+                Set Global Variable(outcome, 3);
+                Modify Global Variable(reward, Add, Global.rTimeout);
+            End;
+        End;
+        Modify Global Variable(reward, Add, Multiply(Global.rHit, Subtract(Global.epHits, Global.stepHits0)));
+    }
+}
+
+rule ("Agent: epsilon-greedy action for state selS (random tie-break)") {
+    event {
+        Subroutine;
+        chooseAction;
+    }
+    actions {
+        If(Compare(Global.cfgExperiment, ==, 2));
+            Set Global Variable(selA, Value In Array(Global.demoPlan, Min(Global.epSteps, Subtract(Count Of(Global.demoPlan), 1))));
+            Set Global Variable(selExplore, False);
+            Abort;
+        End;
+        Set Global Variable(rowQ, Array Slice(Global.Q, Multiply(Global.selS, 5), Global.nAct));
+        Set Global Variable(rowMax, Last Of(Sorted Array(Global.rowQ, Current Array Element)));
+        Set Global Variable(selA, Random Value In Array(Filtered Array(Array Slice(Array(0, 1, 2, 3, 4), 0, Global.nAct), Compare(Value In Array(Global.rowQ, Current Array Element), >=, Subtract(Global.rowMax, 0.0001)))));
+        Set Global Variable(selExplore, False);
+        If(And(Global.isTraining, Compare(Random Real(0, 1), <, Global.epsilon)));
+            Set Global Variable(selA, Random Integer(0, Subtract(Global.nAct, 1)));
+            Set Global Variable(selExplore, True);
+        End;
+    }
+}
+
+rule ("Agent: refresh the policy arrow for cell glyphS") {
+    event {
+        Subroutine;
+        updateGlyph;
+    }
+    actions {
+        Set Global Variable(rowQ, Array Slice(Global.Q, Multiply(Global.glyphS, 5), Global.nAct));
+        Set Global Variable(rowMax, Last Of(Sorted Array(Global.rowQ, Current Array Element)));
+        If(Compare(First Of(Sorted Array(Global.rowQ, Current Array Element)), ==, Global.rowMax));
+            Set Global Variable At Index(polGlyph, Global.glyphS, Custom String("·"));
+        Else;
+            Set Global Variable At Index(polGlyph, Global.glyphS, Value In Array(Array(Custom String("→"), Custom String("←"), Custom String("↓"), Custom String("↑"), Custom String("»")), Index Of Array Value(Global.rowQ, Global.rowMax)));
+        End;
+    }
+}
+
+rule ("Agent: new run (clear the Q-table and the counters)") {
+    event {
+        Subroutine;
+        resetLearning;
+    }
+    actions {
+        Set Global Variable(useHealthBit, And(Compare(Global.cfgExperiment, ==, 1), Global.cfgObserveHealth));
+        Set Global Variable(useBlink, And(Global.cfgBlink, Compare(Global.cfgExperiment, !=, 2)));
+        Set Global Variable(nAct, If-Then-Else(Global.useBlink, 5, 4));
+        Set Global Variable(Q, Empty Array);
+        Set Global Variable At Index(Q, 959, 0);
+        If(Compare(Global.cfgQInit, !=, 0));
+            Set Global Variable(Q, Mapped Array(Global.Q, Global.cfgQInit));
+        End;
+        For Global Variable(i, 0, 48, 1);
+            Set Global Variable At Index(polGlyph, Global.i, Custom String("·"));
+        End;
+        Set Global Variable At Index(polGlyph, 11, Custom String("G"));
+        Modify Global Variable(runId, Add, 1);
+        Set Global Variable(epCount, 0);
+        Set Global Variable(cnt, Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(recentRet, Empty Array);
+        Set Global Variable(recentSum, 0);
+        Set Global Variable(histReturn, Empty Array);
+        Set Global Variable(histOutcome, Empty Array);
+        Set Global Variable(lastReturn, 0);
+        Set Global Variable(lastOutcome, 0);
+        Set Global Variable(lastSteps, 0);
+    }
+}
+
+rule ("Widowmaker: scripted fire") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.calStage == 2;
+        Global.cfgExperiment == 1;
+    }
+    actions {
+        Start Holding Button(Global.widow, Button(Secondary Fire));
+        While(True);
+            Wait(0.048, Ignore Condition);
+            If(And(And(Global.episodeActive, Not(Global.paused)), Compare(Total Time Elapsed, >=, Global.nextShotT)));
+                Set Global Variable(nextShotT, Add(Total Time Elapsed, Global.cfgWidowInterval));
+                If(And(Is Alive(Global.tracer), Compare(Distance Between(Global.widow, Global.tracer), <=, Global.cfgWidowRange)));
+                    Set Ammo(Global.widow, 0, 35);
+                    Press Button(Global.widow, Button(Primary Fire));
+                    Modify Global Variable(shotsFired, Add, 1);
+                End;
+            End;
+        End;
+    }
+}
+
+rule ("Experiment: one episode") {
+    event {
+        Subroutine;
+        runEpisode;
+    }
+    actions {
+        Set Global Variable(isTraining, And(Global.wantTraining, Compare(Global.cfgExperiment, !=, 2)));
+        If(Compare(Global.isTraining, !=, Global.lastTraining));
+            Set Global Variable(recentRet, Empty Array);
+            Set Global Variable(recentSum, 0);
+            Set Global Variable(lastTraining, Global.isTraining);
+        End;
+        Call Subroutine(resetTracer);
+        Set Global Variable(epSteps, 0);
+        Set Global Variable(epReturn, 0);
+        Set Global Variable(epEdgeSum, 0);
+        Set Global Variable(epHits, 0);
+        Call Subroutine(observeState);
+        Set Global Variable(curS, Global.obsS);
+        Set Global Variable(curCell, Global.obsCell);
+        Set Global Variable(selS, Global.curS);
+        Call Subroutine(chooseAction);
+        Set Global Variable(curA, Global.selA);
+        Set Global Variable(curExplore, Global.selExplore);
+        Set Global Variable(terminal, False);
+        Set Global Variable(nextShotT, Add(Total Time Elapsed, Global.cfgWidowInterval));
+        Set Global Variable(episodeActive, True);
+        While(Not(Global.terminal));
+            Call Subroutine(stepEnv);
+            Modify Global Variable(epSteps, Add, 1);
+            Modify Global Variable(epReturn, Add, Global.reward);
+            If(Global.terminal);
+                "Terminal step: the target is the reward alone."
+                Set Global Variable(tdTarget, Global.reward);
+            Else;
+                "Choose a' now, with the behaviour policy, for both algorithms."
+                Set Global Variable(selS, Global.nextS);
+                Call Subroutine(chooseAction);
+                Set Global Variable(nextA, Global.selA);
+                Set Global Variable(nextExplore, Global.selExplore);
+                If(Compare(Global.algo, ==, 0));
+                    Set Global Variable(tdTarget, Add(Global.reward, Multiply(Global.gamma, Value In Array(Global.Q, Add(Multiply(Global.nextS, 5), Global.nextA)))));
+                Else;
+                    Set Global Variable(tdTarget, Add(Global.reward, Multiply(Global.gamma, Last Of(Sorted Array(Array Slice(Global.Q, Multiply(Global.nextS, 5), Global.nAct), Current Array Element)))));
+                End;
+            End;
+            Set Global Variable(qOld, Value In Array(Global.Q, Add(Multiply(Global.curS, 5), Global.curA)));
+            If(Global.isTraining);
+                Set Global Variable At Index(Q, Add(Multiply(Global.curS, 5), Global.curA), Add(Global.qOld, Multiply(Global.alpha, Subtract(Global.tdTarget, Global.qOld))));
+                If(And(Compare(Global.curS, <, 48), Compare(Global.curS, !=, 11)));
+                    Set Global Variable(glyphS, Global.curS);
+                    Call Subroutine(updateGlyph);
+                End;
+            End;
+            If(Global.cfgLogSteps);
+                Call Subroutine(logStep);
+            End;
+            Set Global Variable(curS, Global.nextS);
+            Set Global Variable(curCell, Global.nextCell);
+            Set Global Variable(curA, Global.nextA);
+            Set Global Variable(curExplore, Global.nextExplore);
+            If(And(Global.paused, Not(Global.terminal)));
+                Wait Until(Not(Global.paused), 99999);
+            End;
+        End;
+        Set Global Variable(episodeActive, False);
+        Stop Throttle In Direction(Global.tracer);
+        Modify Global Variable(epCount, Add, 1);
+        Modify Global Variable At Index(cnt, Add(Multiply(If-Then-Else(Global.isTraining, 0, 1), 5), Global.outcome), Add, 1);
+        Set Global Variable(lastReturn, Global.epReturn);
+        Set Global Variable(lastOutcome, Global.outcome);
+        Set Global Variable(lastSteps, Global.epSteps);
+        Modify Global Variable(recentRet, Append To Array, Global.epReturn);
+        Modify Global Variable(recentSum, Add, Global.epReturn);
+        If(Compare(Count Of(Global.recentRet), >, 20));
+            Modify Global Variable(recentSum, Subtract, First Of(Global.recentRet));
+            Modify Global Variable(recentRet, Remove From Array By Index, 0);
+        End;
+        If(Compare(Count Of(Global.histReturn), <, 990));
+            Modify Global Variable(histReturn, Append To Array, Global.epReturn);
+            Modify Global Variable(histOutcome, Append To Array, Global.outcome);
+        End;
+        Call Subroutine(logEpisode);
+        If(And(Compare(Global.cfgLogQEvery, >, 0), Compare(Modulo(Global.epCount, Global.cfgLogQEvery), ==, 0)));
+            Call Subroutine(logQTable);
+        End;
+    }
+}
+
+rule ("Experiment: main loop") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.calStage == 2;
+    }
+    actions {
+        Call Subroutine(resetLearning);
+        Call Subroutine(logRunHeader);
+        While(True);
+            If(Global.pendingReset);
+                Set Global Variable(pendingReset, False);
+                If(Global.pendingAlgoSwitch);
+                    Set Global Variable(pendingAlgoSwitch, False);
+                    Set Global Variable(algo, Subtract(1, Global.algo));
+                End;
+                Call Subroutine(resetLearning);
+                Call Subroutine(logRunHeader);
+                Small Message(All Players(All Teams), Custom String("New run: Q-table cleared"));
+            End;
+            If(Global.paused);
+                Wait Until(Or(Not(Global.paused), Global.pendingReset), 99999);
+            Else;
+                Call Subroutine(runEpisode);
+                Wait(0.2, Ignore Condition);
+            End;
+        End;
+    }
+}
+
+rule ("Host: place the observer") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Has Spawned(Event Player) == True;
+        Is Alive(Event Player) == True;
+        Global.calStage >= 1;
+    }
+    actions {
+        Wait(0.25, Ignore Condition);
+        Set Status(Event Player, Null, Phased Out, 9999);
+        Teleport(Event Player, Global.hostPos);
+        Set Facing(Event Player, Direction Towards(Add(Global.hostPos, Vector(0, 1.5, 0)), Global.stripCenter), To World);
+        If(Global.camOn);
+            Start Camera(Event Player, Global.camEye, Global.camLook, 0);
+    }
+}
+
+rule ("Host: Interact = pause / resume") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Interact)) == True;
+    }
+    actions {
+        Set Global Variable(paused, Not(Global.paused));
+    }
+}
+
+rule ("Host: Reload = training / greedy evaluation") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Reload)) == True;
+        Global.cfgExperiment != 2;
+    }
+    actions {
+        Set Global Variable(wantTraining, Not(Global.wantTraining));
+        Small Message(All Players(All Teams), Custom String("Next episode: {0}", If-Then-Else(Global.wantTraining, Custom String("training"), Custom String("greedy evaluation"))));
+    }
+}
+
+rule ("Host: Ability 2 = switch algorithm (new run)") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Ability 2)) == True;
+        Global.cfgExperiment != 2;
+    }
+    actions {
+        Set Global Variable(pendingAlgoSwitch, Not(Global.pendingAlgoSwitch));
+        Set Global Variable(pendingReset, True);
+    }
+}
+
+rule ("Host: hold Ultimate 1 s = new run") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Ultimate)) == True;
+    }
+    actions {
+        Wait(1, Abort When False);
+        Set Global Variable(pendingReset, True);
+    }
+}
+
+rule ("Host: Melee = overhead camera") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Melee)) == True;
+        Global.calStage >= 1;
+    }
+    actions {
+        Set Global Variable(camOn, Not(Global.camOn));
+        If(Global.camOn);
+            Start Camera(Event Player, Global.camEye, Global.camLook, 0);
+        Else;
+            Stop Camera(Event Player);
+    }
+}
+
+rule ("Host: Crouch + Primary = less exploration") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Primary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(epsilon, Max(0, Subtract(Global.epsilon, 0.05)));
+    }
+}
+
+rule ("Host: Crouch + Secondary = more exploration") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Host Player;
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Secondary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(epsilon, Min(1, Add(Global.epsilon, 0.05)));
+    }
+}
+
+rule ("UI: dashboard") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "Left: what is running."
+        Create HUD Text(All Players(All Teams), Custom String("Overwatch RL Lab"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Custom String("{0} | {1}", Value In Array(Array(Custom String("CLIFF WALK"), Custom String("CLIFF WALK + WIDOWMAKER"), Custom String("ARENA DEMO")), Global.cfgExperiment), If-Then-Else(Compare(Global.cfgExperiment, ==, 2), Custom String("SCRIPTED"), Value In Array(Array(Custom String("SARSA"), Custom String("Q-LEARNING")), Global.algo))), Null, Left, 1, Color(White), Color(Sky Blue), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, If-Then-Else(Global.paused, Custom String("PAUSED"), If-Then-Else(Global.isTraining, Custom String("TRAINING"), Custom String("GREEDY EVALUATION"))), Null, Left, 2, Color(White), If-Then-Else(Global.paused, Custom Color(255, 112, 122, 255), If-Then-Else(Global.isTraining, Color(Green), Color(Yellow))), Color(White), Visible To Sort Order String and Color, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("alpha {0}   gamma {1}   epsilon {2}", Global.alpha, Global.gamma, Custom String("{0}\nrewards: step {1}  goal {2}", Global.epsilon, Global.rStep, Custom String("{0}  fall {1}", Global.rGoal, Global.rFall))), Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("status: {0}", Global.calMsg), Left, 4, Color(White), Color(White), If-Then-Else(Compare(Global.calStage, ==, -1), Custom Color(255, 112, 122, 255), Color(White)), Visible To Sort Order String and Color, Default Visibility);
+        "Top: the current episode."
+        Create HUD Text(All Players(All Teams), Null, Custom String("run {0}  episode {1}  step {2}", Global.runId, Add(Global.epCount, 1), Custom String("{0}  return {1}", Global.epSteps, Global.epReturn)), Null, Top, 0, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("last episode: {0} in {1} steps, return {2}", Value In Array(Array(Custom String("-"), Custom String("GOAL"), Custom String("FELL"), Custom String("TIMEOUT"), Custom String("KILLED")), Global.lastOutcome), Global.lastSteps, Custom String("{0}   |   mean return of last {1}: {2}", Global.lastReturn, Count Of(Global.recentRet), Divide(Global.recentSum, Max(1, Count Of(Global.recentRet))))), Top, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("action: {0}{1}", Value In Array(Array(Custom String("FORWARD"), Custom String("BACK"), Custom String("INLAND"), Custom String("EDGE"), Custom String("BLINK")), Global.curA), If-Then-Else(Global.curExplore, Custom String(" (exploring)"), Custom String(""))), Top, 2, Color(White), Color(White), If-Then-Else(Global.curExplore, Color(Orange), Color(White)), Visible To Sort Order String and Color, Default Visibility);
+        "Right: counts and controls."
+        Create HUD Text(All Players(All Teams), Null, Custom String("Training episodes"), Custom String("goal {0}   fell {1}   timeout {2}", Value In Array(Global.cnt, 1), Value In Array(Global.cnt, 2), Custom String("{0}   killed {1}", Value In Array(Global.cnt, 3), Value In Array(Global.cnt, 4))), Right, 0, Color(White), Color(Green), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Custom String("Evaluation episodes"), Custom String("goal {0}   fell {1}   timeout {2}", Value In Array(Global.cnt, 6), Value In Array(Global.cnt, 7), Custom String("{0}   killed {1}", Value In Array(Global.cnt, 8), Value In Array(Global.cnt, 9))), Right, 1, Color(White), Color(Yellow), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0} pause   {1} train/eval   {2}", Mapped Array(Input Binding String(Button(Interact)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Mapped Array(Input Binding String(Button(Reload)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Custom String("{0} switch algorithm\nhold {1} new run   {2}", Mapped Array(Input Binding String(Button(Ability 2)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Mapped Array(Input Binding String(Button(Ultimate)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Custom String("{0} camera\n{1}+{2}", Mapped Array(Input Binding String(Button(Melee)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Mapped Array(Input Binding String(Button(Crouch)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Custom String("{0} / {1}+{2} epsilon -/+", Mapped Array(Input Binding String(Button(Primary Fire)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Mapped Array(Input Binding String(Button(Crouch)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))), Mapped Array(Input Binding String(Button(Secondary Fire)), Value In Array(String Split(Custom String("{0}(0.00, 1.00, 0.00)[{0}](0.00, 1.00, 0.00)[SHIFT](0.00, 1.00, 0.00)[CTRL](0.00, 1.00, 0.00)[ALT]", Current Array Element), First Of(Up)), And(Compare(Modulo(String Length(Custom String("\\{0}{0}{0}{0}{0}{0}{0}", Current Array Element)), 7), ==, 1), Absolute Value(Index Of Array Value(String Split(Custom String("00LSHIFT0LCONTROL0LALT"), First Of(Null)), Current Array Element))))))))), Right, 2, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("UI: calibration HUD") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.cfgShowCal != False;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("island x {0} to {1}, z {2}", Global.edgeXMin, Global.edgeXMax, Custom String("{0} to {1}, floor y {2}", Global.edgeZMin, Global.edgeZMax, Custom String("{0}\ncell {1} m, run speed {2}", Global.floorY, Global.cell, Custom String("{0} m/s, coast {1} m\nhost at {2}", Global.runSpeed, Global.coastDist, Position Of(Host Player))))), Left, 10, Color(White), Color(White), Color(Gray), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("UI: arena markers and policy arrows") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.calStage >= 1;
+    }
+    actions {
+        "Grid outline. The red side is the real island edge."
+        Create Beam Effect(All Players(All Teams), Bad Beam, Add(Global.gridOrigin, Vector(0, 0.1, 0)), Add(Global.gridOrigin, Vector(Multiply(12, Global.cell), 0.1, 0)), Color(Red), None);
+        Create Beam Effect(All Players(All Teams), Grapple Beam, Add(Global.gridOrigin, Vector(0, 0.1, Multiply(4, Global.cell))), Add(Global.gridOrigin, Vector(Multiply(12, Global.cell), 0.1, Multiply(4, Global.cell))), Color(White), None);
+        Create Beam Effect(All Players(All Teams), Grapple Beam, Add(Global.gridOrigin, Vector(0, 0.1, 0)), Add(Global.gridOrigin, Vector(0, 0.1, Multiply(4, Global.cell))), Color(White), None);
+        Create Beam Effect(All Players(All Teams), Grapple Beam, Add(Global.gridOrigin, Vector(Multiply(12, Global.cell), 0.1, 0)), Add(Global.gridOrigin, Vector(Multiply(12, Global.cell), 0.1, Multiply(4, Global.cell))), Color(White), None);
+        Create Effect(All Players(All Teams), Ring, Color(Sky Blue), Global.startPos, Divide(Global.cell, 2), None);
+        Create Effect(All Players(All Teams), Ring, Color(Green), Global.goalPos, Divide(Global.cell, 2), None);
+        Create Effect(All Players(All Teams), Light Shaft, Color(Green), Global.goalPos, Divide(Global.cell, 2), None);
+        If(Compare(Global.cfgExperiment, ==, 1));
+            Create Effect(All Players(All Teams), Ring, Color(Red), Global.widowPos, Global.cfgWidowRange, None);
+        End;
+        For Global Variable(j, 0, 48, 1);
+            Set Global Variable At Index(polGlyph, Global.j, Custom String("·"));
+            Create In-World Text(All Players(All Teams), Value In Array(Global.polGlyph, Evaluate Once(Global.j)), Add(Value In Array(Global.cellPos, Global.j), Vector(0, 0.4, 0)), 2, Do Not Clip, Visible To and String, If-Then-Else(Compare(Global.j, ==, 11), Color(Green), Color(White)), Default Visibility);
+            If(Compare(Modulo(Global.j, 12), ==, 11));
+                Wait(0.016, Ignore Condition);
+            End;
+        End;
+        Set Global Variable At Index(polGlyph, 11, Custom String("G"));
+    }
+}
+
+rule ("Log: run header") {
+    event {
+        Subroutine;
+        logRunHeader;
+    }
+    actions {
+        Log To Inspector(Custom String("RLLAB,CAL,{0},{1},{2}", Global.floorY, Global.edgeXMin, Custom String("{0},{1},{2}", Global.edgeXMax, Global.edgeZMin, Custom String("{0},{1},{2}", Global.edgeZMax, Global.cell, Custom String("{0},{1},{2}", Global.runSpeed, Global.coastDist, Global.actDuration)))));
+        Log To Inspector(Custom String("RLLAB,RUN,{0},{1},{2}", Global.runId, Global.cfgExperiment, Custom String("{0},{1},{2}", Global.algo, Global.cfgQInit, Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},{2}", Global.rKilled, Global.rHit, Custom String("{0},{1},{2}", Global.cfgMaxSteps, Global.cfgClosedLoop, Custom String("{0},{1},{2}", Global.useHealthBit, Global.useBlink, Custom String("{0},{1},{2}", Global.nAct, Global.cfgMoveSpeed, Global.cfgSlowMo)))))))));
+    }
+}
+
+rule ("Log: one line per episode") {
+    event {
+        Subroutine;
+        logEpisode;
+    }
+    actions {
+        Log To Inspector(Custom String("RLLAB,EP,{0},{1},{2}", Global.runId, Global.epCount, Custom String("{0},{1},{2}", Global.algo, If-Then-Else(Global.isTraining, 0, 1), Custom String("{0},{1},{2}", Round To Integer(Multiply(Global.epsilon, 1000), To Nearest), Round To Integer(Multiply(Global.alpha, 1000), To Nearest), Custom String("{0},{1},{2}", Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Global.epReturn, Custom String("{0},{1},{2}", Global.epSteps, Global.outcome, Custom String("{0},{1},{2}", Divide(Global.epEdgeSum, Max(1, Global.epSteps)), Global.epHits, Total Time Elapsed)))))));
+    }
+}
+
+rule ("Log: one line per step (verification)") {
+    event {
+        Subroutine;
+        logStep;
+    }
+    actions {
+        Log To Inspector(Custom String("RLLAB,STEP,{0},{1},{2}", Global.runId, Add(Global.epCount, 1), Custom String("{0},{1},{2}", Global.epSteps, Global.curS, Custom String("{0},{1},{2}", Global.curA, Global.reward, Custom String("{0},{1},{2}", Global.nextS, Global.nextA, Custom String("{0},{1},{2}", Global.terminal, Global.curExplore, Custom String("{0},{1},{2}", Global.qOld, Value In Array(Global.Q, Add(Multiply(Global.curS, 5), Global.curA)), Global.tdTarget)))))));
+    }
+}
+
+rule ("Log: the Q-table rows that have been updated") {
+    event {
+        Subroutine;
+        logQTable;
+    }
+    actions {
+        For Global Variable(i, 0, 192, 1);
+            If(Or(Compare(First Of(Sorted Array(Array Slice(Global.Q, Multiply(Global.i, 5), 5), Current Array Element)), !=, Global.cfgQInit), Compare(Last Of(Sorted Array(Array Slice(Global.Q, Multiply(Global.i, 5), 5), Current Array Element)), !=, Global.cfgQInit)));
+                Log To Inspector(Custom String("RLLAB,Q,{0},{1},{2}", Global.runId, Global.epCount, Custom String("{0},{1},{2}", Global.i, Value In Array(Global.Q, Multiply(Global.i, 5)), Custom String("{0},{1},{2}", Value In Array(Global.Q, Add(Multiply(Global.i, 5), 1)), Value In Array(Global.Q, Add(Multiply(Global.i, 5), 2)), Custom String("{0},{1}", Value In Array(Global.Q, Add(Multiply(Global.i, 5), 3)), Value In Array(Global.Q, Add(Multiply(Global.i, 5), 4)))))));
+            End;
+            If(Compare(Modulo(Global.i, 8), ==, 7));
+                Wait(0.016, Ignore Condition);
+            End;
+        End;
+    }
+}
+

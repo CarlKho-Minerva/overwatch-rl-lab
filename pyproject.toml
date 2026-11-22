@@ -1,0 +1,22 @@
+[project]
+name = "overwatch-rl-lab-analysis"
+version = "0.1.0"
+description = "Offline analysis and reference maths for the Overwatch RL Lab Workshop mode. No simulator: every observation comes from logs written by the game."
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "matplotlib>=3.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "nbclient>=0.10",
+    "nbformat>=5.10",
+    "ipykernel>=6.29",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["analysis/tests"]
+pythonpath = ["analysis"]
