@@ -4,6 +4,8 @@
 
 Every bot on the island chooses between the move that looks best so far and a move that might teach her something. Q-LEARNING settles it with a coin: one move in ten is random, forever, so she keeps falling after her table knows better. Silver asks how much to explore and where. His answer: explore where you are uncertain, not at random, and prefer methods that make fewer mistakes as time goes on. On the island, bots optimistic about what they had not tried fell about a quarter as often as the bot that explored by coin.
 
+**Play it first:** [Game 9: Loot Boxes](../workshop/games/g09.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-09.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [02:23](https://www.youtube.com/watch?v=sGuiWX07sKw&t=143s) Every online decision is a choice between using what you know and finding out more

@@ -4,6 +4,8 @@
 
 Two Tracers kept the same kind of brain: a habit table saying how strongly she leans toward each move on each square. The one named POLICY GRADIENT learned to step off the edge almost at once and never reached the goal in 14 of 15 runs. The one named ACTOR-CRITIC crossed cleanly in all 17 runs. This lecture asks how to learn habits directly, and why the two parted ways. The answer: the gradient says which way to push your habits, but how you judge each move (by the whole ending, or by a critic's step-by-step guess) decides where the push goes.
 
+**Play it first:** [Game 7: Counter-Pick](../workshop/games/g07.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-07.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [05:03](https://www.youtube.com/watch?v=KHZVXao4qXs&t=303s) Give the policy its own adjustable numbers

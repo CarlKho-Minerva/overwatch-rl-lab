@@ -11,3 +11,5 @@
 - Beat 6: MONTE CARLO + OPTIMISM stepping off again and again. "Optimism chooses what she tries. It cannot fix how she judges what she saw."
 **The experiment shown:** the four Q explorers, falls per 100.
 **Closing line:** "Exploring by uncertainty pays a fixed bill and stops. Exploring by dice never stops paying."
+
+**The game for this episode:** [Game 9: Loot Boxes](../workshop/games/g09.md). The viewer can load it and play along (`workshop/compiled/game-09.txt`).

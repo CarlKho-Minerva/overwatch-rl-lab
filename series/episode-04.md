@@ -11,3 +11,5 @@
 - Beat 5: score lines for the three tables at 10 and 200 episodes. "Here Monte Carlo was closest both times; in Silver's walk TD wins."
 - Experiment shown: the three tables on one random walker.
 - Closing line: "Same walker, same steps, three answers; the gap between them is bias against noise."
+
+**The game for this episode:** [Game 4: Back From Spawn](../workshop/games/g04.md). The viewer can load it and play along (`workshop/compiled/game-04.txt`).

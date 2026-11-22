@@ -12,3 +12,5 @@ Cold open: three Tracers named Q-LEARNING, Q, 16 COARSE STATES and Q, ROW ONLY; 
 - The three score lines together: "Good features lump together what behaves alike."
 The single experiment shown: falls per 100 training episodes, with intervals, for the three amounts of detail.
 Closing line: "A neural network learns the lumping instead of being handed it, and that is where the guarantees run out."
+
+**The game for this episode:** [Game 6: Callouts](../workshop/games/g06.md). The viewer can load it and play along (`workshop/compiled/game-06.txt`).

@@ -4,6 +4,8 @@
 
 Almost every Tracer on the island found the cliff by walking off it. PLANNER never did: she was handed the rules of the strip (where each move leads, what it pays), stood still while she did the arithmetic, then walked the eleven-step edge route in all 10 of her runs without a fall. The question is what that arithmetic is. The answer: given the full rules of a world, you compute exactly how good any behaviour is, and the best one, by repeating the Bellman equation from lecture 2 as an update until the numbers stop moving.
 
+**Play it first:** [Game 3: The Whiteboard](../workshop/games/g03.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-03.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [02:26](https://www.youtube.com/watch?v=Nd1-UUMVfz4&t=146s) Dynamic programming optimises a step-by-step plan by reusing answers to smaller problems

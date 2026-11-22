@@ -4,6 +4,8 @@
 
 Every bot on the island so far kept a table: one number for each of 48 squares and 4 moves. Silver's sixth lecture asks what replaces the table when states are too many to list, store or learn one by one. His answer: a function with a few adjustable weights, trained toward the same Monte Carlo and TD targets as before, so that learning in one state moves the estimate in similar states. The island ran the mildest version, two Q-learning bots told less about where they stand: one learned faster than the full table, the other crossed cleanly in only 3 of 10 runs.
 
+**Play it first:** [Game 6: Callouts](../workshop/games/g06.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-06.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [01:34](https://www.youtube.com/watch?v=UoPei5o4fps&t=94s) Tables stop working when states cannot be listed

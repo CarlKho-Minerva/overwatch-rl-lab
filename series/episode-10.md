@@ -12,3 +12,5 @@
 6. PLANNER walking her flawless line. "Silver's champions searched. Nobody on this island does."
 **The experiment shown:** the two-player build, 12 short runs, labelled exploratory.
 **Closing line:** "When the other side chooses too, the best move depends on whom you play."
+
+**The game for this episode:** [Game 10: The Peek](../workshop/games/g10.md). The viewer can load it and play along (`workshop/compiled/game-10.txt`).

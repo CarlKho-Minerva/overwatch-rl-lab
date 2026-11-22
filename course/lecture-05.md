@@ -4,6 +4,8 @@
 
 On the island, Tracers never told the rules learn to walk a strip beside a deadly drop, and two of them, SARSA and Q-LEARNING, differ by one line of arithmetic. SARSA ends up further from the edge and falls less while learning; Q-LEARNING hugs the edge and falls more, yet her final route is the better one. This lecture explains why: SARSA learns the value of the walker she really is, stumbles included, while Q-LEARNING learns the value of a perfect walker while stumbling.
 
+**Play it first:** [Game 5: Slippery Boots](../workshop/games/g05.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-05.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [04:09](https://www.youtube.com/watch?v=0g4j2k_Ggc4&t=249s) Two ways to learn: on the job, or over someone's shoulder

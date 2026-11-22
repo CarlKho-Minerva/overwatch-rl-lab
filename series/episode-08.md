@@ -17,3 +17,5 @@
 **The experiment shown:** DYNA-Q against Q-LEARNING, mean return over the first 40 episodes (-31.7 against -57.6) and the last 40 (15.1 against 7.5, inconclusive).
 
 **Closing line:** "Act at the world's speed; think at your own."
+
+**The game for this episode:** [Game 8: Recall](../workshop/games/g08.md). The viewer can load it and play along (`workshop/compiled/game-08.txt`).

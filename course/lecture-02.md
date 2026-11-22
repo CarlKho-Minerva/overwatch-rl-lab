@@ -4,6 +4,8 @@
 
 Tracer stands on one of 48 squares beside a drop, picks one of four moves, and the game tells her where she landed and what it cost. Silver's second lecture gives the form for writing that down, the Markov decision process, and a question with an exact answer: how many points each square is worth, under a given way of moving and under the best one. A random walker's start square is worth -114.4 on paper and she averaged -112.7 in the game; under the best policy (rule for choosing moves) it is worth 39, which the PLANNER computed in 13 sweeps and then walked without a fall.
 
+**Play it first:** [Game 2: Mini or Mega](../workshop/games/g02.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-02.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [00:50](https://www.youtube.com/watch?v=lfHX2hHRMVQ&t=50s) An MDP describes the world, not the learner

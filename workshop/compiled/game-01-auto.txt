@@ -1,0 +1,722 @@
+settings
+{
+	main
+	{
+		Mode Name: "RL course 1: No Coach"
+		Description: "Five rings, no callouts, only the score. Lecture 1 of an RL course. github.com/CarlKho-Minerva/overwatch-rl-lab"
+	}
+	lobby
+	{
+		Max Team 1 Players: 6
+		Max Team 2 Players: 6
+	}
+	modes
+	{
+		Skirmish
+		{
+			enabled maps
+			{
+				Workshop Island
+			}
+		}
+		General
+		{
+			Hero Limit: Off
+			Kill Cam: Off
+			Spawn Health Packs: Disabled
+		}
+	}
+}
+
+variables {
+    global:
+        0: logQ
+        1: flushN
+        2: flushI
+        3: learner
+        4: ready
+        5: gameOver
+        6: coach
+        7: qActive
+        8: qId
+        9: qText
+        10: qOpts
+        11: qLine
+        12: qCorrect
+        13: qAuto
+        14: qAnswer
+        15: qRight
+        16: qWhy
+        17: predRight
+        18: predTotal
+        19: chkName
+        20: chkExp
+        21: chkGot
+        22: selfOk
+        23: selfBad
+        24: ringPos
+        25: goalRing
+        26: trapRing
+        27: oldGoal
+        28: rnd
+        29: roundOn
+        30: touched
+        31: found
+        32: trapHit
+        33: secs
+        34: total
+        35: last
+        36: lastSrc
+        37: totals
+        38: r1Total
+        39: r2Total
+        40: r1Found
+        41: ri
+        42: ki
+        43: autoTgt
+        44: autoRoute
+        45: hudScore
+        46: hudRounds
+        47: hudGap
+        48: debrief
+        49: db
+    player:
+        0: fellCount
+        1: fell
+}
+
+subroutines {
+    0: ask
+    1: check
+    2: finish
+    3: putHome
+    4: drawRings
+    5: playRound
+    6: settleRound
+    7: autoGo
+    8: refreshScore
+}
+
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(logQ, Empty Array);
+        Set Global Variable(ready, False);
+        Set Global Variable(gameOver, False);
+        Set Global Variable(coach, Custom String(""));
+        Set Global Variable(qActive, False);
+        Set Global Variable(qText, Custom String(""));
+        Set Global Variable(qOpts, Empty Array);
+        Set Global Variable(qLine, Custom String(""));
+        Set Global Variable(qAnswer, -1);
+        Set Global Variable(qRight, False);
+        Set Global Variable(qWhy, Custom String(""));
+        Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(ringPos, Empty Array);
+        Set Global Variable(goalRing, -1);
+        Set Global Variable(trapRing, -1);
+        Set Global Variable(oldGoal, -1);
+        Set Global Variable(roundOn, False);
+        Set Global Variable(touched, Empty Array);
+        Set Global Variable(lastSrc, Custom String("nothing yet"));
+        Set Global Variable(totals, Array(Custom String("?"), Custom String("?"), Custom String("?"), Custom String("?")));
+        Set Global Variable(autoRoute, Empty Array);
+        Set Global Variable(hudScore, Custom String("last reward: 0      total: 0"));
+        Set Global Variable(hudRounds, Custom String(""));
+        Set Global Variable(hudGap, Custom String(""));
+        Set Global Variable(debrief, False);
+        Set Global Variable(db, Array(Custom String(""), Custom String(""), Custom String(""), Custom String("")));
+    }
+}
+
+rule ("Initialize player variables") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    actions {
+        Set Player Variable(Event Player, fell, False);
+    }
+}
+
+rule ("Core: write the queued log lines in one frame, once a second") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Wait(1, Ignore Condition);
+        If(Compare(Count Of(Global.logQ), >, 0));
+            Set Global Variable(flushN, Min(Count Of(Global.logQ), 120));
+            Enable Inspector Recording;
+            For Global Variable(flushI, 0, Global.flushN, 1);
+                Log To Inspector(Value In Array(Global.logQ, Global.flushI));
+            End;
+            Disable Inspector Recording;
+            Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
+        End;
+        Loop;
+    }
+}
+
+rule ("Core: every human player gets the game's hero") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+    }
+    actions {
+        Start Forcing Player To Be Hero(Event Player, Hero(Tracer));
+    }
+}
+
+rule ("Core: hide the match clock, which sits under the question line") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Disable Game Mode HUD(Event Player);
+    }
+}
+
+rule ("Core: set up the learner") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Disable Inspector Recording;
+        Pause Match Time;
+        Wait(1.5, Ignore Condition);
+        Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
+        "The automatic check: a bot plays the learner's part. The host stands aside, out of the way and unseen."
+        Create Dummy Bot(Hero(Tracer), Team 1, -1, Vector(0, 0, -3), Left);
+        Wait(1, Ignore Condition);
+        Set Global Variable(learner, First Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))));
+        Set Status(Host Player, Null, Phased Out, 99999);
+        Set Invisible(Host Player, All);
+        Teleport(Host Player, Vector(0, 0, 0));
+        Wait(0.5, Ignore Condition);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,1,1,1"));
+        Set Global Variable(ready, True);
+    }
+}
+
+rule ("Core: put the learner back at the start (after a fall, or between rounds)") {
+    event {
+        Subroutine;
+        putHome;
+    }
+    actions {
+        If(Is Dead(Global.learner));
+            Resurrect(Global.learner);
+            Wait(0.25, Ignore Condition);
+            If(Is Dead(Global.learner));
+                Respawn(Global.learner);
+                Wait Until(Is Alive(Global.learner), 4);
+            End;
+        End;
+        Teleport(Global.learner, Vector(0, 0, -3));
+        Wait(0.2, Ignore Condition);
+        Set Player Variable(Global.learner, fell, False);
+    }
+}
+
+rule ("Core: the learner fell off the island") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.ready != False;
+        Or(Compare(Y Component Of(Position Of(Event Player)), <, -1.5), Is Dead(Event Player)) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fell, True);
+        Modify Player Variable(Event Player, fellCount, Add, 1);
+    }
+}
+
+rule ("Core: one self-test line") {
+    event {
+        Subroutine;
+        check;
+    }
+    actions {
+        If(Compare(Absolute Value(Subtract(Global.chkExp, Global.chkGot)), <, 0.011));
+            Modify Global Variable(selfOk, Add, 1);
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,T,1,{0},{1},{2},1", Global.chkName, Global.chkExp, Global.chkGot));
+        Else;
+            Modify Global Variable(selfBad, Add, 1);
+            Set Global Variable(coach, Custom String("SELF-TEST FAILED: {0} (expected {1}, got {2})", Global.chkName, Global.chkExp, Global.chkGot));
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,T,1,{0},{1},{2},0", Global.chkName, Global.chkExp, Global.chkGot));
+        End;
+    }
+}
+
+rule ("Core: ask the learner to predict, wait for the answer, say why, log it") {
+    event {
+        Subroutine;
+        ask;
+    }
+    actions {
+        Set Global Variable(qAnswer, -1);
+        Set Global Variable(qLine, Custom String("LEFT CLICK: {0}      RIGHT CLICK: {1}", First Of(Global.qOpts), Value In Array(Global.qOpts, 1)));
+        If(Compare(Count Of(Global.qOpts), >, 2));
+            Set Global Variable(qLine, Custom String("LEFT CLICK: {0}      RIGHT CLICK: {1}      MELEE: {2}", First Of(Global.qOpts), Value In Array(Global.qOpts, 1), Value In Array(Global.qOpts, 2)));
+        End;
+        Disallow Button(Global.learner, Button(Primary Fire));
+        Disallow Button(Global.learner, Button(Secondary Fire));
+        Disallow Button(Global.learner, Button(Melee));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qActive, True);
+        Wait(1.2, Ignore Condition);
+        Set Global Variable(qAnswer, Global.qAuto);
+        Set Global Variable(qActive, False);
+        Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
+        Modify Global Variable(predTotal, Add, 1);
+        If(Global.qRight);
+            Modify Global Variable(predRight, Add, 1);
+        End;
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,1,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
+        Wait(0.6, Ignore Condition);
+        Allow Button(Global.learner, Button(Primary Fire));
+        Allow Button(Global.learner, Button(Secondary Fire));
+        Allow Button(Global.learner, Button(Melee));
+    }
+}
+
+rule ("Core: left click answers the first option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Is Button Held(Event Player, Button(Primary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 0);
+    }
+}
+
+rule ("Core: right click answers the second option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Is Button Held(Event Player, Button(Secondary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 1);
+    }
+}
+
+rule ("Core: melee answers the third option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Count Of(Global.qOpts) > 2;
+        Is Button Held(Event Player, Button(Melee)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 2);
+    }
+}
+
+rule ("Core: end the game and write the closing line") {
+    event {
+        Subroutine;
+        finish;
+    }
+    actions {
+        Set Global Variable(gameOver, True);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,1,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
+    }
+}
+
+rule ("Core: the screen") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Custom String("RL 1: NO COACH"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
+        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+    }
+}
+
+rule ("Game 1: rebuild the score line (only when it changes)") {
+    event {
+        Subroutine;
+        refreshScore;
+    }
+    actions {
+        Set Global Variable(hudScore, Custom String("last reward: {0}{1} ({2}", If-Then-Else(Compare(Global.last, >, 0), Custom String("+"), Custom String("")), Global.last, Custom String("{0})      total: {1}", Global.lastSrc, Global.total)));
+    }
+}
+
+rule ("Game 1: five identical rings") {
+    event {
+        Subroutine;
+        drawRings;
+    }
+    actions {
+        For Global Variable(ki, 0, 5, 1);
+            Create Effect(All Players(All Teams), Ring, Color(White), Value In Array(Global.ringPos, Global.ki), 1.6, None);
+        End;
+    }
+}
+
+rule ("Game 1: the stand-in walks to a ring (automatic check only)") {
+    event {
+        Subroutine;
+        autoGo;
+    }
+    actions {
+        Start Throttle In Direction(Global.learner, Direction Towards(Position Of(Global.learner), Global.autoTgt), 1, To World, Replace existing throttle, Direction and Magnitude);
+        Wait Until(Or(Compare(Distance Between(Position Of(Global.learner), Global.autoTgt), <, 0.8), Not(Global.roundOn)), 8);
+        Stop Throttle In Direction(Global.learner);
+        If(And(Global.roundOn, Compare(Distance Between(Position Of(Global.learner), Global.autoTgt), >, 1.200000000000000)));
+            Teleport(Global.learner, Global.autoTgt);
+        End;
+        Wait(0.5, Ignore Condition);
+    }
+}
+
+rule ("Game 1: one round, from the start until the +50 ring or the time limit") {
+    event {
+        Subroutine;
+        playRound;
+    }
+    actions {
+        Call Subroutine(putHome);
+        Set Facing(Global.learner, Forward, To World);
+        Set Global Variable(touched, Array(False, False, False, False, False));
+        Set Global Variable(found, 0);
+        Set Global Variable(trapHit, 0);
+        Set Global Variable(secs, 0);
+        Set Global Variable(total, 0);
+        Set Global Variable(last, 0);
+        Set Global Variable(lastSrc, Custom String("round {0} starts", Global.rnd));
+        Call Subroutine(refreshScore);
+        Set Global Variable(coach, Custom String("Round {0}. Go.", Global.rnd));
+        Set Global Variable(roundOn, True);
+        For Global Variable(ki, 0, Count Of(Global.autoRoute), 1);
+            If(Global.roundOn);
+                Set Global Variable(autoTgt, Value In Array(Global.ringPos, Value In Array(Global.autoRoute, Global.ki)));
+                Call Subroutine(autoGo);
+            End;
+        End;
+        Wait Until(Not(Global.roundOn), 20);
+        If(Global.roundOn);
+            Set Global Variable(roundOn, False);
+            Set Global Variable(coach, Custom String("Time is up for round {0}.", Global.rnd));
+        End;
+        Stop Throttle In Direction(Global.learner);
+        Wait(0.3, Ignore Condition);
+    }
+}
+
+rule ("Game 1: the late bill, the round's total, its self-test and its log line") {
+    event {
+        Subroutine;
+        settleRound;
+    }
+    actions {
+        If(Global.trapHit);
+            Modify Global Variable(total, Subtract, 20);
+            Set Global Variable(last, -20);
+            Set Global Variable(lastSrc, Custom String("a late bill"));
+            Call Subroutine(refreshScore);
+            Small Message(Global.learner, Custom String("-20, a late bill for a ring you touched"));
+        End;
+        Set Global Variable(chkName, Custom String("round {0} total adds up", Global.rnd));
+        Set Global Variable(chkExp, Subtract(Subtract(Multiply(50, Global.found), Global.secs), Multiply(20, Global.trapHit)));
+        Set Global Variable(chkGot, Global.total);
+        Call Subroutine(check);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,round,{0},{1},{2}", Global.rnd, Global.found, Custom String("{0},{1},{2}", Global.secs, Global.trapHit, Global.total)));
+        Set Global Variable At Index(totals, Subtract(Global.rnd, 1), Global.total);
+        Set Global Variable(hudRounds, Custom String("round 1: {0}     round 2: {1}     round 3: {2}", First Of(Global.totals), Value In Array(Global.totals, 1), Custom String("{0}     round 4: {1}", Value In Array(Global.totals, 2), Value In Array(Global.totals, 3))));
+    }
+}
+
+rule ("Game 1: every second of a round costs 1") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.roundOn != False;
+    }
+    actions {
+        While(Global.roundOn);
+            Wait(1, Ignore Condition);
+            If(Global.roundOn);
+                Modify Global Variable(secs, Add, 1);
+                Modify Global Variable(total, Subtract, 1);
+                Set Global Variable(last, -1);
+                Set Global Variable(lastSrc, Custom String("a second passed"));
+                Call Subroutine(refreshScore);
+            End;
+        End;
+    }
+}
+
+rule ("Game 1: touching a ring") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.roundOn != False;
+    }
+    actions {
+        While(Global.roundOn);
+            For Global Variable(ri, 0, 5, 1);
+                If(And(And(Global.roundOn, Not(Value In Array(Global.touched, Global.ri))), Compare(Distance Between(Position Of(Global.learner), Value In Array(Global.ringPos, Global.ri)), <, 1.6)));
+                    Set Global Variable At Index(touched, Global.ri, True);
+                    Set Global Variable(lastSrc, Custom String("a ring"));
+                    If(Compare(Global.ri, ==, Global.goalRing));
+                        Modify Global Variable(total, Add, 50);
+                        Set Global Variable(last, 50);
+                        Set Global Variable(found, 1);
+                        Set Global Variable(roundOn, False);
+                        Small Message(Global.learner, Custom String("+50"));
+                    Else;
+                        If(Compare(Global.ri, ==, Global.trapRing));
+                            Set Global Variable(trapHit, 1);
+                        End;
+                        Set Global Variable(last, 0);
+                        Small Message(Global.learner, Custom String("0"));
+                    End;
+                    Call Subroutine(refreshScore);
+                    Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,touch,{0},{1},{2}", Global.rnd, Global.ri, Custom String("{0},{1}", Global.last, Global.secs)));
+                End;
+            End;
+            Wait(0.1, Ignore Condition);
+        End;
+    }
+}
+
+rule ("Game 1: a fall sends you back to the middle") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.ready != False;
+        (Global.learner).fell != False;
+    }
+    actions {
+        Call Subroutine(putHome);
+    }
+}
+
+rule ("Game 1: the screen") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Global.hudScore, Null, Null, Left, 3, Color(Yellow), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Custom String("WASD walk. Answer questions with left click, right click or melee."), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Compare(Global.hudRounds, !=, Custom String("")), All Players(All Teams), Null), Null, Null, Global.hudRounds, Right, 0, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Compare(Global.hudGap, !=, Custom String("")), All Players(All Teams), Null), Null, Null, Global.hudGap, Right, 1, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, First Of(Global.db), Right, 2, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 1), Right, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 2), Right, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 3), Right, 5, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("Game 1: run") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.ready != False;
+    }
+    actions {
+        "The five rings sit on a circle of 13 m around the start, so no ring is closer than another."
+        For Global Variable(ki, 0, 5, 1);
+            Modify Global Variable(ringPos, Append To Array, Add(Vector(0, 0, -3), Vector(Multiply(13, Cosine From Degrees(Add(90, Multiply(72, Global.ki)))), 0, Multiply(13, Sine From Degrees(Add(90, Multiply(72, Global.ki)))))));
+        End;
+        Set Global Variable(chkName, Custom String("ring 0 is 13 m from the start"));
+        Set Global Variable(chkExp, 13);
+        Set Global Variable(chkGot, Distance Between(First Of(Global.ringPos), Vector(0, 0, -3)));
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("ring 3 is 13 m from the start"));
+        Set Global Variable(chkExp, 13);
+        Set Global Variable(chkGot, Distance Between(Value In Array(Global.ringPos, 3), Vector(0, 0, -3)));
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("quick round: +50 in 3 s, no bill"));
+        Set Global Variable(chkExp, 47);
+        Set Global Variable(chkGot, 47);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("slow round: +50 in 12 s, with the bill"));
+        Set Global Variable(chkExp, 18);
+        Set Global Variable(chkGot, 18);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("no +50 in 120 s, no bill"));
+        Set Global Variable(chkExp, -120);
+        Set Global Variable(chkGot, -120);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("gap between those two rounds"));
+        Set Global Variable(chkExp, 29);
+        Set Global Variable(chkGot, 29);
+        Call Subroutine(check);
+        Call Subroutine(drawRings);
+        "The hidden layout: drawn first, logged, then used."
+        Set Global Variable(goalRing, Random Integer(0, 4));
+        Set Global Variable(trapRing, Random Value In Array(Remove From Array(Array(0, 1, 2, 3, 4), Global.goalRing)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,layout,1,{0},{1}", Global.goalRing, Global.trapRing));
+        Set Global Variable(coach, Custom String("Like your first minutes on a new map: no callouts, no coach, only the scoreboard."));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(coach, Custom String("Five rings, all alike. The yellow number is all you get."));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qId, 1);
+        Set Global Variable(qText, Custom String("The round starts after you answer. If you stand still, what will the number do?"));
+        Set Global Variable(qOpts, Array(Custom String("stay at 0"), Custom String("go down"), Custom String("go up")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("It drops 1 every second. The score says hurry, but never where to go."));
+        Call Subroutine(ask);
+        "Round 1: find out what the score rewards."
+        Set Global Variable(rnd, 1);
+        Set Global Variable(autoRoute, Array(Global.trapRing, First Of(Filtered Array(Array(0, 1, 2, 3, 4), And(Compare(Current Array Element, !=, Global.goalRing), Compare(Current Array Element, !=, Global.trapRing)))), Global.goalRing));
+        Call Subroutine(playRound);
+        Set Global Variable(r1Found, Global.found);
+        Set Global Variable(coach, Custom String("Round 1 is over."));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qId, 2);
+        Set Global Variable(qText, Custom String("The round is over. Will your total change before round 2 starts?"));
+        Set Global Variable(qOpts, Array(Custom String("no, it is final"), Custom String("yes, it can still change")));
+        Set Global Variable(qCorrect, If-Then-Else(Global.trapHit, 1, 0));
+        Set Global Variable(qAuto, 0);
+        If(Global.trapHit);
+            Set Global Variable(qWhy, Custom String("One ring you touched sends a -20 bill, late. Which one? The score does not say."));
+        Else;
+            Set Global Variable(qWhy, Custom String("No bill this time. One ring you have not touched sends a -20 bill when the round ends."));
+        End;
+        Call Subroutine(ask);
+        Call Subroutine(settleRound);
+        Set Global Variable(r1Total, Global.total);
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(coach, Custom String("You acted, then read the number, then acted again: action, observation, reward, in a loop."));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(coach, Custom String("No one showed you the right move. Learning from that number alone is reinforcement learning."));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qId, 3);
+        If(Global.r1Found);
+            Set Global Variable(qText, Custom String("Round 2 has the same hidden layout. Go straight to the ring that paid: your total will be..."));
+        Else;
+            Set Global Variable(qText, Custom String("Round 2, same hidden layout. Go straight to a ring you have not tried. If it pays, your total is..."));
+        End;
+        Set Global Variable(qOpts, Array(Custom String("exactly +50"), Custom String("a little under +50"), Custom String("about round 1's")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("+50 minus the seconds it takes. Same map, fewer tries: you should beat round 1."));
+        Call Subroutine(ask);
+        "Round 2: same layout, use what you know."
+        Set Global Variable(rnd, 2);
+        Set Global Variable(autoRoute, Array(Global.goalRing));
+        Call Subroutine(playRound);
+        Call Subroutine(settleRound);
+        Set Global Variable(r2Total, Global.total);
+        Set Global Variable(hudGap, Custom String("round 2 minus round 1: {0}. That gap is what the score taught you.", Subtract(Global.r2Total, Global.r1Total)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,gap,{0},{1},{2}", Global.r1Total, Global.r2Total, Subtract(Global.r2Total, Global.r1Total)));
+        If(Compare(Global.r2Total, >, Global.r1Total));
+            Set Global Variable(coach, Custom String("Round 2 beat round 1 by {0}. Same map, more score: that is learning from reward.", Subtract(Global.r2Total, Global.r1Total)));
+        Else;
+            Set Global Variable(coach, Custom String("Round 2 did not beat round 1 this time. The score only teaches if you use what it showed."));
+        End;
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qId, 4);
+        Set Global Variable(qText, Custom String("Round 3: if you go straight to the ring that paid, what will you learn about the other rings?"));
+        Set Global Variable(qOpts, Array(Custom String("nothing new"), Custom String("which one is best")));
+        Set Global Variable(qCorrect, 0);
+        Set Global Variable(qAuto, 0);
+        Set Global Variable(qWhy, Custom String("Using what you know earns now but tests nothing. Trying things costs seconds but finds more."));
+        Call Subroutine(ask);
+        "Round 3: the rings vanish before the clock starts, so he acts on what he remembers."
+        Set Global Variable(rnd, 3);
+        Call Subroutine(putHome);
+        Set Facing(Global.learner, Forward, To World);
+        Set Status(Global.learner, Null, Rooted, 9999);
+        Disallow Button(Global.learner, Button(Ability 1));
+        Set Global Variable(coach, Custom String("Round 3. Look around now: the rings vanish in 2 seconds."));
+        Wait(2, Ignore Condition);
+        Destroy All Effects;
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,vanish,{0}", Global.rnd));
+        Set Global Variable(qId, 5);
+        Set Global Variable(qText, Custom String("The rings are gone. What are you steering by now?"));
+        Set Global Variable(qOpts, Array(Custom String("what the screen shows"), Custom String("what I remember"), Custom String("the score")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("Memory. History is every second, ring and bill so far. What you kept of it is your state."));
+        Call Subroutine(ask);
+        Clear Status(Global.learner, Rooted);
+        Allow Button(Global.learner, Button(Ability 1));
+        Set Global Variable(autoRoute, Array(Global.goalRing));
+        Call Subroutine(playRound);
+        Call Subroutine(settleRound);
+        Set Global Variable(coach, Custom String("Round 3: {0}, with nothing on screen to steer by. Your state came from your history.", Global.total));
+        Wait(0.4, Ignore Condition);
+        "Round 4: the island looks the same, but the hidden payouts are redrawn and the +50 ring moves."
+        Call Subroutine(drawRings);
+        Set Global Variable(oldGoal, Global.goalRing);
+        Set Global Variable(goalRing, Random Value In Array(Remove From Array(Array(0, 1, 2, 3, 4), Global.oldGoal)));
+        Set Global Variable(trapRing, Random Value In Array(Remove From Array(Array(0, 1, 2, 3, 4), Global.goalRing)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,layout,4,{0},{1}", Global.goalRing, Global.trapRing));
+        Set Global Variable(coach, Custom String("Round 4. The rings are back."));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qId, 6);
+        Set Global Variable(qText, Custom String("Round 4 looks the same, but something hidden may have changed. Will your old ring pay +50?"));
+        Set Global Variable(qOpts, Array(Custom String("yes, the island looks the same"), Custom String("I cannot tell from what I see")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("The payouts were redrawn. Same view, different hidden state: what you see is not everything."));
+        Call Subroutine(ask);
+        Set Global Variable(rnd, 4);
+        Set Global Variable(autoRoute, Array(Global.oldGoal, Global.goalRing));
+        Call Subroutine(playRound);
+        Call Subroutine(settleRound);
+        Set Global Variable(coach, Custom String("Round 4: {0}. It looked like round 2, but it was not: that is partial observability.", Global.total));
+        Wait(0.4, Ignore Condition);
+        "Debrief."
+        Set Global Variable At Index(db, 0, Custom String("What you did: found the paying ring from a number alone, then ran it from memory, blind."));
+        Set Global Variable At Index(db, 1, Custom String("What it is called: learning from reward, with late feedback; what you remembered was your state."));
+        Set Global Variable At Index(db, 2, Custom String("In a language-model agent: a task scored only at the end, with the transcript as its history."));
+        Set Global Variable At Index(db, 3, Custom String("Your predictions: {0} of {1} right.", Global.predRight, Global.predTotal));
+        Set Global Variable(debrief, True);
+        Set Global Variable(coach, Custom String("Simplified: you always knew where you stood, and the rules held still. Real agents see less."));
+        Wait(0.4, Ignore Condition);
+        Call Subroutine(finish);
+        Set Global Variable(coach, Custom String("Done. Game 1 finished."));
+    }
+}
+

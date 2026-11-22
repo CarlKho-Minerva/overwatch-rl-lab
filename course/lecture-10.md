@@ -4,6 +4,8 @@
 
 For nine lectures nothing on the island had a plan of its own. For the last one a blocker from the other team stands in one of the four rows, and her score is the runner's loss. The question is what "best" means when the other side is choosing too. Silver's answer: in a two-player game where one side's gain is the other's loss, it is a pair of policies that neither side would change on its own, and the programs that came closest play themselves, learn a value function by TD, and use it inside a search.
 
+**Play it first:** [Game 10: The Peek](../workshop/games/g10.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-10.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [02:38](https://www.youtube.com/watch?v=kZ_AUmFcZtk&t=158s) Games are small worlds with simple rules and deep play

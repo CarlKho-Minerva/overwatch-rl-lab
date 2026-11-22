@@ -1,0 +1,698 @@
+settings
+{
+	main
+	{
+		Mode Name: "RL course 4: Back From Spawn"
+		Description: "RL course, lecture 4: two predictors guess your walk back from spawn. github.com/CarlKho-Minerva/overwatch-rl-lab"
+	}
+	lobby
+	{
+		Max Team 1 Players: 6
+		Max Team 2 Players: 6
+	}
+	modes
+	{
+		Skirmish
+		{
+			enabled maps
+			{
+				Workshop Island
+			}
+		}
+		General
+		{
+			Hero Limit: Off
+			Kill Cam: Off
+			Spawn Health Packs: Disabled
+		}
+	}
+}
+
+variables {
+    global:
+        0: logQ
+        1: flushN
+        2: flushI
+        3: learner
+        4: ready
+        5: gameOver
+        6: coach
+        7: qActive
+        8: qId
+        9: qText
+        10: qOpts
+        11: qLine
+        12: qCorrect
+        13: qAuto
+        14: qAnswer
+        15: qRight
+        16: qWhy
+        17: predRight
+        18: predTotal
+        19: chkName
+        20: chkExp
+        21: chkGot
+        22: selfOk
+        23: selfBad
+        24: ringPos
+        25: ringName
+        26: vMc
+        27: vTd
+        28: rB
+        29: rO
+        30: tB
+        31: tO
+        32: legState
+        33: mud
+        34: legT
+        35: ret
+        36: counts
+        37: picks
+        38: walk
+        39: leg
+        40: nLegs
+        41: fullIdx
+        42: t0
+        43: tLeg
+        44: old
+        45: tgt
+        46: gSum
+        47: ii
+        48: histB
+        49: histO
+        50: swingIn
+        51: swingOut
+        52: swingB
+        53: swingO
+        54: board
+        55: status
+        56: deb
+        57: showDeb
+    player:
+        0: fellCount
+        1: fell
+}
+
+subroutines {
+    0: ask
+    1: check
+    2: finish
+    3: putHome
+    4: refresh
+    5: computeReturns
+    6: computeSwing
+    7: doWalk
+}
+
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(logQ, Empty Array);
+        Set Global Variable(ready, False);
+        Set Global Variable(gameOver, False);
+        Set Global Variable(coach, Custom String(""));
+        Set Global Variable(qActive, False);
+        Set Global Variable(qText, Custom String(""));
+        Set Global Variable(qOpts, Empty Array);
+        Set Global Variable(qLine, Custom String(""));
+        Set Global Variable(qAnswer, -1);
+        Set Global Variable(qRight, False);
+        Set Global Variable(qWhy, Custom String(""));
+        Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(ringPos, Array(Vector(-14, 0, -14), Vector(-14, 0, -2), Vector(-2, 0, -2), Vector(-2, 0, 10), Vector(10, 0, 10), Vector(10, 0, -2)));
+        Set Global Variable(ringName, Array(Custom String("SPAWN"), Custom String("RING 1"), Custom String("RING 2"), Custom String("RING 3"), Custom String("RING 4"), Custom String("THE POINT")));
+        Set Global Variable(vMc, Empty Array);
+        Set Global Variable(vTd, Empty Array);
+        Set Global Variable(rB, Empty Array);
+        Set Global Variable(rO, Empty Array);
+        Set Global Variable(tB, Empty Array);
+        Set Global Variable(tO, Empty Array);
+        Set Global Variable(legState, Array(0, 0, 0, 0, 0));
+        Set Global Variable(mud, Array(0, 0, 0, 0, 0));
+        Set Global Variable(legT, Array(0, 0, 0, 0, 0));
+        Set Global Variable(ret, Array(0, 0, 0, 0, 0));
+        Set Global Variable(counts, Empty Array);
+        Set Global Variable(picks, Empty Array);
+        Set Global Variable(nLegs, 5);
+        Set Global Variable(histB, Empty Array);
+        Set Global Variable(histO, Empty Array);
+        Set Global Variable(swingIn, Empty Array);
+        Set Global Variable(board, Custom String(""));
+        Set Global Variable(status, Custom String(""));
+        Set Global Variable(deb, Array(Custom String(""), Custom String(""), Custom String("")));
+        Set Global Variable(showDeb, False);
+    }
+}
+
+rule ("Initialize player variables") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    actions {
+        Set Player Variable(Event Player, fell, False);
+    }
+}
+
+rule ("Core: write the queued log lines in one frame, once a second") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Wait(1, Ignore Condition);
+        If(Compare(Count Of(Global.logQ), >, 0));
+            Set Global Variable(flushN, Min(Count Of(Global.logQ), 120));
+            Enable Inspector Recording;
+            For Global Variable(flushI, 0, Global.flushN, 1);
+                Log To Inspector(Value In Array(Global.logQ, Global.flushI));
+            End;
+            Disable Inspector Recording;
+            Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
+        End;
+        Loop;
+    }
+}
+
+rule ("Core: every human player gets the game's hero") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+    }
+    actions {
+        Start Forcing Player To Be Hero(Event Player, Hero(Tracer));
+    }
+}
+
+rule ("Core: hide the match clock, which sits under the question line") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Disable Game Mode HUD(Event Player);
+    }
+}
+
+rule ("Core: set up the learner") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Disable Inspector Recording;
+        Pause Match Time;
+        Wait(1.5, Ignore Condition);
+        Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
+        "The automatic check: a bot plays the learner's part. The host stands aside, out of the way and unseen."
+        Create Dummy Bot(Hero(Tracer), Team 1, -1, Vector(-14, 0, -14), Left);
+        Wait(1, Ignore Condition);
+        Set Global Variable(learner, First Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))));
+        Set Status(Host Player, Null, Phased Out, 99999);
+        Set Invisible(Host Player, All);
+        Teleport(Host Player, Vector(0, 0, 0));
+        Wait(0.5, Ignore Condition);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,4,1,1"));
+        Set Global Variable(ready, True);
+    }
+}
+
+rule ("Core: put the learner back at the start (after a fall, or between rounds)") {
+    event {
+        Subroutine;
+        putHome;
+    }
+    actions {
+        If(Is Dead(Global.learner));
+            Resurrect(Global.learner);
+            Wait(0.25, Ignore Condition);
+            If(Is Dead(Global.learner));
+                Respawn(Global.learner);
+                Wait Until(Is Alive(Global.learner), 4);
+            End;
+        End;
+        Teleport(Global.learner, Vector(-14, 0, -14));
+        Wait(0.2, Ignore Condition);
+        Set Player Variable(Global.learner, fell, False);
+    }
+}
+
+rule ("Core: the learner fell off the island") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.ready != False;
+        Or(Compare(Y Component Of(Position Of(Event Player)), <, -1.5), Is Dead(Event Player)) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fell, True);
+        Modify Player Variable(Event Player, fellCount, Add, 1);
+    }
+}
+
+rule ("Core: one self-test line") {
+    event {
+        Subroutine;
+        check;
+    }
+    actions {
+        If(Compare(Absolute Value(Subtract(Global.chkExp, Global.chkGot)), <, 0.011));
+            Modify Global Variable(selfOk, Add, 1);
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,T,4,{0},{1},{2},1", Global.chkName, Global.chkExp, Global.chkGot));
+        Else;
+            Modify Global Variable(selfBad, Add, 1);
+            Set Global Variable(coach, Custom String("SELF-TEST FAILED: {0} (expected {1}, got {2})", Global.chkName, Global.chkExp, Global.chkGot));
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,T,4,{0},{1},{2},0", Global.chkName, Global.chkExp, Global.chkGot));
+        End;
+    }
+}
+
+rule ("Core: ask the learner to predict, wait for the answer, say why, log it") {
+    event {
+        Subroutine;
+        ask;
+    }
+    actions {
+        Set Global Variable(qAnswer, -1);
+        Set Global Variable(qLine, Custom String("LEFT CLICK: {0}      RIGHT CLICK: {1}", First Of(Global.qOpts), Value In Array(Global.qOpts, 1)));
+        If(Compare(Count Of(Global.qOpts), >, 2));
+            Set Global Variable(qLine, Custom String("LEFT CLICK: {0}      RIGHT CLICK: {1}      MELEE: {2}", First Of(Global.qOpts), Value In Array(Global.qOpts, 1), Value In Array(Global.qOpts, 2)));
+        End;
+        Disallow Button(Global.learner, Button(Primary Fire));
+        Disallow Button(Global.learner, Button(Secondary Fire));
+        Disallow Button(Global.learner, Button(Melee));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qActive, True);
+        Wait(1.2, Ignore Condition);
+        Set Global Variable(qAnswer, Global.qAuto);
+        Set Global Variable(qActive, False);
+        Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
+        Modify Global Variable(predTotal, Add, 1);
+        If(Global.qRight);
+            Modify Global Variable(predRight, Add, 1);
+        End;
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,4,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
+        Wait(0.6, Ignore Condition);
+        Allow Button(Global.learner, Button(Primary Fire));
+        Allow Button(Global.learner, Button(Secondary Fire));
+        Allow Button(Global.learner, Button(Melee));
+    }
+}
+
+rule ("Core: left click answers the first option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Is Button Held(Event Player, Button(Primary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 0);
+    }
+}
+
+rule ("Core: right click answers the second option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Is Button Held(Event Player, Button(Secondary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 1);
+    }
+}
+
+rule ("Core: melee answers the third option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Count Of(Global.qOpts) > 2;
+        Is Button Held(Event Player, Button(Melee)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 2);
+    }
+}
+
+rule ("Core: end the game and write the closing line") {
+    event {
+        Subroutine;
+        finish;
+    }
+    actions {
+        Set Global Variable(gameOver, True);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,4,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
+    }
+}
+
+rule ("Core: the screen") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Custom String("RL 4: BACK FROM SPAWN"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
+        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+    }
+}
+
+rule ("Game 4: rebuild the numbers above the rings and the board (only when a guess changes)") {
+    event {
+        Subroutine;
+        refresh;
+    }
+    actions {
+        Set Global Variable(rB, Mapped Array(Global.vMc, Divide(Round To Integer(Multiply(Current Array Element, 10), To Nearest), 10)));
+        Set Global Variable(rO, Mapped Array(Global.vTd, Divide(Round To Integer(Multiply(Current Array Element, 10), To Nearest), 10)));
+        For Global Variable(ii, 0, 5, 1);
+            Set Global Variable At Index(tB, Global.ii, Custom String("BLUE {0}", Value In Array(Global.rB, Global.ii)));
+            Set Global Variable At Index(tO, Global.ii, Custom String("ORANGE {0}", Value In Array(Global.rO, Global.ii)));
+        End;
+        Set Global Variable(board, Custom String("SECONDS FROM EACH RING TO THE POINT\nSPAWN:  blue {0}  orange {1}\nRING 1:  blue {2}", First Of(Global.rB), First Of(Global.rO), Custom String("{0}  orange {1}\nRING 2:  blue {2}", Value In Array(Global.rB, 1), Value In Array(Global.rO, 1), Custom String("{0}  orange {1}\nRING 3:  blue {2}", Value In Array(Global.rB, 2), Value In Array(Global.rO, 2), Custom String("{0}  orange {1}\nRING 4:  blue {2}", Value In Array(Global.rB, 3), Value In Array(Global.rO, 3), Custom String("{0}  orange {1}", Value In Array(Global.rB, 4), Value In Array(Global.rO, 4)))))));
+    }
+}
+
+rule ("Game 4: the real time left from each ring to the point (sum of this walk's legs from there on)") {
+    event {
+        Subroutine;
+        computeReturns;
+    }
+    actions {
+        Set Global Variable(gSum, 0);
+        For Global Variable(ii, 4, -1, -1);
+            Modify Global Variable(gSum, Add, Value In Array(Global.legT, Global.ii));
+            Set Global Variable At Index(ret, Global.ii, Global.gSum);
+        End;
+    }
+}
+
+rule ("Game 4: how far a guess moved in total over the walks (sum of the size of each change)") {
+    event {
+        Subroutine;
+        computeSwing;
+    }
+    actions {
+        Set Global Variable(swingOut, 0);
+        For Global Variable(ii, 1, Count Of(Global.swingIn), 1);
+            Modify Global Variable(swingOut, Add, Absolute Value(Subtract(Value In Array(Global.swingIn, Global.ii), Value In Array(Global.swingIn, Subtract(Global.ii, 1)))));
+        End;
+    }
+}
+
+rule ("Game 4: one walk from spawn to the point (or to ring 2 on the cut walk)") {
+    event {
+        Subroutine;
+        doWalk;
+    }
+    actions {
+        Call Subroutine(putHome);
+        Set Move Speed(Global.learner, 100);
+        Set Global Variable(nLegs, If-Then-Else(Compare(Global.walk, ==, 3), 2, 5));
+        "Draw the mud first and log it, then walk it."
+        Set Global Variable(mud, Array(0, 0, 0, 0, 0));
+        If(Compare(Global.walk, ==, 3));
+            For Global Variable(ii, 0, 5, 1);
+                Set Global Variable At Index(mud, Global.ii, If-Then-Else(Compare(Random Real(0, 1), <, 0.4), 1, 0));
+            End;
+        Else;
+            Set Global Variable(fullIdx, If-Then-Else(Compare(Global.walk, <, 3), Global.walk, Subtract(Global.walk, 1)));
+            If(Compare(Global.walk, ==, 0));
+                Set Global Variable(picks, Append To Array(Array(0), Array Slice(Randomized Array(Array(1, 2, 3, 4)), 0, Subtract(First Of(Global.counts), 1))));
+            Else;
+                Set Global Variable(picks, Array Slice(Randomized Array(Array(0, 1, 2, 3, 4)), 0, Value In Array(Global.counts, Global.fullIdx)));
+            End;
+            For Global Variable(ii, 0, 5, 1);
+                Set Global Variable At Index(mud, Global.ii, If-Then-Else(Array Contains(Global.picks, Global.ii), 1, 0));
+            End;
+        End;
+        Set Global Variable(legState, Array(0, 0, 0, 0, 0));
+        Set Global Variable(legT, Array(0, 0, 0, 0, 0));
+        "walk: walk (0-4), mud on legs 1-5 (1 mud, 0 clear), legs this walk will have"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,walk,{0},{1},{2}", Global.walk, First Of(Global.mud), Custom String("{0},{1},{2}", Value In Array(Global.mud, 1), Value In Array(Global.mud, 2), Custom String("{0},{1},{2}", Value In Array(Global.mud, 3), Value In Array(Global.mud, 4), Global.nLegs))));
+        For Global Variable(leg, 0, Global.nLegs, 1);
+            Set Global Variable At Index(legState, Global.leg, If-Then-Else(Compare(Value In Array(Global.mud, Global.leg), ==, 1), 2, 1));
+            Set Move Speed(Global.learner, If-Then-Else(Compare(Value In Array(Global.mud, Global.leg), ==, 1), 30, 100));
+            Set Global Variable(status, Custom String("WALK {0} OF 5    LEG {1}: {2}", Add(Global.walk, 1), Add(Global.leg, 1), If-Then-Else(Compare(Value In Array(Global.mud, Global.leg), ==, 1), Custom String("MUD (slow)"), Custom String("clear"))));
+            If(Compare(Global.leg, ==, 0));
+                Set Global Variable(coach, Custom String("Walk {0} of 5. Leg 1 is {1}. The clock runs only between rings.", Add(Global.walk, 1), If-Then-Else(Compare(First Of(Global.mud), ==, 1), Custom String("MUD"), Custom String("clear"))));
+            End;
+            Start Throttle In Direction(Global.learner, Direction Towards(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), 1, To World, Replace existing throttle, None);
+            Wait Until(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Global.leg)), >=, 1.5), 10);
+            Set Global Variable(t0, Total Time Elapsed);
+            While(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), >=, 1.5));
+                Wait Until(Or(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), <, 1.5), (Global.learner).fell), 15);
+                If((Global.learner).fell);
+                    If(Is Dead(Global.learner));
+                        Resurrect(Global.learner);
+                        Wait(0.25, Ignore Condition);
+                    End;
+                    Teleport(Global.learner, Value In Array(Global.ringPos, Global.leg));
+                    Wait(0.2, Ignore Condition);
+                    Set Player Variable(Global.learner, fell, False);
+                Else If(Compare(Distance Between(Vector(X Component Of(Position Of(Global.learner)), 0, Z Component Of(Position Of(Global.learner))), Value In Array(Global.ringPos, Add(Global.leg, 1))), >=, 1.5));
+                    Teleport(Global.learner, Value In Array(Global.ringPos, Add(Global.leg, 1)));
+                End;
+                Wait(0.05, Ignore Condition);
+            End;
+            Set Global Variable(tLeg, Divide(Round To Integer(Multiply(100, Subtract(Total Time Elapsed, Global.t0)), To Nearest), 100));
+            Set Global Variable At Index(legT, Global.leg, Global.tLeg);
+            Stop Throttle In Direction(Global.learner);
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,leg,{0},{1},{2}", Global.walk, Global.leg, Custom String("{0},{1}", Value In Array(Global.mud, Global.leg), Global.tLeg)));
+            If(And(Compare(Global.walk, ==, 0), Compare(Global.leg, ==, 0)));
+                Set Global Variable(qId, 1);
+                Set Global Variable(qText, Custom String("Leg 1 was mud and you are at ring 1. Whose guess for the spawn ring has changed already?"));
+                Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE"), Custom String("both")));
+                Set Global Variable(qCorrect, 1);
+                Set Global Variable(qAuto, 1);
+                Set Global Variable(qWhy, Custom String("ORANGE updates at each ring. BLUE needs the time to the point, which you do not have yet."));
+                Call Subroutine(ask);
+                Teleport(Global.learner, Value In Array(Global.ringPos, 1));
+            End;
+            "TD(0): the guess for the ring just left moves toward this leg's time plus the guess for the ring just reached."
+            Set Global Variable(old, Value In Array(Global.vTd, Global.leg));
+            Set Global Variable(tgt, Add(Global.tLeg, If-Then-Else(Compare(Global.leg, ==, 4), 0, Value In Array(Global.vTd, Add(Global.leg, 1)))));
+            Set Global Variable At Index(vTd, Global.leg, Add(Global.old, Multiply(0.5, Subtract(Global.tgt, Global.old))));
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,td,{0},{1},{2}", Global.walk, Global.leg, Custom String("{0},{1},{2}", Global.old, Global.tgt, Value In Array(Global.vTd, Global.leg))));
+            Call Subroutine(refresh);
+            Set Global Variable(coach, Custom String("{0} after {1} s. ORANGE's guess for {2}", Value In Array(Global.ringName, Add(Global.leg, 1)), Global.tLeg, Custom String("{0}: {1} to {2}. BLUE waits.", Value In Array(Global.ringName, Global.leg), Divide(Round To Integer(Multiply(Global.old, 10), To Nearest), 10), Value In Array(Global.rO, Global.leg))));
+        End;
+        Stop Throttle In Direction(Global.learner);
+        Set Move Speed(Global.learner, 100);
+        If(Compare(Global.nLegs, ==, 5));
+            "Every-visit Monte Carlo: now that the walk is over, every guess moves toward the real time left from its ring."
+            Call Subroutine(computeReturns);
+            For Global Variable(ii, 0, 5, 1);
+                Set Global Variable(old, Value In Array(Global.vMc, Global.ii));
+                Set Global Variable At Index(vMc, Global.ii, Add(Global.old, Multiply(0.5, Subtract(Value In Array(Global.ret, Global.ii), Global.old))));
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,mc,{0},{1},{2}", Global.walk, Global.ii, Custom String("{0},{1},{2}", Global.old, Value In Array(Global.ret, Global.ii), Value In Array(Global.vMc, Global.ii))));
+            End;
+            Call Subroutine(refresh);
+            Set Global Variable(status, Custom String("WALK {0} OF 5    AT THE POINT", Add(Global.walk, 1)));
+            Set Global Variable(coach, Custom String("At the point: {0} s in all. Now BLUE moves every guess halfway to the real time left.", First Of(Global.ret)));
+        Else;
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,cut,{0},{1}", Global.walk, Global.nLegs));
+            Set Global Variable(status, Custom String("WALK {0} OF 5    CUT SHORT", Add(Global.walk, 1)));
+            Set Global Variable(coach, Custom String("The round ended on the way. BLUE never got a time to the point, so it learned nothing."));
+        End;
+        Modify Global Variable(histB, Append To Array, First Of(Global.vMc));
+        Modify Global Variable(histO, Append To Array, First Of(Global.vTd));
+        Wait(0.3, Ignore Condition);
+    }
+}
+
+rule ("Game 4: the screen") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Null, Null, Global.status, Right, 0, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.board, Right, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk to the next ring. Answer: left click, right click or melee. Abilities are off."), Right, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, First Of(Global.deb), Null, Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 1), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 2), Null, Left, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("Game 4: run") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.ready != False;
+    }
+    actions {
+        Set Ability 1 Enabled(Global.learner, False);
+        Set Ability 2 Enabled(Global.learner, False);
+        Set Ultimate Ability Enabled(Global.learner, False);
+        "Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks)."
+        Set Global Variable(chkName, Custom String("guess from spawn at 3 s a leg"));
+        "Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks)."
+        Set Global Variable(chkExp, 15);
+        "Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks)."
+        Set Global Variable(chkGot, 15);
+        "Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks)."
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("orange target 5 s leg + 12 s guess"));
+        Set Global Variable(chkExp, 17);
+        Set Global Variable(chkGot, 17);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("halfway step 15 toward 17"));
+        Set Global Variable(chkExp, 16);
+        Set Global Variable(chkGot, 16);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("halfway step 15 toward 21"));
+        Set Global Variable(chkExp, 18);
+        Set Global Variable(chkGot, 18);
+        Call Subroutine(check);
+        Set Global Variable(legT, Array(5, 1.5, 1.5, 5, 1.5));
+        Call Subroutine(computeReturns);
+        Set Global Variable(chkName, Custom String("time left from spawn"));
+        Set Global Variable(chkExp, 14.5);
+        Set Global Variable(chkGot, First Of(Global.ret));
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("time left from ring 3"));
+        Set Global Variable(chkExp, 6.5);
+        Set Global Variable(chkGot, Value In Array(Global.ret, 3));
+        Call Subroutine(check);
+        Set Global Variable(swingIn, Array(15, 18, 16, 17));
+        Call Subroutine(computeSwing);
+        Set Global Variable(chkName, Custom String("total movement 15 18 16 17"));
+        Set Global Variable(chkExp, 6);
+        Set Global Variable(chkGot, Global.swingOut);
+        Call Subroutine(check);
+        "Both predictors start from the same guess: 3 seconds a leg."
+        For Global Variable(ii, 0, 5, 1);
+            Set Global Variable At Index(vMc, Global.ii, Multiply(3, Subtract(5, Global.ii)));
+            Set Global Variable At Index(vTd, Global.ii, Multiply(3, Subtract(5, Global.ii)));
+        End;
+        Set Global Variable(histB, Array(First Of(Global.vMc)));
+        Set Global Variable(histO, Array(First Of(Global.vTd)));
+        Set Global Variable(counts, Randomized Array(Array(1, 2, 4, 5)));
+        "setup: step size, starting guess per leg, clear speed %, mud speed %, legs, walks, cut walk, legs on the cut walk"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,setup,0.50,3,100,30,5,5,3,2"));
+        "counts: mud legs on full walks 1, 2, 3 and 5 (shuffled from 1, 2, 4, 5)"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,counts,{0},{1},{2}", First Of(Global.counts), Value In Array(Global.counts, 1), Custom String("{0},{1}", Value In Array(Global.counts, 2), Value In Array(Global.counts, 3))));
+        Call Subroutine(refresh);
+        "The route: rings, the legs between them (white until walked, then green clear or red mud), guesses above."
+        For Global Variable(ii, 0, 6, 1);
+            Create Effect(All Players(All Teams), Ring, If-Then-Else(Compare(Global.ii, ==, 5), Color(Green), Color(White)), Value In Array(Global.ringPos, Global.ii), 1.5, None);
+            Create In-World Text(All Players(All Teams), Value In Array(Global.ringName, Global.ii), Add(Value In Array(Global.ringPos, Global.ii), Vector(0, 2.6, 0)), 1.6, Do Not Clip, None, If-Then-Else(Compare(Global.ii, ==, 5), Color(Green), Color(White)), Default Visibility);
+        End;
+        Create Effect(All Players(All Teams), Light Shaft, Color(Green), Value In Array(Global.ringPos, 5), 1.5, None);
+        For Global Variable(ii, 0, 5, 1);
+            Create Beam Effect(All Players(All Teams), Grapple Beam, Add(Value In Array(Global.ringPos, Evaluate Once(Global.ii)), Vector(0, 0.1, 0)), Add(Value In Array(Global.ringPos, Add(Evaluate Once(Global.ii), 1)), Vector(0, 0.1, 0)), If-Then-Else(Compare(Value In Array(Global.legState, Evaluate Once(Global.ii)), ==, 2), Color(Red), If-Then-Else(Compare(Value In Array(Global.legState, Evaluate Once(Global.ii)), ==, 1), Color(Green), Color(White))), Visible To Position Radius and Color);
+            Create In-World Text(All Players(All Teams), Value In Array(Global.tB, Evaluate Once(Global.ii)), Add(Value In Array(Global.ringPos, Global.ii), Vector(0, 2.0, 0)), 1.6, Do Not Clip, Visible To and String, Color(Sky Blue), Default Visibility);
+            Create In-World Text(All Players(All Teams), Value In Array(Global.tO, Evaluate Once(Global.ii)), Add(Value In Array(Global.ringPos, Global.ii), Vector(0, 1.4, 0)), 1.6, Do Not Clip, Visible To and String, Color(Orange), Default Visibility);
+        End;
+        Set Global Variable(status, Custom String("BEFORE THE FIRST WALK"));
+        Set Global Variable(coach, Custom String("Back from spawn: walk the rings to the point, five times. Some legs are mud and slow you down."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(coach, Custom String("Above each ring: two guesses of the seconds from there to the point. Both start at 3 s a leg."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(coach, Custom String("BLUE: at the point, each guess moves halfway to the time the rest of that walk really took."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(coach, Custom String("ORANGE: at each ring, the last ring's guess moves halfway to that leg's time plus ORANGE's guess here."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(walk, 0);
+        Call Subroutine(doWalk);
+        Set Global Variable(coach, Custom String("BLUE is called Monte Carlo: it waits for the end and learns from the real total. No rules needed."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(qId, 2);
+        Set Global Variable(qText, Custom String("Lecture 2's Bellman rule: time from here = this leg + time from the next ring. Which guess is built so?"));
+        Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("ORANGE: a real leg plus its own next guess, a guess fixing a guess. BLUE uses only real times."));
+        Call Subroutine(ask);
+        Set Global Variable(coach, Custom String("ORANGE is temporal-difference learning, TD. Fixing a guess with your next guess is bootstrapping."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(walk, 1);
+        Call Subroutine(doWalk);
+        Set Global Variable(qId, 3);
+        Set Global Variable(qText, Custom String("By the last walk, whose spawn guess will have moved around more in total?"));
+        Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE"), Custom String("about the same")));
+        Set Global Variable(qCorrect, 0);
+        Set Global Variable(qAuto, 0);
+        Set Global Variable(qWhy, Custom String("BLUE chases each whole walk, all its mud at once. ORANGE uses one leg plus a steady guess."));
+        Call Subroutine(ask);
+        Set Global Variable(walk, 2);
+        Call Subroutine(doWalk);
+        Set Global Variable(qId, 4);
+        Set Global Variable(qText, Custom String("On walk 4 the round ends as you reach ring 2, and you go back. Who learns anything from that walk?"));
+        Set Global Variable(qOpts, Array(Custom String("BLUE"), Custom String("ORANGE"), Custom String("neither")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 2);
+        Set Global Variable(qWhy, Custom String("BLUE needs a time to the point and never gets one. ORANGE already used the two legs walked."));
+        Call Subroutine(ask);
+        Set Global Variable(walk, 3);
+        Call Subroutine(doWalk);
+        Set Global Variable(coach, Custom String("TD learns before the end, and from walks that are cut short. Monte Carlo needs walks that finish."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(qId, 5);
+        Set Global Variable(qText, Custom String("Lecture 3's planner found values without walking at all. What would it need to do that here?"));
+        Set Global Variable(qOpts, Array(Custom String("only the map"), Custom String("each leg's mud odds and speeds"), Custom String("nothing more")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("Planning needs the rules: how likely and how slow mud is per leg. These two learn from walks."));
+        Call Subroutine(ask);
+        Set Global Variable(coach, Custom String("Neither predictor was told the mud odds. Learning values from walks alone is model-free prediction."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(walk, 4);
+        Call Subroutine(doWalk);
+        Set Global Variable(swingIn, Global.histB);
+        Call Subroutine(computeSwing);
+        Set Global Variable(swingB, Global.swingOut);
+        Set Global Variable(swingIn, Global.histO);
+        Call Subroutine(computeSwing);
+        Set Global Variable(swingO, Global.swingOut);
+        "swing: total movement of the spawn guess over the walks, BLUE then ORANGE"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,swing,{0},{1}", Global.swingB, Global.swingO));
+        "final: 0 BLUE or 1 ORANGE, then the guesses for spawn and rings 1 to 4"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,final,0,{0},{1},{2}", First Of(Global.vMc), Value In Array(Global.vMc, 1), Custom String("{0},{1},{2}", Value In Array(Global.vMc, 2), Value In Array(Global.vMc, 3), Value In Array(Global.vMc, 4))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,4,final,1,{0},{1},{2}", First Of(Global.vTd), Value In Array(Global.vTd, 1), Custom String("{0},{1},{2}", Value In Array(Global.vTd, 2), Value In Array(Global.vTd, 3), Value In Array(Global.vTd, 4))));
+        Set Global Variable(status, Custom String("ALL FIVE WALKS DONE"));
+        Set Global Variable(coach, Custom String("Spawn guess, total movement: BLUE {0} s, ORANGE {1} s. {2}", Divide(Round To Integer(Multiply(Global.swingB, 10), To Nearest), 10), Divide(Round To Integer(Multiply(Global.swingO, 10), To Nearest), 10), If-Then-Else(Compare(Global.swingB, >, Global.swingO), Custom String("BLUE swung more."), Custom String("This time ORANGE did; usually BLUE does."))));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(coach, Custom String("ORANGE is steadier but leans on its own guesses. If they start wrong, it stays wrong a while: bias."));
+        Wait(0.3, Ignore Condition);
+        Set Global Variable(deb, Array(Custom String("What you did: walked back from spawn 5 times while two guesses of your time were fixed at each ring."), Custom String("Its name: BLUE is Monte Carlo (real totals, no bias, noisy). ORANGE is TD (a leg plus a guess, biased)."), Custom String("In an agent: judge each turn by the final score (Monte Carlo) or by how a value guess moved that turn (TD).")));
+        Set Global Variable(showDeb, True);
+        Set Global Variable(coach, Custom String("You got {0} of {1} predictions right. Simplified: fixed half steps, five walks, shuffled mud counts.", Global.predRight, Global.predTotal));
+        Wait(0.3, Ignore Condition);
+        Call Subroutine(finish);
+    }
+}
+

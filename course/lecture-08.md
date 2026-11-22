@@ -4,6 +4,8 @@
 
 The game cannot run faster than real time, so every real step costs Tracer about a quarter of a second. Q-LEARNING learns only from steps she really takes; DYNA-Q also keeps a table of what each move did and replays 20 imagined moves from it after every real one. Silver's eighth lecture asks how much more an agent can learn per real step by building its own copy of the world and practising inside it. His answer: learn a model from real experience, then plan by running your usual learning method on experience sampled from that model, as long as thinking time allows.
 
+**Play it first:** [Game 8: Recall](../workshop/games/g08.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-08.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [02:40](https://www.youtube.com/watch?v=ItMutbeOHtc&t=160s) This time the agent learns a model of the world

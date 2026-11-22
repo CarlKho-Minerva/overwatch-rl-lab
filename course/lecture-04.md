@@ -4,6 +4,8 @@
 
 The RANDOM WALK bot wanders the strip at random and nearly always falls, and three tables of 48 numbers follow her without knowing the island's rules. Each must work out, from her steps alone, how good each square is for a walker like her. The lecture asks how: wait for the episode to end and average what happened (Monte Carlo), or correct each guess after every step using the next guess (temporal-difference learning). Both reach the true values, paying in noise or in bias from their own guesses, and one dial, lambda, runs between them.
 
+**Play it first:** [Game 4: Back From Spawn](../workshop/games/g04.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-04.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [04:29](https://www.youtube.com/watch?v=PnHCvfgC_ZA&t=269s) No one hands you the rules, and first you only measure

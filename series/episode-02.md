@@ -13,3 +13,5 @@
 6. PLANNER crosses eleven squares along the edge, ten crossings in a row, score line 39. "The best any policy can get, every time."
 **The experiment shown:** RANDOM WALK's measured score against the exact value, then the PLANNER.
 **Closing line:** "The PLANNER was handed the rules. The next bots will not be."
+
+**The game for this episode:** [Game 2: Mini or Mega](../workshop/games/g02.md). The viewer can load it and play along (`workshop/compiled/game-02.txt`).

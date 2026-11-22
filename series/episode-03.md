@@ -15,3 +15,5 @@
 **Experiment shown:** value iteration on the strip, 13 sweeps as arrows, then the greedy walk.
 
 **Closing line:** "She never fell because she was never surprised. Every bot from here on learns the rules by breaking them."
+
+**The game for this episode:** [Game 3: The Whiteboard](../workshop/games/g03.md). The viewer can load it and play along (`workshop/compiled/game-03.txt`).

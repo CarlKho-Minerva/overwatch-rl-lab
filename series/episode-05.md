@@ -12,3 +12,5 @@
 - Beat 6: exploring off, Q-LEARNING crossing cleanly. "Without randomness, the one who fell more has the better map."
 - Experiment shown: SARSA against Q-LEARNING, falls per 100 and distance from the edge.
 - Closing line: "Learn about the walker you are, or the walker you could be: two routes along one cliff."
+
+**The game for this episode:** [Game 5: Slippery Boots](../workshop/games/g05.md). The viewer can load it and play along (`workshop/compiled/game-05.txt`).

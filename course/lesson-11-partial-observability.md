@@ -3,6 +3,8 @@
 *The finale of the course: partial observability, on the island and in a language-model agent. Lecture 1 names the
 problem ([52:23](https://www.youtube.com/watch?v=2pWv7GOvuf0&t=3143s)); this lesson runs it.*
 
+**Play it first:** [Game 11: Sombra's Room](../workshop/games/g11.md), an Overwatch custom game for this lesson that you play yourself (paste `workshop/compiled/game-11.txt` into a custom game's settings).
+
 For ten lessons Tracer was told which square she stood on, and that was everything that mattered. Now one square on
 her way is shut, a different one each time, and nobody tells her which. A person would shrug: walk at it, and if you
 bounce, go round. This lesson is about why that shrug is not available to a table of squares, what has to be added so

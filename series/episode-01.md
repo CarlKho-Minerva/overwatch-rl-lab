@@ -16,3 +16,5 @@
 **The experiment shown:** RANDOM WALK against PLANNER on the same strip, with their mean returns.
 
 **Closing line:** "Next time: what makes a square a state, and how to work out what it is worth."
+
+**The game for this episode:** [Game 1: No Coach](../workshop/games/g01.md). The viewer can load it and play along (`workshop/compiled/game-01.txt`).

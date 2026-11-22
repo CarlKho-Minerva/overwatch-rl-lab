@@ -4,6 +4,8 @@
 
 Ten Tracers stand at the left end of a strip of 48 squares beside the edge of Workshop Island, and nobody tells them the edge kills. Two never learn: RANDOM WALK picks moves at random all night, and PLANNER is handed the rules and computes her route before her first step. This lecture asks what the setup is made of: what she sees, remembers and tries to maximise. The answer: a loop of observation, action and reward, where the hard part is choosing what to remember.
 
+**Play it first:** [Game 1: No Coach](../workshop/games/g01.md), an Overwatch custom game for this lecture that you play yourself (paste `workshop/compiled/game-01.txt` into a custom game's settings). It asks you to predict before it shows you.
+
 ## The lecture in order
 
 ### [09:47](https://www.youtube.com/watch?v=2pWv7GOvuf0&t=587s) Learning from a score, not from an answer key

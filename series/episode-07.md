@@ -11,3 +11,5 @@
 - Score lines, 15 runs against 17: "96.5 falls per 100 episodes against 7.1."
 **Experiment shown:** POLICY GRADIENT against ACTOR-CRITIC, return per episode.
 **Closing line:** "Pushing uphill works only if you can tell which way is up, and an ending you have never seen can't tell you."
+
+**The game for this episode:** [Game 7: Counter-Pick](../workshop/games/g07.md). The viewer can load it and play along (`workshop/compiled/game-07.txt`).

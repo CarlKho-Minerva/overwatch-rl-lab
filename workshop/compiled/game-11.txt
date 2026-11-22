@@ -1,0 +1,798 @@
+settings
+{
+	main
+	{
+		Mode Name: "RL course 11: Sombra's Room"
+		Description: "Partial observability: a ping that is right 8 times in 10, and a belief that moves. github.com/CarlKho-Minerva/overwatch-rl-lab"
+	}
+	lobby
+	{
+		Max Team 1 Players: 6
+		Max Team 2 Players: 6
+	}
+	modes
+	{
+		Skirmish
+		{
+			enabled maps
+			{
+				Workshop Island
+			}
+		}
+		General
+		{
+			Hero Limit: Off
+			Kill Cam: Off
+			Spawn Health Packs: Disabled
+		}
+	}
+}
+
+variables {
+    global:
+        0: logQ
+        1: flushN
+        2: flushI
+        3: learner
+        4: ready
+        5: gameOver
+        6: coach
+        7: qActive
+        8: qId
+        9: qText
+        10: qOpts
+        11: qLine
+        12: qCorrect
+        13: qAuto
+        14: qAnswer
+        15: qRight
+        16: qWhy
+        17: predRight
+        18: predTotal
+        19: chkName
+        20: chkExp
+        21: chkGot
+        22: selfOk
+        23: selfBad
+        24: padL
+        25: padR
+        26: Vt
+        27: gi
+        28: gsweep
+        29: gp
+        30: pl
+        31: nStar
+        32: pStar
+        33: planText
+        34: acc
+        35: belief
+        36: nLat
+        37: hidden
+        38: roundN
+        39: score
+        40: pingCount
+        41: nSaidL
+        42: nSaidR
+        43: lastSaid
+        44: pingReq
+        45: fArmed
+        46: deciding
+        47: roomsOpen
+        48: barShown
+        49: barText
+        50: hudRound
+        51: hudPings
+        52: hudKeys
+        53: enterNow
+        54: pingQ
+        55: pBefore
+        56: reading
+        57: firstReading
+        58: roundDone
+        59: room
+        60: roomEv
+        61: reward
+        62: autoStyle
+        63: autoRoom
+        64: onPad
+        65: fx
+        66: sombraFx
+        67: sombraTx
+        68: gain50
+        69: gain94
+        70: perfectV
+        71: nGood
+        72: debrief
+    player:
+        0: fellCount
+        1: fell
+}
+
+subroutines {
+    0: ask
+    1: check
+    2: finish
+    3: putHome
+    4: solvePlan
+    5: judge
+    6: doPing
+    7: playRound
+}
+
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(logQ, Empty Array);
+        Set Global Variable(ready, False);
+        Set Global Variable(gameOver, False);
+        Set Global Variable(coach, Custom String(""));
+        Set Global Variable(qActive, False);
+        Set Global Variable(qText, Custom String(""));
+        Set Global Variable(qOpts, Empty Array);
+        Set Global Variable(qLine, Custom String(""));
+        Set Global Variable(qAnswer, -1);
+        Set Global Variable(qRight, False);
+        Set Global Variable(qWhy, Custom String(""));
+        Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(padL, Vector(9, 0, 6));
+        Set Global Variable(padR, Vector(-9, 0, 6));
+        Set Global Variable(Vt, Empty Array);
+        Set Global Variable(nStar, -1);
+        Set Global Variable(planText, Custom String(""));
+        Set Global Variable(acc, 0.8);
+        Set Global Variable(belief, 0.5);
+        Set Global Variable(lastSaid, Custom String(""));
+        Set Global Variable(pingReq, False);
+        Set Global Variable(fArmed, True);
+        Set Global Variable(deciding, False);
+        Set Global Variable(roomsOpen, False);
+        Set Global Variable(barShown, False);
+        Set Global Variable(barText, Custom String(""));
+        Set Global Variable(hudRound, Custom String(""));
+        Set Global Variable(hudPings, Custom String(""));
+        Set Global Variable(hudKeys, Custom String(""));
+        Set Global Variable(roundDone, False);
+        Set Global Variable(onPad, False);
+        Set Global Variable(debrief, Array(Custom String(""), Custom String(""), Custom String("")));
+    }
+}
+
+rule ("Initialize player variables") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    actions {
+        Set Player Variable(Event Player, fell, False);
+    }
+}
+
+rule ("Core: write the queued log lines in one frame, once a second") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Wait(1, Ignore Condition);
+        If(Compare(Count Of(Global.logQ), >, 0));
+            Set Global Variable(flushN, Min(Count Of(Global.logQ), 120));
+            Enable Inspector Recording;
+            For Global Variable(flushI, 0, Global.flushN, 1);
+                Log To Inspector(Value In Array(Global.logQ, Global.flushI));
+            End;
+            Disable Inspector Recording;
+            Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
+        End;
+        Loop;
+    }
+}
+
+rule ("Core: every human player gets the game's hero") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+    }
+    actions {
+        Start Forcing Player To Be Hero(Event Player, Hero(Tracer));
+    }
+}
+
+rule ("Core: hide the match clock, which sits under the question line") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Disable Game Mode HUD(Event Player);
+    }
+}
+
+rule ("Core: set up the learner") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Disable Inspector Recording;
+        Pause Match Time;
+        Wait(1.5, Ignore Condition);
+        Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
+        Set Global Variable(learner, Host Player);
+        Teleport(Global.learner, Vector(0, 0, -10));
+        Wait(0.5, Ignore Condition);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,11,1,0"));
+        Set Global Variable(ready, True);
+    }
+}
+
+rule ("Core: put the learner back at the start (after a fall, or between rounds)") {
+    event {
+        Subroutine;
+        putHome;
+    }
+    actions {
+        If(Is Dead(Global.learner));
+            Resurrect(Global.learner);
+            Wait(0.25, Ignore Condition);
+            If(Is Dead(Global.learner));
+                Respawn(Global.learner);
+                Wait Until(Is Alive(Global.learner), 4);
+            End;
+        End;
+        Teleport(Global.learner, Vector(0, 0, -10));
+        Wait(0.2, Ignore Condition);
+        Set Player Variable(Global.learner, fell, False);
+    }
+}
+
+rule ("Core: the learner fell off the island") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.ready != False;
+        Or(Compare(Y Component Of(Position Of(Event Player)), <, -1.5), Is Dead(Event Player)) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fell, True);
+        Modify Player Variable(Event Player, fellCount, Add, 1);
+    }
+}
+
+rule ("Core: one self-test line") {
+    event {
+        Subroutine;
+        check;
+    }
+    actions {
+        If(Compare(Absolute Value(Subtract(Global.chkExp, Global.chkGot)), <, 0.011));
+            Modify Global Variable(selfOk, Add, 1);
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,T,11,{0},{1},{2},1", Global.chkName, Global.chkExp, Global.chkGot));
+        Else;
+            Modify Global Variable(selfBad, Add, 1);
+            Set Global Variable(coach, Custom String("SELF-TEST FAILED: {0} (expected {1}, got {2})", Global.chkName, Global.chkExp, Global.chkGot));
+            Modify Global Variable(logQ, Append To Array, Custom String("RLG,T,11,{0},{1},{2},0", Global.chkName, Global.chkExp, Global.chkGot));
+        End;
+    }
+}
+
+rule ("Core: ask the learner to predict, wait for the answer, say why, log it") {
+    event {
+        Subroutine;
+        ask;
+    }
+    actions {
+        Set Global Variable(qAnswer, -1);
+        Set Global Variable(qLine, Custom String("LEFT CLICK: {0}      RIGHT CLICK: {1}", First Of(Global.qOpts), Value In Array(Global.qOpts, 1)));
+        If(Compare(Count Of(Global.qOpts), >, 2));
+            Set Global Variable(qLine, Custom String("LEFT CLICK: {0}      RIGHT CLICK: {1}      MELEE: {2}", First Of(Global.qOpts), Value In Array(Global.qOpts, 1), Value In Array(Global.qOpts, 2)));
+        End;
+        Disallow Button(Global.learner, Button(Primary Fire));
+        Disallow Button(Global.learner, Button(Secondary Fire));
+        Disallow Button(Global.learner, Button(Melee));
+        Wait(0.4, Ignore Condition);
+        Set Global Variable(qActive, True);
+        Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
+        Set Global Variable(qActive, False);
+        Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
+        Modify Global Variable(predTotal, Add, 1);
+        If(Global.qRight);
+            Modify Global Variable(predRight, Add, 1);
+        End;
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,A,11,{0},{1},{2}", Global.qId, Global.qAnswer, Custom String("{0},{1}", Global.qCorrect, If-Then-Else(Global.qRight, 1, 0))));
+        Set Global Variable(coach, Custom String("{0} {1}", If-Then-Else(Global.qRight, Custom String("RIGHT."), If-Then-Else(Compare(Global.qAnswer, <, 0), Custom String("NO ANSWER."), Custom String("NOT THIS TIME."))), Global.qWhy));
+        Wait(5, Ignore Condition);
+        Allow Button(Global.learner, Button(Primary Fire));
+        Allow Button(Global.learner, Button(Secondary Fire));
+        Allow Button(Global.learner, Button(Melee));
+    }
+}
+
+rule ("Core: left click answers the first option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Is Button Held(Event Player, Button(Primary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 0);
+    }
+}
+
+rule ("Core: right click answers the second option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Is Button Held(Event Player, Button(Secondary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 1);
+    }
+}
+
+rule ("Core: melee answers the third option") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.qActive != False;
+        Count Of(Global.qOpts) > 2;
+        Is Button Held(Event Player, Button(Melee)) == True;
+    }
+    actions {
+        Set Global Variable(qAnswer, 2);
+    }
+}
+
+rule ("Core: end the game and write the closing line") {
+    event {
+        Subroutine;
+        finish;
+    }
+    actions {
+        Set Global Variable(gameOver, True);
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,11,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
+    }
+}
+
+rule ("Core: the screen") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Custom String("RL 11: SOMBRA'S ROOM"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
+        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+    }
+}
+
+rule ("Game 11: the best plan, by value iteration over the beliefs a ping can reach") {
+    event {
+        Subroutine;
+        solvePlan;
+    }
+    actions {
+        "Every rung starts at \"enter now\". Then, sweep after sweep, each rung takes the better of entering now and\npaying for one more ping and continuing with the best plan from wherever the reading lands."
+        For Global Variable(gi, 0, 21, 1);
+            Set Global Variable At Index(Vt, Global.gi, Max(Subtract(Multiply(10, Subtract(1, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))))), Multiply(30, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))))), Subtract(Multiply(10, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10)))))), Multiply(30, Subtract(1, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))))))));
+        End;
+        For Global Variable(gsweep, 0, 40, 1);
+            For Global Variable(gi, 1, 20, 1);
+                Set Global Variable(gp, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))));
+                Set Global Variable(pl, Add(Multiply(Global.gp, 0.8), Multiply(Subtract(1, Global.gp), 0.199999999999999)));
+                Set Global Variable At Index(Vt, Global.gi, Max(Max(Subtract(Multiply(10, Subtract(1, Global.gp)), Multiply(30, Global.gp)), Subtract(Multiply(10, Global.gp), Multiply(30, Subtract(1, Global.gp)))), Add(Add(-1, Multiply(Global.pl, Value In Array(Global.Vt, Add(Global.gi, 1)))), Multiply(Subtract(1, Global.pl), Value In Array(Global.Vt, Subtract(Global.gi, 1))))));
+            End;
+            Wait(0.016, Ignore Condition);
+        End;
+        "The plan's threshold: the first rung (counting up from 50/50) where entering is at least as good as pinging."
+        Set Global Variable(nStar, -1);
+        For Global Variable(gi, 10, 21, 1);
+            If(And(Compare(Global.nStar, <, 0), Compare(Max(Subtract(Multiply(10, Subtract(1, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))))), Multiply(30, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))))), Subtract(Multiply(10, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10)))))), Multiply(30, Subtract(1, Divide(1, Add(1, Raise To Power(4, Subtract(0, Subtract(Global.gi, 10))))))))), >=, Subtract(Value In Array(Global.Vt, Global.gi), 0.0001))));
+                Set Global Variable(nStar, Subtract(Global.gi, 10));
+            End;
+        End;
+        Set Global Variable(pStar, Divide(1, Add(1, Raise To Power(4, Subtract(0, Global.nStar)))));
+    }
+}
+
+rule ("Game 11: at the current belief, what entering now and pinging once more are worth") {
+    event {
+        Subroutine;
+        judge;
+    }
+    actions {
+        Set Global Variable(enterNow, Max(Subtract(Multiply(10, Subtract(1, Global.belief)), Multiply(30, Global.belief)), Subtract(Multiply(10, Global.belief), Multiply(30, Subtract(1, Global.belief)))));
+        If(Compare(Global.acc, >, 0.99));
+            "A perfect ping: after it the belief is 1 or 0, and you enter the empty room."
+            Set Global Variable(pingQ, Add(Add(-1, Multiply(Global.belief, 10)), Multiply(Subtract(1, Global.belief), 10)));
+        Else;
+            Set Global Variable(pl, Add(Multiply(Global.belief, Global.acc), Multiply(Subtract(1, Global.belief), Subtract(1, Global.acc))));
+            Set Global Variable(pingQ, Add(Add(-1, Multiply(Global.pl, Value In Array(Global.Vt, Add(Add(Global.nLat, 10), 1)))), Multiply(Subtract(1, Global.pl), Value In Array(Global.Vt, Subtract(Add(Global.nLat, 10), 1)))));
+        End;
+    }
+}
+
+rule ("Game 11: one ping: draw the reading, log it, move the belief by Bayes' rule") {
+    event {
+        Subroutine;
+        doPing;
+    }
+    actions {
+        Call Subroutine(judge);
+        If(Or(And(Compare(Global.roundN, ==, 1), Compare(Global.pingCount, <, 2)), And(Compare(Global.roundN, ==, 2), Compare(Global.pingCount, <, 1))));
+            Set Global Variable(barShown, False);
+        End;
+        Set Global Variable(pBefore, Global.belief);
+        Set Global Variable(reading, If-Then-Else(Compare(Random Real(0, 1), <, Global.acc), Global.hidden, Subtract(1, Global.hidden)));
+        Set Global Variable(belief, If-Then-Else(Compare(Global.reading, ==, 0), Divide(Multiply(Global.belief, Global.acc), Add(Multiply(Global.belief, Global.acc), Multiply(Subtract(1, Global.belief), Subtract(1, Global.acc)))), Divide(Multiply(Global.belief, Subtract(1, Global.acc)), Add(Multiply(Global.belief, Subtract(1, Global.acc)), Multiply(Subtract(1, Global.belief), Global.acc)))));
+        Modify Global Variable(nLat, Add, If-Then-Else(Compare(Global.reading, ==, 0), 1, -1));
+        Modify Global Variable(pingCount, Add, 1);
+        Modify Global Variable(score, Subtract, 1);
+        If(Compare(Global.reading, ==, 0));
+            Modify Global Variable(nSaidL, Add, 1);
+        Else;
+            Modify Global Variable(nSaidR, Add, 1);
+        End;
+        Set Global Variable(lastSaid, If-Then-Else(Compare(Global.reading, ==, 0), Custom String("LEFT"), Custom String("RIGHT")));
+        If(Compare(Global.pingCount, ==, 1));
+            Set Global Variable(firstReading, Global.reading);
+        End;
+        "ping: round, ping number, reading (0 LEFT, 1 RIGHT), belief before, belief after, entering-now value, ping value"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,ping,{0},{1},{2}", Global.roundN, Global.pingCount, Custom String("{0},{1},{2}", Global.reading, Global.pBefore, Custom String("{0},{1},{2}", Global.belief, Global.enterNow, Global.pingQ))));
+        Set Global Variable(barText, Custom String("chance Sombra is in the LEFT room: {0}%", Round To Integer(Multiply(Global.belief, 100), To Nearest)));
+        Set Global Variable(hudPings, Custom String("pings this round: {0} said LEFT, {1} said RIGHT. Latest: {2}", Global.nSaidL, Global.nSaidR, Global.lastSaid));
+        Set Global Variable(hudRound, Custom String("round {0} of 5   score {1}   the ping is right {2}% of the time", Global.roundN, Global.score, Round To Integer(Multiply(Global.acc, 100), To Nearest)));
+        Small Message(All Players(All Teams), Custom String("PING: {0}", Global.lastSaid));
+        Create Effect(All Players(All Teams), Sphere, Color(Yellow), Add(If-Then-Else(Compare(Global.reading, ==, 0), Global.padL, Global.padR), Up), 1.4, None);
+        Set Global Variable(fx, Last Created Entity);
+        Wait(1, Ignore Condition);
+        Destroy Effect(Global.fx);
+    }
+}
+
+rule ("Game 11: one round: hide Sombra, let him ping or enter, reveal, judge his choice") {
+    event {
+        Subroutine;
+        playRound;
+    }
+    actions {
+        Modify Global Variable(roundN, Add, 1);
+        Set Global Variable(acc, If-Then-Else(Compare(Global.roundN, ==, 5), 1, 0.8));
+        Set Global Variable(hidden, Random Integer(0, 1));
+        "hide: round, her room (0 LEFT, 1 RIGHT), the ping's accuracy this round"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,hide,{0},{1},{2}", Global.roundN, Global.hidden, Global.acc));
+        Set Global Variable(belief, 0.5);
+        Set Global Variable(nLat, 0);
+        Set Global Variable(pingCount, 0);
+        Set Global Variable(nSaidL, 0);
+        Set Global Variable(nSaidR, 0);
+        Set Global Variable(lastSaid, Custom String("none yet"));
+        Set Global Variable(roundDone, False);
+        Set Global Variable(roomsOpen, Compare(Global.roundN, >=, 3));
+        Set Global Variable(barShown, Compare(Global.roundN, >=, 3));
+        Set Global Variable(barText, Custom String("chance Sombra is in the LEFT room: 50%"));
+        Set Global Variable(hudPings, Custom String("pings this round: none yet"));
+        Set Global Variable(hudRound, Custom String("round {0} of 5   score {1}   the ping is right {2}% of the time", Global.roundN, Global.score, Round To Integer(Multiply(Global.acc, 100), To Nearest)));
+        If(Compare(Global.roundN, ==, 1));
+            Set Global Variable(coach, Custom String("Round 1. Press F to ping. The rooms open after two pings."));
+        Else If(Compare(Global.roundN, ==, 2));
+            Set Global Variable(coach, Custom String("Round 2. She has moved. Press F to ping. The rooms open after one ping."));
+        Else If(Compare(Global.roundN, ==, 5));
+            Set Global Variable(coach, Custom String("Last round. The ping is now always right. Ping, or walk into a room."));
+        Else;
+            Set Global Variable(coach, Custom String("Round {0}. Your call: ping with F, or walk onto the pad of the room you think is empty.", Global.roundN));
+        End;
+        "The stand-in's plan for each round: 0 follow the best plan, 1 enter after one ping (the gamble at 80%)."
+        Set Global Variable(autoStyle, If-Then-Else(Or(Compare(Global.roundN, ==, 3), Compare(Global.roundN, ==, 5)), 1, 0));
+        While(Not(Global.roundDone));
+            Set Global Variable(deciding, True);
+            Wait Until(Or(Global.pingReq, And(Global.roomsOpen, Or(Compare(Distance Between(Position Of(Global.learner), Global.padL), <, 2), Compare(Distance Between(Position Of(Global.learner), Global.padR), <, 2)))), 900);
+            Set Global Variable(deciding, False);
+            Stop Throttle In Direction(Global.learner);
+            Set Global Variable(onPad, And(Global.roomsOpen, Or(Compare(Distance Between(Position Of(Global.learner), Global.padL), <, 2), Compare(Distance Between(Position Of(Global.learner), Global.padR), <, 2))));
+            If(Global.pingReq);
+                Set Global Variable(pingReq, False);
+                If(Compare(Global.pingCount, >=, 8));
+                    Set Global Variable(coach, Custom String("That is the most pings for one round. Walk into a room."));
+                    Set Global Variable(roomsOpen, True);
+                Else;
+                    Call Subroutine(doPing);
+                    If(And(Compare(Global.roundN, ==, 1), Compare(Global.pingCount, ==, 1)));
+                        Set Global Variable(qId, 1);
+                        Set Global Variable(qText, Custom String("The ping said {0}. It is right 8 times in 10. How sure should you be she is there?", Global.lastSaid));
+                        Set Global Variable(qOpts, Array(Custom String("50%"), Custom String("80%"), Custom String("94%")));
+                        Set Global Variable(qCorrect, 1);
+                        Set Global Variable(qAuto, 1);
+                        Set Global Variable(qWhy, Custom String("Before it you were 50/50, so the ping's own accuracy is the answer: 80%."));
+                        Call Subroutine(ask);
+                        Set Global Variable(barShown, True);
+                        Set Global Variable(coach, Custom String("The bar is your belief: one number, moved by one rule after each ping. Press F again."));
+                    Else If(And(Compare(Global.roundN, ==, 1), Compare(Global.pingCount, ==, 2)));
+                        Set Global Variable(qId, 2);
+                        Set Global Variable(qText, Custom String("The second ping said {0}. How sure should you be she is in the {0} room now?", Global.lastSaid));
+                        Set Global Variable(qOpts, Array(Custom String("50%"), Custom String("80%"), Custom String("94%")));
+                        Set Global Variable(qCorrect, If-Then-Else(Compare(Global.reading, ==, Global.firstReading), 2, 0));
+                        Set Global Variable(qAuto, 2);
+                        Set Global Variable(qWhy, If-Then-Else(Compare(Global.reading, ==, Global.firstReading), Custom String("Two that agree: 0.8 x 0.8 against 0.2 x 0.2, about 94%."), Custom String("One each way cancels out: back to 50%, as if you had not pinged at all.")));
+                        Call Subroutine(ask);
+                        Set Global Variable(barShown, True);
+                        Set Global Variable(roomsOpen, True);
+                        Set Global Variable(coach, Custom String("Rooms open. Ping more with F, or walk onto the pad of the room you think is EMPTY."));
+                    Else If(And(Compare(Global.roundN, ==, 2), Compare(Global.pingCount, ==, 1)));
+                        Set Global Variable(qId, 3);
+                        Set Global Variable(qText, Custom String("She is 80% likely in the {0} room. Walk into the other now, or ping again: which pays more?", Global.lastSaid));
+                        Set Global Variable(qOpts, Array(Custom String("enter now"), Custom String("ping again")));
+                        Call Subroutine(judge);
+                        Set Global Variable(qCorrect, If-Then-Else(Compare(Global.pingQ, >, Global.enterNow), 1, 0));
+                        Set Global Variable(qAuto, 1);
+                        Set Global Variable(qWhy, Custom String("Entering pays 0.8 x 10 - 0.2 x 30 = {0} on average. Pinging on (then the best plan): {1}.", Global.enterNow, Global.pingQ));
+                        Call Subroutine(ask);
+                        Set Global Variable(barShown, True);
+                        Set Global Variable(roomsOpen, True);
+                        Set Global Variable(coach, Custom String("At these prices 80% is not sure enough: one wrong room costs three right ones. Your call."));
+                    Else;
+                        Set Global Variable(coach, Custom String("That ping was worth {0} on average; entering instead, {1}. {2}", Global.pingQ, Global.enterNow, If-Then-Else(Compare(Global.pingQ, >, Add(Global.enterNow, 0.0001)), Custom String("Worth its cost."), Custom String("Entering was the better bet."))));
+                    End;
+                End;
+            Else If(Global.onPad);
+                Call Subroutine(judge);
+                Set Global Variable(room, If-Then-Else(Compare(Distance Between(Position Of(Global.learner), Global.padL), <, 2), 0, 1));
+                Set Global Variable(roomEv, If-Then-Else(Compare(Global.room, ==, 0), Subtract(Multiply(10, Subtract(1, Global.belief)), Multiply(30, Global.belief)), Subtract(Multiply(10, Global.belief), Multiply(30, Subtract(1, Global.belief)))));
+                Set Global Variable(reward, If-Then-Else(Compare(Global.room, !=, Global.hidden), 10, -30));
+                Modify Global Variable(score, Add, Global.reward);
+                If(Compare(Global.room, !=, Global.hidden));
+                    Modify Global Variable(nGood, Add, 1);
+                End;
+                Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,enter,{0},{1},{2}", Global.roundN, Global.room, Custom String("{0},{1},{2}", Global.hidden, Global.belief, Custom String("{0},{1},{2}", Global.roomEv, Global.enterNow, Custom String("{0},{1},{2}", Global.pingQ, Global.reward, Global.pingCount)))));
+                Create Effect(All Players(All Teams), Sphere, Custom Color(210, 127, 243, 255), Add(If-Then-Else(Compare(Global.hidden, ==, 0), Global.padL, Global.padR), Up), 1.2, None);
+                Set Global Variable(sombraFx, Last Created Entity);
+                Create In-World Text(All Players(All Teams), Custom String("SOMBRA WAS HERE"), Add(If-Then-Else(Compare(Global.hidden, ==, 0), Global.padL, Global.padR), Vector(0, 2.8, 0)), 2, Do Not Clip, None, Custom Color(210, 127, 243, 255), Default Visibility);
+                Set Global Variable(sombraTx, Last Text ID);
+                If(Compare(Global.room, ==, Global.hidden));
+                    Set Status(Global.learner, Null, Hacked, 2);
+                End;
+                Set Global Variable(hudRound, Custom String("round {0} of 5   score {1}   the ping is right {2}% of the time", Global.roundN, Global.score, Round To Integer(Multiply(Global.acc, 100), To Nearest)));
+                Set Global Variable(coach, Custom String("She was in the {0} room. You walked into the {1}: {2}.", If-Then-Else(Compare(Global.hidden, ==, 0), Custom String("LEFT"), Custom String("RIGHT")), If-Then-Else(Compare(Global.room, ==, 0), Custom String("LEFT"), Custom String("RIGHT")), If-Then-Else(Compare(Global.reward, >, 0), Custom String("+10, empty"), Custom String("-30, hacked"))));
+                Set Global Variable(barShown, True);
+                Wait(4, Ignore Condition);
+                Set Global Variable(coach, Custom String("That room was empty with chance {0}%: worth {1} on average. Pinging on: {2}", Round To Integer(Multiply(100, If-Then-Else(Compare(Global.room, ==, 0), Subtract(1, Global.belief), Global.belief)), To Nearest), Global.roomEv, Custom String("{0}. {1}", Global.pingQ, If-Then-Else(Compare(Global.pingQ, >, Add(Global.roomEv, 0.0001)), Custom String("One more ping was worth it."), Custom String("Entering was the better bet.")))));
+                Wait(6, Ignore Condition);
+                Destroy Effect(Global.sombraFx);
+                Destroy In-World Text(Global.sombraTx);
+                Call Subroutine(putHome);
+                Set Facing(Global.learner, Forward, To World);
+                Set Global Variable(roundDone, True);
+            End;
+        End;
+    }
+}
+
+rule ("Game 11: F pings (once per press)") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Global.deciding != False;
+        Global.fArmed != False;
+        Is Button Held(Event Player, Button(Interact)) == True;
+    }
+    actions {
+        Set Global Variable(fArmed, False);
+        Set Global Variable(pingReq, True);
+    }
+}
+
+rule ("Game 11: letting go of F arms the next ping") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Event Player == Global.learner;
+        Is Button Held(Event Player, Button(Interact)) == False;
+    }
+    actions {
+        Set Global Variable(fArmed, True);
+    }
+}
+
+rule ("Game 11: a fall puts him back at home") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.ready != False;
+        (Global.learner).fell != False;
+    }
+    actions {
+        Wait(1, Ignore Condition);
+        Call Subroutine(putHome);
+        Set Facing(Global.learner, Forward, To World);
+    }
+}
+
+rule ("Game 11: the screen (strings are rebuilt only when something changes)") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.ready != False;
+    }
+    actions {
+        Create HUD Text(All Players(All Teams), Null, Null, Global.hudRound, Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.hudPings, Left, 4, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, First Of(Global.debrief), Left, 5, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.debrief, 1), Left, 6, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.debrief, 2), Left, 7, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.hudKeys, Right, 0, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.planText, Right, 1, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create Progress Bar HUD Text(If-Then-Else(Global.barShown, All Players(All Teams), Null), Multiply(Global.belief, 100), Global.barText, Top, 1, Custom Color(210, 127, 243, 255), Color(White), Visible To and Values, Default Visibility);
+    }
+}
+
+rule ("Game 11: run") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.ready != False;
+    }
+    actions {
+        Set Global Variable(hudKeys, Custom String("F: ping (costs 1)   walk onto a pad: enter that room   empty room +10, hers -30"));
+        Create Effect(All Players(All Teams), Ring, Color(White), Global.padL, 2, None);
+        Create Effect(All Players(All Teams), Ring, Color(White), Global.padR, 2, None);
+        Create In-World Text(All Players(All Teams), Custom String("LEFT ROOM"), Add(Global.padL, Vector(0, 1.6, 0)), 2, Do Not Clip, None, Color(White), Default Visibility);
+        Create In-World Text(All Players(All Teams), Custom String("RIGHT ROOM"), Add(Global.padR, Vector(0, 1.6, 0)), 2, Do Not Clip, None, Color(White), Default Visibility);
+        "The game's arithmetic checks itself before anything is shown."
+        Set Global Variable(chkName, Custom String("one ping, belief"));
+        "The game's arithmetic checks itself before anything is shown."
+        Set Global Variable(chkExp, 0.8);
+        "The game's arithmetic checks itself before anything is shown."
+        Set Global Variable(chkGot, 0.8);
+        "The game's arithmetic checks itself before anything is shown."
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("two pings that agree"));
+        Set Global Variable(chkExp, 0.9412);
+        Set Global Variable(chkGot, 0.941176470588235);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("one ping each way"));
+        Set Global Variable(chkExp, 0.5);
+        Set Global Variable(chkGot, 0.5);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("a RIGHT reading from 50%"));
+        Set Global Variable(chkExp, 0.2);
+        Set Global Variable(chkGot, 0.199999999999999);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("ladder rung 2"));
+        Set Global Variable(chkExp, 0.9412);
+        Set Global Variable(chkGot, 0.941176470588235);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("ladder rung -1"));
+        Set Global Variable(chkExp, 0.2);
+        Set Global Variable(chkGot, 0.2);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("enter at 80%"));
+        Set Global Variable(chkExp, 2);
+        Set Global Variable(chkGot, 2.000000000000001);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("enter at 50%"));
+        Set Global Variable(chkExp, -10);
+        Set Global Variable(chkGot, -10);
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("perfect ping, belief"));
+        Set Global Variable(chkExp, 1);
+        Set Global Variable(chkGot, 1);
+        Call Subroutine(check);
+        Call Subroutine(solvePlan);
+        Set Global Variable(chkName, Custom String("best plan at 50%"));
+        Set Global Variable(chkExp, 4.7059);
+        Set Global Variable(chkGot, Value In Array(Global.Vt, 10));
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("best plan at 80%"));
+        Set Global Variable(chkExp, 5.7059);
+        Set Global Variable(chkGot, Value In Array(Global.Vt, 11));
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("best plan at 94% is to enter"));
+        Set Global Variable(chkExp, 7.6471);
+        Set Global Variable(chkGot, Value In Array(Global.Vt, 12));
+        Call Subroutine(check);
+        Set Global Variable(chkName, Custom String("plan threshold rung"));
+        Set Global Variable(chkExp, 2);
+        Set Global Variable(chkGot, Global.nStar);
+        Call Subroutine(check);
+        Set Global Variable(perfectV, 9);
+        Set Global Variable(chkName, Custom String("perfect ping at 50%"));
+        Set Global Variable(chkExp, 9);
+        Set Global Variable(chkGot, Global.perfectV);
+        Call Subroutine(check);
+        "plan: threshold rung, its belief, best-plan value at 50%, 80%, 94%, and with a perfect ping at 50%"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,plan,{0},{1},{2}", Global.nStar, Global.pStar, Custom String("{0},{1},{2}", Value In Array(Global.Vt, 10), Value In Array(Global.Vt, 11), Custom String("{0},{1}", Value In Array(Global.Vt, 12), Global.perfectV))));
+        Set Global Variable(planText, Custom String("Best plan at these prices: ping while the bar is between {0}% and {1}%, else enter.", Round To Integer(Multiply(100, Subtract(1, Global.pStar)), To Nearest), Round To Integer(Multiply(100, Global.pStar), To Nearest)));
+        Set Global Variable(coach, Custom String("Sombra hides, invisible, in one of two rooms. Walk through the EMPTY one: +10. Hers costs 30."));
+        Wait(6, Ignore Condition);
+        Set Global Variable(coach, Custom String("Your ping (F) is a sonic arrow, like Hanzo's: it names her room, right 8 times in 10. Each costs 1."));
+        Wait(6, Ignore Condition);
+        Call Subroutine(playRound);
+        Call Subroutine(playRound);
+        "Two situations that look the same (lesson 11's hidden wall, lecture 7's look-alike squares)."
+        Set Global Variable(qId, 4);
+        Set Global Variable(qText, Custom String("Two players' latest ping both said LEFT. One heard RIGHT before it, one heard LEFT. Same bar?"));
+        Set Global Variable(qOpts, Array(Custom String("same bar"), Custom String("different bars")));
+        Set Global Variable(qCorrect, 1);
+        Set Global Variable(qAuto, 1);
+        Set Global Variable(qWhy, Custom String("Different: 50% and 94%. The latest reading is not a state, like the blind runner's square."));
+        Call Subroutine(ask);
+        Call Subroutine(playRound);
+        "The value of information (lecture 9): a ping is worth most where it can change what you do.\ngain50: how much the best plan at 50% (which pings) beats entering now.\ngain94: how much entering at 94% beats one more ping followed by the best plan."
+        Set Global Variable(gain50, Subtract(Value In Array(Global.Vt, 10), -10));
+        Set Global Variable(gp, 0.941176470588235);
+        Set Global Variable(pl, Add(Multiply(Global.gp, 0.8), Multiply(Subtract(1, Global.gp), 0.199999999999999)));
+        Set Global Variable(gain94, Subtract(Value In Array(Global.Vt, 12), Add(Add(-1, Multiply(Global.pl, Value In Array(Global.Vt, 13))), Multiply(Subtract(1, Global.pl), Value In Array(Global.Vt, 11)))));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,voi,{0},{1}", Global.gain50, Global.gain94));
+        Set Global Variable(qId, 5);
+        Set Global Variable(qText, Custom String("When is one more ping worth most: at 50%, or at 94%?"));
+        Set Global Variable(qOpts, Array(Custom String("at 50%"), Custom String("at 94%"), Custom String("the same")));
+        Set Global Variable(qCorrect, 0);
+        Set Global Variable(qAuto, 0);
+        Set Global Variable(qWhy, Custom String("At 50% pinging gains {0} over entering; at 94% it loses {1}. It pays if it can change your move.", Global.gain50, Global.gain94));
+        Call Subroutine(ask);
+        Call Subroutine(playRound);
+        "A sensor that is always right: the island's single bump."
+        Set Global Variable(qId, 6);
+        Set Global Variable(qText, Custom String("Last round the ping is always right, like Widowmaker's infra-sight. How many pings do you need?"));
+        Set Global Variable(qOpts, Array(Custom String("one"), Custom String("two"), Custom String("three or more")));
+        Set Global Variable(qCorrect, 0);
+        Set Global Variable(qAuto, 0);
+        Set Global Variable(qWhy, Custom String("One. A reading that cannot be wrong turns the belief into a fact: 100% or 0%."));
+        Call Subroutine(ask);
+        Call Subroutine(playRound);
+        "debrief: rounds won, score, predictions right, predictions asked"
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,11,score,{0},{1},{2}", Global.nGood, Global.score, Custom String("{0},{1}", Global.predRight, Global.predTotal)));
+        Set Global Variable(hudKeys, Custom String(""));
+        Set Global Variable(planText, Custom String(""));
+        Set Global Variable(barShown, False);
+        Set Global Variable At Index(debrief, 0, Custom String("You pinged to find out, then walked into a room you could not see into."));
+        Wait(3, Ignore Condition);
+        Set Global Variable At Index(debrief, 1, Custom String("Its name: partial observability. The bar is a belief state; a ping is an action taken for information."));
+        Wait(3, Ignore Condition);
+        Set Global Variable At Index(debrief, 2, Custom String("In an agent: a question or a lookup is a ping, a cancellation is a room. Check what it was shown first."));
+        Set Global Variable(coach, Custom String("Score {0}, empty room {1} of 5 times. Predictions right: {2}", Global.score, Global.nGood, Custom String("{0} of {1}.", Global.predRight, Global.predTotal)));
+        Wait(8, Ignore Condition);
+        Set Global Variable(coach, Custom String("Simplified: two rooms, a ping of known accuracy, Sombra never moves. Real hidden states are too many to list."));
+        Call Subroutine(finish);
+    }
+}
+

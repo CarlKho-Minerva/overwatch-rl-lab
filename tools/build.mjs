@@ -32,6 +32,16 @@ const targets = [
     ["workshop/night/night_pomdp4_probe.opy", "workshop/compiled/night-school-pomdp4-probe.txt"],
     ["workshop/night/night_duel_test.opy", "workshop/compiled/night-school-duel-test.txt"],
 ];
+// The course games: one mode per lecture (gNN.opy, played by a person) and its automatic check (gNN_auto.opy, a bot
+// stands in for the player). A game is listed once its files exist.
+import { existsSync } from "node:fs";
+for (let n = 0; n <= 11; n++) {
+    const id = String(n).padStart(2, "0");
+    for (const [suffix, out] of [["", ""], ["_auto", "-auto"]]) {
+        const src = `workshop/games/g${id}${suffix}.opy`;
+        if (existsSync(resolve(root, src))) targets.push([src, `workshop/compiled/game-${id}${out}.txt`]);
+    }
+}
 
 // With an argument, build only that source file (used by tools/warm_start.py).
 const only = process.argv[2];
