@@ -74,7 +74,7 @@ globalvar swingIn = []
 globalvar swingOut = 0
 globalvar swingB = 0
 globalvar swingO = 0
-globalvar board = ""
+globalvar board = ["", "", "", "", ""]
 globalvar status = ""
 globalvar deb = ["", "", ""]
 globalvar showDeb = false
@@ -111,7 +111,8 @@ def refresh():
     for ii in range(NLEGS):
         tB[ii] = "BLUE {}".format(rB[ii])
         tO[ii] = "ORANGE {}".format(rO[ii])
-    board = "SECONDS FROM EACH RING TO THE POINT\nSPAWN:  blue {}  orange {}\nRING 1:  blue {}  orange {}\nRING 2:  blue {}  orange {}\nRING 3:  blue {}  orange {}\nRING 4:  blue {}  orange {}".format(rB[0], rO[0], rB[1], rO[1], rB[2], rO[2], rB[3], rO[3], rB[4], rO[4])
+        # One right-hand row per ring (a single six-line string made the right block 179 characters, 2026-11-22).
+        board[ii] = "{}:  blue {}  orange {}".format(ringName[ii], rB[ii], rO[ii])
 
 def computeReturns():
     @Name "Game 4: the real time left from each ring to the point (sum of this walk's legs from there on)"
@@ -217,17 +218,24 @@ def doWalk():
 
 rule "Game 4: the screen":
     hudText(getAllPlayers(), null, null, status, HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, board, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, "WASD: walk to the next ring. Answer: left click, right click or melee. Abilities are off.", HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showDeb else null, null, deb[0], null, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showDeb else null, null, deb[1], null, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showDeb else null, null, deb[2], null, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, "SECONDS FROM EACH RING TO THE POINT", HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, board[0], HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, board[1], HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, board[2], HudPosition.RIGHT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, board[3], HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, board[4], HudPosition.RIGHT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, "WASD: walk to the next ring. Answer with left click, right click or melee.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showDeb else null, null, deb[0], null, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showDeb else null, null, deb[1], null, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showDeb else null, null, deb[2], null, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
 rule "Game 4: run":
     @Condition ready
-    learner.setAbility1Enabled(false)
-    learner.setAbility2Enabled(false)
-    learner.setUltEnabled(false)
+    # 2026-11-22: the button rule, not the ability switch: the core turns the ability switch back on after each
+    # question (it switches Blink off while a question is up, because right click is also Blink).
+    learner.disallowButton(Button.ABILITY_1)
+    learner.disallowButton(Button.ABILITY_2)
+    learner.disallowButton(Button.ULTIMATE)
 
     # Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks).
     CHECK("guess from spawn at 3 s a leg", 15, PRIOR_LEG * NLEGS)

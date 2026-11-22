@@ -94,6 +94,7 @@ globalvar walkN
 globalvar walkOk
 globalvar walkT0
 globalvar ruleV
+globalvar myTxt = []
 
 subroutine drawTexts
 subroutine buildDial
@@ -105,12 +106,18 @@ def buildDial():
 
 def drawTexts():
     @Name "Game 2: redraw the pack labels and the numbers on the pads"
-    destroyAllInWorldText()
+    # Only this game's own texts: the core's floating question and options are in-world texts too (2026-11-22).
+    for txtI in range(len(myTxt)):
+        destroyInWorldText(myTxt[txtI])
+    myTxt = []
     createInWorldText(getAllPlayers(), miniLbl, PADPOS(0) + vect(0, 1.7, 0), 1.6, Clip.NONE, WorldTextReeval.NONE, Color.YELLOW)
+    myTxt.append(getLastCreatedText())
     createInWorldText(getAllPlayers(), megaLbl, PADPOS(MEGA_I) + vect(0, 2.4, 0), 2, Clip.NONE, WorldTextReeval.NONE, Color.YELLOW)
+    myTxt.append(getLastCreatedText())
     for txtI in range(NPADS):
         if padOn[txtI] > 0:
             createInWorldText(getAllPlayers(), "?" if padOn[txtI] == 2 else "{}".format(padV[txtI]), PADPOS(txtI) + vect(0, 0.6, 0), 1.5, Clip.NONE, WorldTextReeval.NONE, Color.ORANGE if padOn[txtI] == 2 else Color.WHITE)
+            myTxt.append(getLastCreatedText())
         if txtI % 7 == 6:
             wait()
 
@@ -216,7 +223,7 @@ rule "Game 2: run":
                 break
             dialIdx = (dialIdx + 1) % 4
         buildDial()
-        ctrlLine = "F: turn the dial to a setting not tried yet    R: lock it in    then answer with a click"
+        ctrlLine = "F: turn the dial    R: lock it in    then answer with a click"
         coach = "The dial says how much a pack shrinks for every pad she must walk. Set it, then lock it." if rnd == 0 else "Next setting: {} of 4. F to turn, R to lock.".format(rnd + 1)
         if AUTOPLAY:
             wait(0.5)
@@ -235,8 +242,8 @@ rule "Game 2: run":
         best = 1 if vMega > vMini else 0
         LOG("RLG,E,{},dial,{},{},{},{},{}".format(GAME_ID, rnd, g, vMini, vMega, best))
         qId = 1 + rnd
-        qText = "Dial at {}: every pad walked multiplies a pack's worth by {}. Which pack does she walk to?".format(g, g)
-        qOpts = ["the MINI (15, 3 pads)", "the MEGA (50, 10 pads)"]
+        qText = "Dial at {}. Which pack does she walk to?".format(g)
+        qOpts = ["MINI (15, 3 pads)", "MEGA (50, 10 pads)"]
         qCorrect = best
         qAuto = best
         qWhy = "Mini 15 x {}^3 = {}. Mega 50 x {}^10 = {}. She takes the larger.".format(g, vMini, g, vMega)
@@ -265,12 +272,13 @@ rule "Game 2: run":
 
     # Interleaving: lecture 1's state and the Markov property.
     ctrlLine = "Answer with a click or melee"
+    coach = "A question from lecture 1: what does her state need to hold?"
     qId = 5
-    qText = "Lecture 1 idea: is the pad she stands on enough to predict what happens next?"
-    qOpts = ["yes, here and in a match", "here yes, in a match no", "no, not even here"]
+    qText = "Is her pad enough to predict what comes next, here and in a match?"
+    qOpts = ["yes, both", "here yes, match no", "no, not here"]
     qCorrect = 1
     qAuto = 1
-    qWhy = "Here only her pad changes. In a match a taken pack returns on a timer: add the timer to the state."
+    qWhy = "Here only her pad changes. In a match a taken pack returns on a timer: add it to the state."
     ask()
     wait(0.5 if AUTOPLAY else 2)
 
@@ -294,7 +302,7 @@ rule "Game 2: run":
     padOn[MEGA_I - 3] = 2
     drawTexts()
     qId = 6
-    qText = "The pad ahead of the ? shows {}. This pad = -1 + 0.9 x the pad ahead. What goes on the ?".format(vToMega[MEGA_I - 2])
+    qText = "This pad = -1 + 0.9 x the pad ahead. What goes on the ? pad?"
     qOpts = ["37.60", "33.74", "34.74"]
     qCorrect = 1
     qAuto = 1
@@ -347,8 +355,9 @@ rule "Game 2: run":
     # A value belongs to a pad and a way of walking.
     putHome()
     ctrlLine = "Answer with a click"
+    coach = "Same start pad, same discount 0.9. Now she always walks to the MINI."
     qId = 7
-    qText = "Same pad, same 0.9, but now she always walks to the MINI. Start pad: more or less than {}?".format(vToMega[START_I])
+    qText = "Walking to the MINI: start pad more or less than {}?".format(vToMega[START_I])
     qOpts = ["more", "less"]
     qCorrect = 1
     qAuto = 1
@@ -366,9 +375,9 @@ rule "Game 2: run":
 
     # Debrief.
     ctrlLine = ""
-    debrief1 = "You did: turned the discount, called her pick, and walked a row of values checked one step at a time."
-    debrief2 = "Called: the discount gamma, the return (a discounted sum), value under a policy, the Bellman equation."
-    debrief3 = "In an agent: low gamma takes the quick answer now; high gamma pays for more tool calls to get a better one."
+    debrief1 = "You did: set the discount, called her pack, walked a row checked one step at a time."
+    debrief2 = "Called: discount, return (a discounted sum), value under a policy, Bellman equation."
+    debrief3 = "In an agent: low gamma answers now, high gamma spends tool calls on a better answer."
     coach = "Your predictions: {} of {} right.".format(predRight, predTotal)
     LOG("RLG,E,{},end,{},{}".format(GAME_ID, predRight, predTotal))
     wait(1 if AUTOPLAY else 12)

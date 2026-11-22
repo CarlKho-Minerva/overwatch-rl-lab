@@ -63,6 +63,7 @@ macro PAUSE(t):
     wait(0.4 if AUTOPLAY else t)
 
 # The hidden danger of each pad. Thirds: pads 1-4 low, 5-8 high, 9-12 low except pad 10, the trap.
+globalvar padTxt = []
 globalvar truth = [2, 1, 2, 1, 8, 9, 7, 8, 1, 9, 2, 1]
 globalvar descE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 globalvar descT = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]
@@ -118,6 +119,7 @@ globalvar q5Pads = [4, 9, 11]
 globalvar wrongMax = 0
 globalvar stepsLine = ""
 globalvar legendLine = ""
+globalvar legend2 = ""
 globalvar missHead = ""
 globalvar rowE = ""
 globalvar rowT = ""
@@ -215,10 +217,16 @@ def drawPads():
             padLow[pi] = "{} | {} | {}".format(estE[pi], estT[pi], estW[pi])
         elif lowMode == 2:
             padLow[pi] = "{} | {} | {} | {}".format(estE[pi], estT[pi], estW[pi], estS[pi])
-    destroyAllInWorldText()
+    # 2026-11-22: only this game's own labels are removed. destroyAllInWorldText also removed the core's floating
+    # question, so a person saw no question after the first redraw.
+    for pi in range(len(padTxt)):
+        destroyInWorldText(padTxt[pi])
+    padTxt = []
     for pi in range(NPADS):
         createInWorldText(getAllPlayers(), padTop[pi], padPos[pi] + vect(0, 2.3, 0), 1.3, Clip.NONE, WorldTextReeval.NONE, Color.WHITE)
+        padTxt.append(getLastCreatedText())
         createInWorldText(getAllPlayers(), padLow[pi], padPos[pi] + vect(0, 1.5, 0), 1.2, Clip.NONE, WorldTextReeval.NONE, Color.SKY_BLUE)
+        padTxt.append(getLastCreatedText())
         if pi % 4 == 3:
             wait()
 
@@ -252,7 +260,7 @@ rule "Game 6: back to the start after a fall":
 
 rule "Game 6: the screen":
     @Condition ready
-    hudText(getAllPlayers(), null, null, "WASD walk.  F (Interact): scout the pad you stand in.  Answer: left click, right click, melee.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, "WASD walk. F (Interact): scout your pad. Answer: left click, right click, melee.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, stepsLine, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, deb1, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, deb2, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
@@ -263,6 +271,7 @@ rule "Game 6: the screen":
     hudText(getAllPlayers(), null, null, rowW, HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, rowS, HudPosition.RIGHT, 4, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, legendLine, HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, legend2, HudPosition.RIGHT, 6, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
 
 rule "Game 6: run":
     @Condition ready
@@ -364,11 +373,12 @@ rule "Game 6: run":
     lowMode = 1
     drawRings()
     drawPads()
-    legendLine = "Under each pad: EXACT | THIRDS | ONE WORD, after 6 calls.  Red ring: danger 5 or more."
-    missHead = "Typical miss per pad (0 = all 12 right)"
-    rowE = "EXACT, 12 numbers:    after 6 calls {}".format(m6[0])
-    rowT = "THIRDS, 3 numbers:    after 6 calls {}".format(m6[1])
-    rowW = "ONE WORD, 1 number:   after 6 calls {}".format(m6[2])
+    legendLine = "Under each pad: EXACT | THIRDS | ONE WORD"
+    legend2 = "Numbers after 6 calls. Red ring: danger 5 or more."
+    missHead = "Typical miss (0 = all right): 6 calls / 60 / forever"
+    rowE = "EXACT, 12 numbers:   {}".format(m6[0])
+    rowT = "THIRDS, 3 numbers:   {}".format(m6[1])
+    rowW = "ONE WORD, 1 number:   {}".format(m6[2])
     coach = "Truth shown. EXACT is a table: a pad it never saw stays at 0. It cannot guess where it has not been."
     PAUSE(7)
     coach = "THIRDS shares: one call moves the number for 4 pads. Learning spread to similar pads is generalisation."
@@ -406,10 +416,10 @@ rule "Game 6: run":
         playEffect(getAllPlayers(), DynamicEffect.GOOD_EXPLOSION, Color.SKY_BLUE, padPos[sPad[BUDGET + kk]], 0.6)
         wait(0.05 if AUTOPLAY else 0.12)
     drawPads()
-    legendLine = "Under each pad: EXACT | THIRDS | ONE WORD, after 60 calls.  Red ring: danger 5 or more."
-    rowE = "EXACT, 12 numbers:    after 6 calls {}   after 60 {}".format(m6[0], m60[0])
-    rowT = "THIRDS, 3 numbers:    after 6 calls {}   after 60 {}".format(m6[1], m60[1])
-    rowW = "ONE WORD, 1 number:   after 6 calls {}   after 60 {}".format(m6[2], m60[2])
+    legend2 = "Numbers after 60 calls. Red ring: danger 5 or more."
+    rowE = "EXACT, 12 numbers:   {}  /  {}".format(m6[0], m60[0])
+    rowT = "THIRDS, 3 numbers:   {}  /  {}".format(m6[1], m60[1])
+    rowW = "ONE WORD, 1 number:   {}  /  {}".format(m6[2], m60[2])
     coach = "With every pad visited the table won. THIRDS and ONE WORD learned fast, then stopped getting better."
     PAUSE(7)
     coach = "Same method, three descriptions: average per group. EXACT has one group per pad: a table is the special case."
@@ -441,10 +451,10 @@ rule "Game 6: run":
     qWhy = "Pad 10: a 9 in a third of 1s and 2s. THIRDS calls it 3.25 forever, and pulls pad 12 up too."
     ask()
     drawPads()
-    legendLine = "Under each pad: EXACT | THIRDS | ONE WORD, scouting forever.  Red ring: danger 5 or more."
-    rowE = "EXACT, 12 numbers:    after 6 calls {}   after 60 {}   forever {}".format(m6[0], m60[0], mInf[0])
-    rowT = "THIRDS, 3 numbers:    after 6 calls {}   after 60 {}   forever {}".format(m6[1], m60[1], mInf[1])
-    rowW = "ONE WORD, 1 number:   after 6 calls {}   after 60 {}   forever {}".format(m6[2], m60[2], mInf[2])
+    legend2 = "Numbers if scouting forever. Red ring: danger 5 or more."
+    rowE = "EXACT, 12 numbers:   {}  /  {}  /  {}".format(m6[0], m60[0], mInf[0])
+    rowT = "THIRDS, 3 numbers:   {}  /  {}  /  {}".format(m6[1], m60[1], mInf[1])
+    rowW = "ONE WORD, 1 number:   {}  /  {}  /  {}".format(m6[2], m60[2], mInf[2])
     coach = "Forever: EXACT {}, THIRDS {}, ONE WORD {}. A coarser map learns faster and has a floor.".format(mInf[0], mInf[1], mInf[2])
     PAUSE(8)
 
@@ -500,8 +510,8 @@ rule "Game 6: run":
     drawRings()
     lowMode = 2
     drawPads()
-    legendLine = "Under each pad: EXACT | THIRDS | ONE WORD | YOURS, scouting forever."
-    rowS = "YOURS, 4 numbers:     after 6 calls {}   after 60 {}   forever {}".format(mS[0], mS[1], mS[2])
+    legendLine = "Under each pad: EXACT | THIRDS | ONE WORD | YOURS"
+    rowS = "YOURS, 4 numbers:   {}  /  {}  /  {}".format(mS[0], mS[1], mS[2])
     coach = "Choosing the description is most of the work. Here you chose it by hand; a network learns its own."
     PAUSE(8)
     coach = "Honest note: the mildest form, fixed hand-made groups and plain averages, not a learned network."
@@ -509,8 +519,8 @@ rule "Game 6: run":
 
     # ---------------- Debrief ----------------
     stepsLine = ""
-    deb1 = "You scouted 6 pads, and three maps learned from the same calls: 12 numbers, 3 numbers, 1 number."
-    deb2 = "Called value function approximation: features share one sighting across similar states."
-    deb3 = "A language model: sensible on prompts it never saw, confidently wrong when two look alike and are not."
+    deb1 = "You scouted 6 pads; three maps learned from the same calls: 12 numbers, 3, and 1."
+    deb2 = "Called value function approximation: features share a sighting across similar states."
+    deb3 = "A language model: sensible on new prompts, sure but wrong when look-alikes differ."
     coach = "Predictions right: {} of {}. Game over.".format(predRight, predTotal)
     finish()

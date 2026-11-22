@@ -57,32 +57,34 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: ringPos
-        28: goalRing
-        29: trapRing
-        30: oldGoal
-        31: rnd
-        32: roundOn
-        33: touched
-        34: found
-        35: trapHit
-        36: secs
-        37: total
-        38: last
-        39: lastSrc
-        40: totals
-        41: r1Total
-        42: r2Total
-        43: r1Found
-        44: ri
-        45: ki
-        46: autoTgt
-        47: autoRoute
-        48: hudScore
-        49: hudRounds
-        50: hudGap
-        51: debrief
-        52: db
+        27: qTxtTop
+        28: qTxtLow
+        29: ringPos
+        30: goalRing
+        31: trapRing
+        32: oldGoal
+        33: rnd
+        34: roundOn
+        35: touched
+        36: found
+        37: trapHit
+        38: secs
+        39: total
+        40: last
+        41: lastSrc
+        42: totals
+        43: r1Total
+        44: r2Total
+        45: r1Found
+        46: ri
+        47: ki
+        48: autoTgt
+        49: autoRoute
+        50: hudScore
+        51: hudRounds
+        52: hudGap
+        53: debrief
+        54: db
     player:
         0: fellCount
         1: fell
@@ -287,12 +289,21 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -304,6 +315,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -377,9 +389,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 1: NO COACH"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -467,7 +476,7 @@ rule ("Game 1: the late bill, the round's total, its self-test and its log line"
         Call Subroutine(check);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,round,{0},{1},{2}", Global.rnd, Global.found, Custom String("{0},{1},{2}", Global.secs, Global.trapHit, Global.total)));
         Set Global Variable At Index(totals, Subtract(Global.rnd, 1), Global.total);
-        Set Global Variable(hudRounds, Custom String("round 1: {0}     round 2: {1}     round 3: {2}", First Of(Global.totals), Value In Array(Global.totals, 1), Custom String("{0}     round 4: {1}", Value In Array(Global.totals, 2), Value In Array(Global.totals, 3))));
+        Set Global Variable(hudRounds, Custom String("round totals   1: {0}   2: {1}   3: {2}", First Of(Global.totals), Value In Array(Global.totals, 1), Custom String("{0}   4: {1}", Value In Array(Global.totals, 2), Value In Array(Global.totals, 3))));
     }
 }
 
@@ -546,13 +555,13 @@ rule ("Game 1: the screen") {
     }
     actions {
         Create HUD Text(All Players(All Teams), Global.hudScore, Null, Null, Left, 3, Color(Yellow), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Custom String("WASD walk. Answer questions with left click, right click or melee."), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, Null, All Players(All Teams)), Null, Custom String("WASD walk. Answer questions with left click, right click or melee."), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.hudRounds, !=, Custom String("")), All Players(All Teams), Null), Null, Null, Global.hudRounds, Right, 0, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.hudGap, !=, Custom String("")), All Players(All Teams), Null), Null, Null, Global.hudGap, Right, 1, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, First Of(Global.db), Right, 2, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 1), Right, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 2), Right, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 3), Right, 5, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, First Of(Global.db), Left, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 1), Left, 6, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 2), Left, 7, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.debrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.db, 3), Left, 8, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
 }
 
@@ -650,7 +659,7 @@ rule ("Game 1: run") {
         Call Subroutine(playRound);
         Call Subroutine(settleRound);
         Set Global Variable(r2Total, Global.total);
-        Set Global Variable(hudGap, Custom String("round 2 minus round 1: {0}. That gap is what the score taught you.", Subtract(Global.r2Total, Global.r1Total)));
+        Set Global Variable(hudGap, Custom String("round 2 minus round 1: {0}, what the score taught", Subtract(Global.r2Total, Global.r1Total)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,1,gap,{0},{1},{2}", Global.r1Total, Global.r2Total, Subtract(Global.r2Total, Global.r1Total)));
         If(Compare(Global.r2Total, >, Global.r1Total));
             Set Global Variable(coach, Custom String("Round 2 beat round 1 by {0}. Same map, more score: that is learning from reward.", Subtract(Global.r2Total, Global.r1Total)));
@@ -711,9 +720,9 @@ rule ("Game 1: run") {
         Set Global Variable(coach, Custom String("Round 4: {0}. It looked like round 2, but it was not: that is partial observability.", Global.total));
         Wait(7, Ignore Condition);
         "Debrief."
-        Set Global Variable At Index(db, 0, Custom String("What you did: found the paying ring from a number alone, then ran it from memory, blind."));
-        Set Global Variable At Index(db, 1, Custom String("What it is called: learning from reward, with late feedback; what you remembered was your state."));
-        Set Global Variable At Index(db, 2, Custom String("In a language-model agent: a task scored only at the end, with the transcript as its history."));
+        Set Global Variable At Index(db, 0, Custom String("What you did: found the paying ring from a number alone, then ran to it blind."));
+        Set Global Variable At Index(db, 1, Custom String("What it is called: learning from reward, with late feedback. Your memory was your state."));
+        Set Global Variable At Index(db, 2, Custom String("In a language-model agent: a task scored only at the end; the transcript is its history."));
         Set Global Variable At Index(db, 3, Custom String("Your predictions: {0} of {1} right.", Global.predRight, Global.predTotal));
         Set Global Variable(debrief, True);
         Set Global Variable(coach, Custom String("Simplified: you always knew where you stood, and the rules held still. Real agents see less."));

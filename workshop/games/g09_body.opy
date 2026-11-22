@@ -115,10 +115,11 @@ globalvar ubTxt = ["", "", "", ""]
 globalvar hudMine = ""
 globalvar hudStrat = ""
 globalvar hudReg = ""
-globalvar hudRp = ["", "", ""]
+globalvar hudGreedy = ""
+globalvar hudRp = ["", "", "", ""]
 globalvar showRp = false
 globalvar showEnd = false
-globalvar endLine = ["", "", "", ""]
+globalvar endLine = ["", "", "", "", ""]
 
 subroutine openRound
 subroutine doOpen
@@ -137,6 +138,8 @@ rule "Game 9: run":
     odds = random.shuffle([0.2, 0.4, 0.55, 0.7])
     for gI in range(NBOX * BUDGET):
         payTab[gI] = 1 if random.uniform(0, 1) < odds[floor(gI / BUDGET)] else 0
+        if gI % 30 == 29:
+            wait()
     for gI in range(BUDGET):
         coinTab[gI] = random.randint(0, 39)
     for gI in range(RP_OPENS + 1):
@@ -148,15 +151,19 @@ rule "Game 9: run":
     for gI in range(8):
         # draws: box, half (opens 0-14 or 15-29), then the 15 results
         LOG("RLG,E,{},draws,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(GAME_ID, floor(gI / 2), gI % 2, payTab[gI * 15], payTab[gI * 15 + 1], payTab[gI * 15 + 2], payTab[gI * 15 + 3], payTab[gI * 15 + 4], payTab[gI * 15 + 5], payTab[gI * 15 + 6], payTab[gI * 15 + 7], payTab[gI * 15 + 8], payTab[gI * 15 + 9], payTab[gI * 15 + 10], payTab[gI * 15 + 11], payTab[gI * 15 + 12], payTab[gI * 15 + 13], payTab[gI * 15 + 14]))
+        wait()
     for gI in range(2):
         LOG("RLG,E,{},coin,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(GAME_ID, gI, coinTab[gI * 15], coinTab[gI * 15 + 1], coinTab[gI * 15 + 2], coinTab[gI * 15 + 3], coinTab[gI * 15 + 4], coinTab[gI * 15 + 5], coinTab[gI * 15 + 6], coinTab[gI * 15 + 7], coinTab[gI * 15 + 8], coinTab[gI * 15 + 9], coinTab[gI * 15 + 10], coinTab[gI * 15 + 11], coinTab[gI * 15 + 12], coinTab[gI * 15 + 13], coinTab[gI * 15 + 14]))
+        wait()
     # Self-tests, one per formula the game uses
     CHECK("ln 8", 2.079, lnTab[8])
     CHECK("ln 300", 5.704, lnTab[300])
     CHECK("3 or more of 4 from a 0.4 box", 0.179, 4 * 0.4 * 0.4 * 0.4 * 0.6 + 0.4 * 0.4 * 0.4 * 0.4)
+    wait()
     CHECK("3 or more of 4 from a 0.55 box", 0.391, 4 * 0.55 * 0.55 * 0.55 * 0.45 + 0.55 * 0.55 * 0.55 * 0.55)
     CHECK("greedy locks out the 0.7 box", 0.235, 0.3 * (1 - 0.8 * 0.6 * 0.45))
     CHECK("bonus of a box opened once after 8 opens in all", 2.039, 0 + sqrt(2 * lnTab[8] / 1))
+    wait()
     CHECK("best case of a box at 4 of 6 after 8 opens in all", 1.499, 4 / 6 + sqrt(2 * lnTab[8] / 6))
     CHECK("coin's lowest regret per 100 opens", 2.375, 100 * 0.1 * ((0.7 - 0.2) + (0.7 - 0.4) + (0.7 - 0.55) + (0.7 - 0.7)) / 4)
     CHECK("regret of opens 1 2 3 4 on odds .2 .4 .55 .7", 1.55, 1 * (PMAX - 0.2) + 2 * (PMAX - 0.4) + 3 * (PMAX - 0.55) + 4 * (PMAX - 0.7))
@@ -218,7 +225,7 @@ rule "Game 9: run":
     qOpts = ["never again", "opens it again later", "opens it every time"]
     qCorrect = 1
     qAuto = 1
-    qWhy = "Its bonus grows with all opens: after 8, a once-lost box scores {} against {} for one at 4 of 6.".format(round(100 * sqrt(2 * lnTab[8])) / 100, round(100 * (4 / 6 + sqrt(2 * lnTab[8] / 6))) / 100)
+    qWhy = "Its bonus grows with all opens: after 8, a once-lost box scores {}, one at 4 of 6 only {}.".format(round(100 * sqrt(2 * lnTab[8])) / 100, round(100 * (4 / 6 + sqrt(2 * lnTab[8] / 6))) / 100)
     ask()
     coach = "Optimism in the face of uncertainty: what you barely know might be the best, so you look."
     wait(1 if AUTOPLAY else 5)
@@ -235,7 +242,7 @@ rule "Game 9: run":
     qOpts = ["only greedy", "greedy and the coin", "all three"]
     qCorrect = 1
     qAuto = 1
-    qWhy = "Greedy can stick on a worse box; the coin pays {} per 100 forever. The optimist's bill shrinks.".format(round(10 * 100 * 0.1 * ((0.7 - 0.2) + (0.7 - 0.4) + (0.7 - 0.55)) / 4) / 10)
+    qWhy = "Greedy can stick on a worse box; the coin pays {} per 100 forever. Optimism's bill shrinks.".format(round(10 * 100 * 0.1 * ((0.7 - 0.2) + (0.7 - 0.4) + (0.7 - 0.55)) / 4) / 10)
     ask()
     showRp = true
     coach = "Right side: regret added per 100 opens. Short games favour the coin; the optimist's line bends."
@@ -250,7 +257,7 @@ rule "Game 9: run":
     qOpts = ["the box I know", "the barely known box"]
     qCorrect = 0
     qAuto = 0
-    qWhy = "Nothing you learn now can change a later open. Information is worth most when many opens remain."
+    qWhy = "Nothing learned now can change a later open. Information is worth most when many opens remain."
     ask()
     coach = "That is the value of information: an open is worth more when it could change what you do next."
     wait(1 if AUTOPLAY else 4)
@@ -260,10 +267,11 @@ rule "Game 9: run":
     roundSummary()
 
     # Debrief
-    endLine[0] = "The odds were A {}, B {}, C {}, D {}. You opened A {}, B {}, C {}, D {} times.".format(odds[0], odds[1], odds[2], odds[3], myN[0], myN[1], myN[2], myN[3])
-    endLine[1] = "You did: {} from 30 opens, regret {}. Greedy {}, coin {}, optimist {} on the same luck.".format(myTot, myReg, sTot[0], sTot[1], sTot[2])
-    endLine[2] = "It is called: the explore-exploit dilemma, scored by regret; optimism (UCB1) explores where unsure."
-    endLine[3] = "In an agent: the tool call it knows, or one that might be better. What it does not know is part of its state."
+    endLine[0] = "Odds were A {}, B {}, C {}, D {}. Your opens: A {}, B {}, C {}, D {}.".format(odds[0], odds[1], odds[2], odds[3], myN[0], myN[1], myN[2], myN[3])
+    endLine[1] = "You: {} from 30 opens, regret {}. Same luck: greedy {}, coin {}, optimist {}.".format(myTot, myReg, sTot[0], sTot[1], sTot[2])
+    endLine[2] = "Called: the explore-exploit dilemma, scored by regret. UCB1 explores where unsure."
+    endLine[3] = "In an agent: the tool call it knows, or one that might be better."
+    endLine[4] = "What it does not know is part of its state."
     showEnd = true
     LOG("RLG,E,{},end,{},{},{},{},{},{},{},{},{}".format(GAME_ID, myTot, myReg, sTot[0], sReg[0], sTot[1], sReg[1], sTot[2], sReg[2], predRight))
     coach = "Predictions right: {} of {}. Debrief on the left.".format(predRight, predTotal)
@@ -325,7 +333,9 @@ def doOpen():
         sS[sK * 4 + armPick] += sPay[sK]
         sTot[sK] += sPay[sK]
         sReg[sK] += PMAX - odds[armPick]
+    wait()
     refreshView()
+    wait()
     # open: t, box, which open of that box, paid, his total, his regret
     LOG("RLG,E,{},open,{},{},{},{},{},{}".format(GAME_ID, myT, oBox, oK, oPay, myTot, myReg))
     # step: t, coin draw, then box and pay for greedy, coin, optimist
@@ -362,7 +372,8 @@ def refreshView():
 
 def roundSummary():
     @Name "Game 9: regret so far, and where each strategy has been opening"
-    hudReg = "regret so far:  you {}   greedy {}   coin {}   optimist {}\ngreedy opened A {} B {} C {} D {}".format(myReg, sReg[0], sReg[1], sReg[2], sN[0], sN[1], sN[2], sN[3])
+    hudReg = "regret so far:  you {}   greedy {}   coin {}   optimist {}".format(myReg, sReg[0], sReg[1], sReg[2])
+    hudGreedy = "greedy has opened A {}, B {}, C {}, D {}".format(sN[0], sN[1], sN[2], sN[3])
     # round: number, t, his total, his regret, then total and regret for greedy, coin, optimist
     LOG("RLG,E,{},round,{},{},{},{},{},{},{},{},{},{}".format(GAME_ID, roundNo, myT, myTot, myReg, sTot[0], sReg[0], sTot[1], sReg[1], sTot[2], sReg[2]))
     coach = "Regret: per open, how much less your box pays on average than the best box. Added up. Lower is better."
@@ -384,6 +395,10 @@ rule "Game 9: Interact on a pad opens that box":
 # ---------------------------------------------------------------------------
 rule "Game 9: replays":
     @Condition setupDone
+    # Server load, measured 2026-11-22: 15 opens per frame, started with the setup, peaked at 93 (the game's warning
+    # line is 100). Now it waits out the match-start load, runs 5 opens per frame, and gives the server an extra frame
+    # whenever its load reads over 60. The draws and their order are unchanged.
+    wait(3)
     replayT0 = NOW
     rpSum = []
     rpSum[35] = 0
@@ -408,15 +423,20 @@ rule "Game 9: replays":
                 if rpT % 100 == 99:
                     for rpI in range(NBOX):
                         rpSum[(rpK * 3 + floor(rpT / 100)) * 4 + rpI] += rpN[rpI]
-                if rpT % 15 == 14:
+                if rpT % 5 == 4:
                     wait()
+                    if getServerLoad() > 60:
+                        wait()
     for rpC in range(9):
         rpReg[rpC] = (rpSum[rpC * 4] * (PMAX - odds[0]) + rpSum[rpC * 4 + 1] * (PMAX - odds[1]) + rpSum[rpC * 4 + 2] * (PMAX - odds[2]) + rpSum[rpC * 4 + 3] * (PMAX - odds[3])) / RP_GAMES
         # replay: strategy, checkpoint (0 = 100 opens, 1 = 200, 2 = 300), opens of each box summed over the games, average regret
         LOG("RLG,E,{},replay,{},{},{},{},{},{},{}".format(GAME_ID, floor(rpC / 3), rpC % 3, rpSum[rpC * 4], rpSum[rpC * 4 + 1], rpSum[rpC * 4 + 2], rpSum[rpC * 4 + 3], rpReg[rpC]))
-    hudRp[0] = "20 replays of 300 opens. Regret added in opens 1-100, 101-200, 201-300:"
-    hudRp[1] = "greedy {}, {}, {}      coin {}, {}, {}".format(round(rpReg[0] * 10) / 10, round((rpReg[1] - rpReg[0]) * 10) / 10, round((rpReg[2] - rpReg[1]) * 10) / 10, round(rpReg[3] * 10) / 10, round((rpReg[4] - rpReg[3]) * 10) / 10, round((rpReg[5] - rpReg[4]) * 10) / 10)
-    hudRp[2] = "optimist {}, {}, {}      the coin can never go under {} per 100".format(round(rpReg[6] * 10) / 10, round((rpReg[7] - rpReg[6]) * 10) / 10, round((rpReg[8] - rpReg[7]) * 10) / 10, round(10 * 100 * 0.1 * ((PMAX - 0.2) + (PMAX - 0.4) + (PMAX - 0.55)) / 4) / 10)
+        wait()
+    hudRp[0] = "20 replays of 300 opens. Regret added per 100 opens:"
+    hudRp[1] = "greedy {}, {}, {}".format(round(rpReg[0] * 10) / 10, round((rpReg[1] - rpReg[0]) * 10) / 10, round((rpReg[2] - rpReg[1]) * 10) / 10)
+    wait()
+    hudRp[2] = "coin {}, {}, {}   (never under {})".format(round(rpReg[3] * 10) / 10, round((rpReg[4] - rpReg[3]) * 10) / 10, round((rpReg[5] - rpReg[4]) * 10) / 10, round(10 * 100 * 0.1 * ((PMAX - 0.2) + (PMAX - 0.4) + (PMAX - 0.55)) / 4) / 10)
+    hudRp[3] = "optimist {}, {}, {}".format(round(rpReg[6] * 10) / 10, round((rpReg[7] - rpReg[6]) * 10) / 10, round((rpReg[8] - rpReg[7]) * 10) / 10)
     LOG("RLG,E,{},replaytime,{}".format(GAME_ID, NOW - replayT0))
     replayDone = true
 
@@ -425,17 +445,26 @@ rule "Game 9: replays":
 # ---------------------------------------------------------------------------
 rule "Game 9: the screen":
     @Condition setupDone
-    hudText(getAllPlayers(), null, null, hudMine, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, hudStrat, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, hudReg, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showEnd else null, null, null, endLine[0], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showEnd else null, null, null, endLine[1], HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showEnd else null, null, null, endLine[2], HudPosition.LEFT, 8, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showEnd else null, null, null, endLine[3], HudPosition.LEFT, 9, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, "WASD: walk.  Interact (F) on a yellow pad: open that box.\nAnswer: left click, right click, melee.", HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showRp else null, null, null, hudRp[0], HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showRp else null, null, null, hudRp[1], HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if showRp else null, null, null, hudRp[2], HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    # Left block (the core's title, coach and score are rows 0 to 2): during play rows 3 to 6, at the end the five
+    # debrief rows take their place, so at most 8 rows show. Text rows stay under 88 characters, the right block's
+    # under 58 (LAYOUT_BRIEF, 2026-11-22).
+    hudText(getAllPlayers() if not showEnd else null, null, null, hudMine, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if not showEnd else null, null, null, hudStrat, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if not showEnd else null, null, null, hudReg, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if not showEnd else null, null, null, hudGreedy, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showEnd else null, null, null, endLine[0], HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showEnd else null, null, null, endLine[1], HudPosition.LEFT, 8, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showEnd else null, null, null, endLine[2], HudPosition.LEFT, 9, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showEnd else null, null, null, endLine[3], HudPosition.LEFT, 10, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showEnd else null, null, null, endLine[4], HudPosition.LEFT, 11, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
+    # Right block: the controls, then the replays once question 4 is answered (at most 6 rows).
+    hudText(getAllPlayers(), null, null, "WASD: walk. Interact (F) on a yellow pad: open it.", HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, "Answer: left click, right click or melee.", HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showRp else null, null, null, hudRp[0], HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showRp else null, null, null, hudRp[1], HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showRp else null, null, null, hudRp[2], HudPosition.RIGHT, 4, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if showRp else null, null, null, hudRp[3], HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    wait()
     createInWorldText(getAllPlayers(), padTxt[0], padPos[0] + vect(0, 1.2, 1.2), 1.6, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE)
     createInWorldText(getAllPlayers(), padTxt[1], padPos[1] + vect(0, 1.2, 1.2), 1.6, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE)
     createInWorldText(getAllPlayers(), padTxt[2], padPos[2] + vect(0, 1.2, 1.2), 1.6, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE)

@@ -57,69 +57,73 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: truth
-        28: descE
-        29: descT
-        30: descW
-        31: descS
-        32: allPads
-        33: autoPads
-        34: padPos
-        35: padCnt
-        36: padLast
-        37: padTop
-        38: padLow
-        39: sPad
-        40: sVal
-        41: uPad
-        42: uVal
-        43: desc
-        44: fit
-        45: fitErr
-        46: fitSq
-        47: fitD
-        48: gSum
-        49: gCnt
-        50: fi
-        51: pi
-        52: estE
-        53: estT
-        54: estW
-        55: estS
-        56: missE
-        57: missT
-        58: missW
-        59: m6
-        60: m60
-        61: mInf
-        62: mS
-        63: bestMap
-        64: bestV
-        65: stageNo
-        66: callPad
-        67: callNoise
-        68: callVal
-        69: scoutOpen
-        70: scoutReq
-        71: scoutN
-        72: herePad
-        73: pickPad
-        74: ringMode
-        75: lowMode
-        76: topMode
-        77: kk
-        78: q5Pads
-        79: wrongMax
-        80: stepsLine
-        81: legendLine
-        82: missHead
-        83: rowE
-        84: rowT
-        85: rowW
-        86: rowS
-        87: deb1
-        88: deb2
-        89: deb3
+        27: qTxtTop
+        28: qTxtLow
+        29: padTxt
+        30: truth
+        31: descE
+        32: descT
+        33: descW
+        34: descS
+        35: allPads
+        36: autoPads
+        37: padPos
+        38: padCnt
+        39: padLast
+        40: padTop
+        41: padLow
+        42: sPad
+        43: sVal
+        44: uPad
+        45: uVal
+        46: desc
+        47: fit
+        48: fitErr
+        49: fitSq
+        50: fitD
+        51: gSum
+        52: gCnt
+        53: fi
+        54: pi
+        55: estE
+        56: estT
+        57: estW
+        58: estS
+        59: missE
+        60: missT
+        61: missW
+        62: m6
+        63: m60
+        64: mInf
+        65: mS
+        66: bestMap
+        67: bestV
+        68: stageNo
+        69: callPad
+        70: callNoise
+        71: callVal
+        72: scoutOpen
+        73: scoutReq
+        74: scoutN
+        75: herePad
+        76: pickPad
+        77: ringMode
+        78: lowMode
+        79: topMode
+        80: kk
+        81: q5Pads
+        82: wrongMax
+        83: stepsLine
+        84: legendLine
+        85: legend2
+        86: missHead
+        87: rowE
+        88: rowT
+        89: rowW
+        90: rowS
+        91: deb1
+        92: deb2
+        93: deb3
     player:
         0: fellCount
         1: fell
@@ -156,6 +160,7 @@ rule ("Initialize global variables") {
         Set Global Variable(qRight, False);
         Set Global Variable(qWhy, Custom String(""));
         Set Global Variable(chkName, Custom String(""));
+        Set Global Variable(padTxt, Empty Array);
         Set Global Variable(truth, Array(2, 1, 2, 1, 8, 9, 7, 8, 1, 9, 2, 1));
         Set Global Variable(descE, Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
         Set Global Variable(descT, Array(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2));
@@ -191,6 +196,7 @@ rule ("Initialize global variables") {
         Set Global Variable(q5Pads, Array(4, 9, 11));
         Set Global Variable(stepsLine, Custom String(""));
         Set Global Variable(legendLine, Custom String(""));
+        Set Global Variable(legend2, Custom String(""));
         Set Global Variable(missHead, Custom String(""));
         Set Global Variable(rowE, Custom String(""));
         Set Global Variable(rowT, Custom String(""));
@@ -360,13 +366,22 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -378,6 +393,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -451,9 +467,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 6: CALLOUTS"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -581,10 +594,16 @@ rule ("Game 6: rebuild the pad labels (two texts per pad, made once per change, 
                 Set Global Variable At Index(padLow, Global.pi, Custom String("{0} | {1} | {2}", Value In Array(Global.estE, Global.pi), Value In Array(Global.estT, Global.pi), Custom String("{0} | {1}", Value In Array(Global.estW, Global.pi), Value In Array(Global.estS, Global.pi))));
             End;
         End;
-        Destroy All In-World Text;
+        "2026-11-22: only this game's own labels are removed. destroyAllInWorldText also removed the core's floating\nquestion, so a person saw no question after the first redraw."
+        For Global Variable(pi, 0, Count Of(Global.padTxt), 1);
+            Destroy In-World Text(Value In Array(Global.padTxt, Global.pi));
+        End;
+        Set Global Variable(padTxt, Empty Array);
         For Global Variable(pi, 0, 12, 1);
             Create In-World Text(All Players(All Teams), Value In Array(Global.padTop, Global.pi), Add(Value In Array(Global.padPos, Global.pi), Vector(0, 2.3, 0)), 1.3, Do Not Clip, None, Color(White), Default Visibility);
+            Modify Global Variable(padTxt, Append To Array, Last Text ID);
             Create In-World Text(All Players(All Teams), Value In Array(Global.padLow, Global.pi), Add(Value In Array(Global.padPos, Global.pi), Vector(0, 1.5, 0)), 1.2, Do Not Clip, None, Color(Sky Blue), Default Visibility);
+            Modify Global Variable(padTxt, Append To Array, Last Text ID);
             If(Compare(Modulo(Global.pi, 4), ==, 3));
                 Wait(0.016, Ignore Condition);
             End;
@@ -654,7 +673,7 @@ rule ("Game 6: the screen") {
         Global.ready != False;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD walk.  F (Interact): scout the pad you stand in.  Answer: left click, right click, melee."), Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD walk. F (Interact): scout your pad. Answer: left click, right click, melee."), Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.stepsLine, Left, 4, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.deb1, Left, 5, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.deb2, Left, 6, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
@@ -665,6 +684,7 @@ rule ("Game 6: the screen") {
         Create HUD Text(All Players(All Teams), Null, Null, Global.rowW, Right, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.rowS, Right, 4, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.legendLine, Right, 5, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.legend2, Right, 6, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
     }
 }
 
@@ -796,11 +816,12 @@ rule ("Game 6: run") {
         Set Global Variable(lowMode, 1);
         Call Subroutine(drawRings);
         Call Subroutine(drawPads);
-        Set Global Variable(legendLine, Custom String("Under each pad: EXACT | THIRDS | ONE WORD, after 6 calls.  Red ring: danger 5 or more."));
-        Set Global Variable(missHead, Custom String("Typical miss per pad (0 = all 12 right)"));
-        Set Global Variable(rowE, Custom String("EXACT, 12 numbers:    after 6 calls {0}", First Of(Global.m6)));
-        Set Global Variable(rowT, Custom String("THIRDS, 3 numbers:    after 6 calls {0}", Value In Array(Global.m6, 1)));
-        Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   after 6 calls {0}", Value In Array(Global.m6, 2)));
+        Set Global Variable(legendLine, Custom String("Under each pad: EXACT | THIRDS | ONE WORD"));
+        Set Global Variable(legend2, Custom String("Numbers after 6 calls. Red ring: danger 5 or more."));
+        Set Global Variable(missHead, Custom String("Typical miss (0 = all right): 6 calls / 60 / forever"));
+        Set Global Variable(rowE, Custom String("EXACT, 12 numbers:   {0}", First Of(Global.m6)));
+        Set Global Variable(rowT, Custom String("THIRDS, 3 numbers:   {0}", Value In Array(Global.m6, 1)));
+        Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   {0}", Value In Array(Global.m6, 2)));
         Set Global Variable(coach, Custom String("Truth shown. EXACT is a table: a pad it never saw stays at 0. It cannot guess where it has not been."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("THIRDS shares: one call moves the number for 4 pads. Learning spread to similar pads is generalisation."));
@@ -840,10 +861,10 @@ rule ("Game 6: run") {
             Wait(0.05, Ignore Condition);
         End;
         Call Subroutine(drawPads);
-        Set Global Variable(legendLine, Custom String("Under each pad: EXACT | THIRDS | ONE WORD, after 60 calls.  Red ring: danger 5 or more."));
-        Set Global Variable(rowE, Custom String("EXACT, 12 numbers:    after 6 calls {0}   after 60 {1}", First Of(Global.m6), First Of(Global.m60)));
-        Set Global Variable(rowT, Custom String("THIRDS, 3 numbers:    after 6 calls {0}   after 60 {1}", Value In Array(Global.m6, 1), Value In Array(Global.m60, 1)));
-        Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   after 6 calls {0}   after 60 {1}", Value In Array(Global.m6, 2), Value In Array(Global.m60, 2)));
+        Set Global Variable(legend2, Custom String("Numbers after 60 calls. Red ring: danger 5 or more."));
+        Set Global Variable(rowE, Custom String("EXACT, 12 numbers:   {0}  /  {1}", First Of(Global.m6), First Of(Global.m60)));
+        Set Global Variable(rowT, Custom String("THIRDS, 3 numbers:   {0}  /  {1}", Value In Array(Global.m6, 1), Value In Array(Global.m60, 1)));
+        Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   {0}  /  {1}", Value In Array(Global.m6, 2), Value In Array(Global.m60, 2)));
         Set Global Variable(coach, Custom String("With every pad visited the table won. THIRDS and ONE WORD learned fast, then stopped getting better."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("Same method, three descriptions: average per group. EXACT has one group per pad: a table is the special case."));
@@ -876,10 +897,10 @@ rule ("Game 6: run") {
         Set Global Variable(qWhy, Custom String("Pad 10: a 9 in a third of 1s and 2s. THIRDS calls it 3.25 forever, and pulls pad 12 up too."));
         Call Subroutine(ask);
         Call Subroutine(drawPads);
-        Set Global Variable(legendLine, Custom String("Under each pad: EXACT | THIRDS | ONE WORD, scouting forever.  Red ring: danger 5 or more."));
-        Set Global Variable(rowE, Custom String("EXACT, 12 numbers:    after 6 calls {0}   after 60 {1}   forever {2}", First Of(Global.m6), First Of(Global.m60), First Of(Global.mInf)));
-        Set Global Variable(rowT, Custom String("THIRDS, 3 numbers:    after 6 calls {0}   after 60 {1}   forever {2}", Value In Array(Global.m6, 1), Value In Array(Global.m60, 1), Value In Array(Global.mInf, 1)));
-        Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   after 6 calls {0}   after 60 {1}   forever {2}", Value In Array(Global.m6, 2), Value In Array(Global.m60, 2), Value In Array(Global.mInf, 2)));
+        Set Global Variable(legend2, Custom String("Numbers if scouting forever. Red ring: danger 5 or more."));
+        Set Global Variable(rowE, Custom String("EXACT, 12 numbers:   {0}  /  {1}  /  {2}", First Of(Global.m6), First Of(Global.m60), First Of(Global.mInf)));
+        Set Global Variable(rowT, Custom String("THIRDS, 3 numbers:   {0}  /  {1}  /  {2}", Value In Array(Global.m6, 1), Value In Array(Global.m60, 1), Value In Array(Global.mInf, 1)));
+        Set Global Variable(rowW, Custom String("ONE WORD, 1 number:   {0}  /  {1}  /  {2}", Value In Array(Global.m6, 2), Value In Array(Global.m60, 2), Value In Array(Global.mInf, 2)));
         Set Global Variable(coach, Custom String("Forever: EXACT {0}, THIRDS {1}, ONE WORD {2}. A coarser map learns faster and has a floor.", First Of(Global.mInf), Value In Array(Global.mInf, 1), Value In Array(Global.mInf, 2)));
         Wait(0.4, Ignore Condition);
         "---------------- Round 3: he chooses the description ----------------"
@@ -935,17 +956,17 @@ rule ("Game 6: run") {
         Call Subroutine(drawRings);
         Set Global Variable(lowMode, 2);
         Call Subroutine(drawPads);
-        Set Global Variable(legendLine, Custom String("Under each pad: EXACT | THIRDS | ONE WORD | YOURS, scouting forever."));
-        Set Global Variable(rowS, Custom String("YOURS, 4 numbers:     after 6 calls {0}   after 60 {1}   forever {2}", First Of(Global.mS), Value In Array(Global.mS, 1), Value In Array(Global.mS, 2)));
+        Set Global Variable(legendLine, Custom String("Under each pad: EXACT | THIRDS | ONE WORD | YOURS"));
+        Set Global Variable(rowS, Custom String("YOURS, 4 numbers:   {0}  /  {1}  /  {2}", First Of(Global.mS), Value In Array(Global.mS, 1), Value In Array(Global.mS, 2)));
         Set Global Variable(coach, Custom String("Choosing the description is most of the work. Here you chose it by hand; a network learns its own."));
         Wait(0.4, Ignore Condition);
         Set Global Variable(coach, Custom String("Honest note: the mildest form, fixed hand-made groups and plain averages, not a learned network."));
         Wait(0.4, Ignore Condition);
         "---------------- Debrief ----------------"
         Set Global Variable(stepsLine, Custom String(""));
-        Set Global Variable(deb1, Custom String("You scouted 6 pads, and three maps learned from the same calls: 12 numbers, 3 numbers, 1 number."));
-        Set Global Variable(deb2, Custom String("Called value function approximation: features share one sighting across similar states."));
-        Set Global Variable(deb3, Custom String("A language model: sensible on prompts it never saw, confidently wrong when two look alike and are not."));
+        Set Global Variable(deb1, Custom String("You scouted 6 pads; three maps learned from the same calls: 12 numbers, 3, and 1."));
+        Set Global Variable(deb2, Custom String("Called value function approximation: features share a sighting across similar states."));
+        Set Global Variable(deb3, Custom String("A language model: sensible on new prompts, sure but wrong when look-alikes differ."));
         Set Global Variable(coach, Custom String("Predictions right: {0} of {1}. Game over.", Global.predRight, Global.predTotal));
         Call Subroutine(finish);
     }

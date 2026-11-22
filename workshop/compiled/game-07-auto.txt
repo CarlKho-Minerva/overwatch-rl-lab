@@ -57,50 +57,52 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: heroName
-        28: botPos
-        29: youPos
-        30: autoPicks
-        31: botH
-        32: botP
-        33: smMax
-        34: smE
-        35: smS
-        36: base
-        37: alpha
-        38: adv
-        39: dPick
-        40: li
-        41: bPick
-        42: bR
-        43: drawK
-        44: drawU
-        45: youPick
-        46: habit
-        47: pickOpen
-        48: timedOut
-        49: rnd
-        50: phase
-        51: roundsLeft
-        52: pBefore
-        53: cntB
-        54: nB
-        55: youF
-        56: exYou
-        57: exBot
-        58: exF
-        59: winsYou
-        60: winsBot
-        61: draws
-        62: botFx
-        63: youFx
-        64: worldTxt
-        65: barTxt
-        66: oddsHead
-        67: botExTxt
-        68: info
-        69: nDummies
-        70: holdT
+        27: qTxtTop
+        28: qTxtLow
+        29: heroName
+        30: botPos
+        31: youPos
+        32: autoPicks
+        33: botH
+        34: botP
+        35: smMax
+        36: smE
+        37: smS
+        38: base
+        39: alpha
+        40: adv
+        41: dPick
+        42: li
+        43: bPick
+        44: bR
+        45: drawK
+        46: drawU
+        47: youPick
+        48: habit
+        49: pickOpen
+        50: timedOut
+        51: rnd
+        52: phase
+        53: roundsLeft
+        54: pBefore
+        55: cntB
+        56: nB
+        57: youF
+        58: exYou
+        59: exBot
+        60: exF
+        61: winsYou
+        62: winsBot
+        63: draws
+        64: botFx
+        65: youFx
+        66: worldTxt
+        67: barTxt
+        68: oddsHead
+        69: botExTxt
+        70: info
+        71: nDummies
+        72: holdT
     player:
         0: fellCount
         1: fell
@@ -157,7 +159,7 @@ rule ("Initialize global variables") {
         Set Global Variable(barTxt, Array(Custom String(""), Custom String(""), Custom String("")));
         Set Global Variable(oddsHead, Custom String(""));
         Set Global Variable(botExTxt, Custom String(""));
-        Set Global Variable(info, Array(Custom String(""), Custom String(""), Custom String("")));
+        Set Global Variable(info, Array(Custom String(""), Custom String(""), Custom String(""), Custom String("")));
     }
 }
 
@@ -319,13 +321,22 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -337,6 +348,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -410,9 +422,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 7: COUNTER-PICK"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -469,7 +478,7 @@ rule ("Game 7: rebuild the screen strings once, when something changes") {
         Set Global Variable(oddsHead, Custom String("nudge size {0}   its usual reward (baseline) {1}", Global.alpha, Global.base));
         Set Global Variable(exF, Global.botP);
         Set Global Variable(exBot, Max(Subtract(Value In Array(Global.exF, 1), Value In Array(Global.exF, 2)), Max(Subtract(Value In Array(Global.exF, 2), First Of(Global.exF)), Subtract(First Of(Global.exF), Value In Array(Global.exF, 1)))));
-        Set Global Variable(botExTxt, Custom String("a perfect counter-picker would net {0} wins per 100 rounds against these odds", Round To Integer(Multiply(Global.exBot, 100), To Nearest)));
+        Set Global Variable(botExTxt, Custom String("vs these odds a perfect counter nets {0} wins per 100", Round To Integer(Multiply(Global.exBot, 100), To Nearest)));
     }
 }
 
@@ -536,8 +545,8 @@ rule ("Game 7: one round: the bot locks in from its odds, the player picks, reve
         End;
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,7,pick,{0},{1},{2}", Add(Global.rnd, 1), Global.phase, Custom String("{0},{1},{2}", Global.youPick, Global.drawK, Custom String("{0},{1}", Global.bPick, Global.bR))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,7,odds,{0},{1},{2}", Add(Global.rnd, 1), First Of(Global.pBefore), Custom String("{0},{1},{2}", Value In Array(Global.pBefore, 1), Value In Array(Global.pBefore, 2), Custom String("{0},{1}", Global.alpha, Global.base))));
-        Set Global Variable At Index(info, 1, Custom String("Round {0}: you {1}, bot {2}", Add(Global.rnd, 1), Value In Array(Global.heroName, Global.youPick), Custom String("{0}. {1}. Score: you {2}", Value In Array(Global.heroName, Global.bPick), If-Then-Else(Compare(Global.bR, >, 0), Custom String("Bot wins"), If-Then-Else(Compare(Global.bR, <, 0), Custom String("You win"), Custom String("Draw"))), Custom String("{0}, bot {1}, draws {2}.", Global.winsYou, Global.winsBot, Global.draws))));
-        Set Global Variable(coach, Custom String("{0} had {1}% and scored {2}", Value In Array(Global.heroName, Global.bPick), Round To Integer(Multiply(Value In Array(Global.pBefore, Global.bPick), 100), To Nearest), Custom String("{0} vs its usual {1}: its preference moves {2}", Global.bR, Global.base, Custom String("{0} x {1} x {2}", Global.alpha, Subtract(Global.bR, Global.base), Custom String("{0} = {1}.", Subtract(1, Value In Array(Global.pBefore, Global.bPick)), Multiply(Multiply(Global.alpha, Subtract(Global.bR, Global.base)), Subtract(1, Value In Array(Global.pBefore, Global.bPick))))))));
+        Set Global Variable At Index(info, 1, Custom String("Round {0}: you {1}, bot {2}", Add(Global.rnd, 1), Value In Array(Global.heroName, Global.youPick), Custom String("{0}: {1}. You {2}", Value In Array(Global.heroName, Global.bPick), If-Then-Else(Compare(Global.bR, >, 0), Custom String("Bot wins"), If-Then-Else(Compare(Global.bR, <, 0), Custom String("You win"), Custom String("Draw"))), Custom String("{0}, bot {1}, draws {2}.", Global.winsYou, Global.winsBot, Global.draws))));
+        Set Global Variable(coach, Custom String("{0} had {1}%, scored {2}", Value In Array(Global.heroName, Global.bPick), Round To Integer(Multiply(Value In Array(Global.pBefore, Global.bPick), 100), To Nearest), Custom String("{0} vs its usual {1}: preference moves {2}", Global.bR, Global.base, Custom String("{0} x {1} x {2}", Global.alpha, Subtract(Global.bR, Global.base), Custom String("{0} = {1}.", Subtract(1, Value In Array(Global.pBefore, Global.bPick)), Multiply(Multiply(Global.alpha, Subtract(Global.bR, Global.base)), Subtract(1, Value In Array(Global.pBefore, Global.bPick))))))));
         Call Subroutine(learn);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,7,pref,{0},{1},{2}", Add(Global.rnd, 1), First Of(Global.botH), Custom String("{0},{1},{2}", Value In Array(Global.botH, 1), Value In Array(Global.botH, 2), Global.base)));
         If(Compare(Global.phase, >, 0));
@@ -549,7 +558,8 @@ rule ("Game 7: one round: the bot locks in from its odds, the player picks, reve
             Set Global Variable(exF, Global.botP);
             Set Global Variable(exBot, Max(Subtract(Value In Array(Global.exF, 1), Value In Array(Global.exF, 2)), Max(Subtract(Value In Array(Global.exF, 2), First Of(Global.exF)), Subtract(First Of(Global.exF), Value In Array(Global.exF, 1)))));
             Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,7,mix,{0},{1},{2}", Add(Global.rnd, 1), First Of(Global.youF), Custom String("{0},{1},{2}", Value In Array(Global.youF, 1), Value In Array(Global.youF, 2), Custom String("{0},{1}", Global.exYou, Global.exBot))));
-            Set Global Variable At Index(info, 2, Custom String("Your mix: TRACER {0}% WIDOW {1}% PHARAH {2}", Round To Integer(Multiply(First Of(Global.youF), 100), To Nearest), Round To Integer(Multiply(Value In Array(Global.youF, 1), 100), To Nearest), Custom String("{0}%. A perfect counter would net {1} wins minus losses per 100.", Round To Integer(Multiply(Value In Array(Global.youF, 2), 100), To Nearest), Round To Integer(Multiply(Global.exYou, 100), To Nearest))));
+            Set Global Variable At Index(info, 2, Custom String("Your mix: TRACER {0}%, WIDOWMAKER {1}%, PHARAH {2}%.", Round To Integer(Multiply(First Of(Global.youF), 100), To Nearest), Round To Integer(Multiply(Value In Array(Global.youF, 1), 100), To Nearest), Round To Integer(Multiply(Value In Array(Global.youF, 2), 100), To Nearest)));
+            Set Global Variable At Index(info, 3, Custom String("A perfect counter-picker would net {0} wins minus losses per 100 rounds vs it.", Round To Integer(Multiply(Global.exYou, 100), To Nearest)));
         End;
         Call Subroutine(buildTexts);
         Modify Global Variable(rnd, Add, 1);
@@ -633,7 +643,8 @@ rule ("Game 7: the screen") {
         Create HUD Text(All Players(All Teams), Null, Null, First Of(Global.info), Left, 3, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.info, 1), Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.info, 2), Left, 5, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Custom String("THIS GAME'S RULE"), Custom String("Tracer beats Widowmaker, Widowmaker beats Pharah, Pharah beats Tracer"), Custom String("a rule made for this game, not a claim about real Overwatch"), Right, 0, Color(Orange), Color(White), Color(White), None, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.info, 3), Left, 6, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Custom String("THIS GAME'S RULE"), Custom String("Tracer beats Widowmaker, Widowmaker beats Pharah, Pharah beats Tracer"), Custom String("a rule made for this game, not real Overwatch"), Right, 0, Color(Orange), Color(White), Color(White), None, Default Visibility);
         Create HUD Text(All Players(All Teams), Custom String("THE BOT'S ODDS FOR ITS NEXT PICK"), Global.oddsHead, Null, Right, 1, Color(Yellow), Color(White), Color(White), Visible To and String, Default Visibility);
         Create Progress Bar HUD Text(All Players(All Teams), Multiply(First Of(Global.botP), 100), First Of(Global.barTxt), Right, 2, Color(Orange), Color(White), Visible To and Values, Default Visibility);
         Create Progress Bar HUD Text(All Players(All Teams), Multiply(Value In Array(Global.botP, 1), 100), Value In Array(Global.barTxt, 1), Right, 3, Custom Color(210, 127, 243, 255), Color(White), Visible To and Values, Default Visibility);
@@ -738,7 +749,7 @@ rule ("Game 7: run") {
         Set Global Variable At Index(info, 0, Custom String("PICK when a round asks: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."));
         Set Global Variable(coach, Custom String("Counter-picking: the bot learns to pick whatever beats the hero you keep playing."));
         Wait(1, Ignore Condition);
-        Set Global Variable(coach, Custom String("It keeps no scores for moves. It keeps three odds, the bars on the right, and draws its pick from them."));
+        Set Global Variable(coach, Custom String("It keeps no scores, only three odds (the bars on the right), and draws its pick from them."));
         Wait(1, Ignore Condition);
         "Phase A: one hero, again and again."
         Set Global Variable(qId, 1);
@@ -749,13 +760,13 @@ rule ("Game 7: run") {
         Set Global Variable(qWhy, Custom String("It nudges up whatever won. Against one hero, only that hero's counter keeps winning."));
         Call Subroutine(ask);
         Set Global Variable(phase, 0);
-        Set Global Variable At Index(info, 2, Custom String("The push = nudge size x (reward minus its usual) x (1 minus the odds it gave that pick)."));
+        Set Global Variable At Index(info, 2, Custom String("The push: nudge size x (reward minus its usual) x (1 minus the pick's odds)."));
         Set Global Variable(coach, Custom String("Pick any hero, then keep picking it. Watch the bars on the right."));
         Wait(1, Ignore Condition);
         For Global Variable(roundsLeft, 0, 6, 1);
             Call Subroutine(playRound);
         End;
-        Set Global Variable(coach, Custom String("Its odds moved, not scores. Odds for each move are a policy; learning them directly is a policy gradient."));
+        Set Global Variable(coach, Custom String("It moved odds, not scores. Odds per move are a policy; learning them directly is a policy gradient."));
         Wait(1, Ignore Condition);
         Set Global Variable(coach, Custom String("Its rule, REINFORCE: push up what beat its usual reward, more if the pick was a surprise."));
         Wait(1, Ignore Condition);
@@ -765,7 +776,7 @@ rule ("Game 7: run") {
         Set Global Variable(qOpts, Array(Custom String("evenly onto all three"), Custom String("onto heroes that did well"), Custom String("nowhere")));
         Set Global Variable(qCorrect, 0);
         Set Global Variable(qAuto, 0);
-        Set Global Variable(qWhy, Custom String("Evenly: best hero 93%, the others 3% each, whatever they earned. This bot aims its odds."));
+        Set Global Variable(qWhy, Custom String("Evenly: best hero 93%, others 3% each, whatever they earned. This bot aims its odds."));
         Call Subroutine(ask);
         "Why the best policy can need randomness."
         Set Global Variable(qId, 3);
@@ -773,16 +784,16 @@ rule ("Game 7: run") {
         Set Global Variable(qOpts, Array(Custom String("nothing, if the rule is clever"), Custom String("anyone who spots the rule"), Custom String("only luck")));
         Set Global Variable(qCorrect, 1);
         Set Global Variable(qAuto, 1);
-        Set Global Variable(qWhy, Custom String("Any fixed rule can be read and countered every round. Random-on-purpose odds cannot be read."));
+        Set Global Variable(qWhy, Custom String("Any fixed rule can be read and countered every round. Random odds cannot be read."));
         Call Subroutine(ask);
-        Set Global Variable(coach, Custom String("The lecture's other case: two squares look alike, so one fixed move fails in one. A coin flip escapes."));
+        Set Global Variable(coach, Custom String("Silver's other case: two squares look alike, so one fixed move fails in one. A coin flip escapes."));
         Wait(1, Ignore Condition);
         Set Global Variable(qId, 4);
         Set Global Variable(qText, Custom String("Which mix of your own picks can no counter-picker beat on average?"));
         Set Global Variable(qOpts, Array(Custom String("a third each"), Custom String("mostly the hero that wins"), Custom String("the same hero, always")));
         Set Global Variable(qCorrect, 0);
         Set Global Variable(qAuto, 0);
-        Set Global Variable(qWhy, Custom String("A third each: every counter wins as often as it loses. Silver's rock-paper-scissors answer."));
+        Set Global Variable(qWhy, Custom String("A third each: every counter wins as often as it loses (Silver's rock-paper-scissors)."));
         Call Subroutine(ask);
         "Phase B: free play against a fresh bot; his own mix is measured."
         Call Subroutine(resetBot);
@@ -801,7 +812,7 @@ rule ("Game 7: run") {
         Set Global Variable(qOpts, Array(Custom String("swing hard"), Custom String("settle near a third"), Custom String("move as before")));
         Set Global Variable(qCorrect, 0);
         Set Global Variable(qAuto, 1);
-        Set Global Variable(qWhy, Custom String("A big step overreacts to one lucky round; near 100% the surprise term is tiny, so it sticks."));
+        Set Global Variable(qWhy, Custom String("Big steps overreact to one lucky round; near 100% the surprise is tiny, so it sticks."));
         Call Subroutine(ask);
         Set Global Variable(alpha, 2.5);
         Set Global Variable(phase, 2);
@@ -816,9 +827,10 @@ rule ("Game 7: run") {
         Set Global Variable(pickOpen, False);
         Set Global Variable(botFx, Vector(0, -60, 0));
         Set Global Variable(youFx, Vector(0, -60, 0));
-        Set Global Variable At Index(info, 0, Custom String("What you did: you played habits, and a bot that keeps only odds learned to counter them."));
-        Set Global Variable At Index(info, 1, Custom String("What it is called: a policy gradient, REINFORCE with a baseline, on a softmax policy."));
-        Set Global Variable At Index(info, 2, Custom String("In a language model: temperature spreads its odds; training nudges up outputs that scored well."));
+        Set Global Variable At Index(info, 0, Custom String("What you did: played habits; a bot that keeps only odds learned to counter them."));
+        Set Global Variable At Index(info, 1, Custom String("What it is called: policy gradient, REINFORCE with a baseline, softmax policy."));
+        Set Global Variable At Index(info, 2, Custom String("In a language model: temperature spreads its odds over words,"));
+        Set Global Variable At Index(info, 3, Custom String("and training nudges up the outputs that scored well."));
         Set Global Variable(coach, Custom String("You got {0} of {1} predictions right. Simplified: one situation, one-round episodes, no critic.", Global.predRight, Global.predTotal));
         Wait(1, Ignore Condition);
         Call Subroutine(finish);

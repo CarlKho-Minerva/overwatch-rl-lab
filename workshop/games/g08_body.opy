@@ -143,6 +143,7 @@ globalvar raceHead = ""
 globalvar hudP = ""
 globalvar hudD = ""
 globalvar hudTot = ""
+globalvar hudTot2 = ""
 globalvar debriefOn = false
 globalvar db1 = ""
 globalvar db2 = ""
@@ -211,6 +212,8 @@ def drawMaze():
             createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.GREEN, CELLPOS(drawI), 1.4, EffectReeval.NONE)
         else:
             createEffect(getAllPlayers(), Effect.RING, Color.WHITE, CELLPOS(drawI), 1.4, EffectReeval.NONE)
+        if drawI % 7 == 6:
+            wait()      # load: at most 8 effects created in one frame
 
 # ---------------------------------------------------------------------------------------------------------------------
 # One bot's learning (runs in the bot's own rule, so eventPlayer is the bot)
@@ -220,6 +223,8 @@ def freshTables():
     eventPlayer.Q = []
     for eventPlayer.j in range(NQ):
         eventPlayer.Q.append(0)
+        if eventPlayer.j % 28 == 27:
+            wait()      # load: both bots fill their tables in the same frame otherwise
     eventPlayer.mS2 = []
     eventPlayer.mR = []
     eventPlayer.mSeen = []
@@ -277,6 +282,10 @@ def realStep():
                     if eventPlayer.tr != eventPlayer.ps2:
                         eventPlayer.stale += 1
             eventPlayer.Q[eventPlayer.pk] = QNEW(eventPlayer.Q[eventPlayer.pk], eventPlayer.mR[eventPlayer.pk], 0 if eventPlayer.ps2 < 0 else sorted(eventPlayer.Q.slice(eventPlayer.ps2 * 4, 4)).last())
+            if eventPlayer.j % 10 == 9 and eventPlayer.j < nRep - 1:
+                # Load (2026-11-22, peak 102 with 20 replays in one frame): at most 10 replays per frame. Only the
+                # timing changes; the draws and the updates run in the same order.
+                wait()
         if countStale:
             if eventPlayer.k == OLD_GAP_MOVE and eventPlayer.fixStep < 0:
                 eventPlayer.fixStep = eventPlayer.steps
@@ -317,7 +326,7 @@ rule "Bot: run the ten trips of one race":
             if showRace and not AUTOPLAY:
                 eventPlayer.batch = 1 if eventPlayer.steps < 30 else (2 if (eventPlayer.role == 0 or nRep < 20) else 1)
             else:
-                eventPlayer.batch = 6 if (eventPlayer.role == 0 or nRep == 0) else (3 if nRep <= 5 else 1)
+                eventPlayer.batch = 3 if (eventPlayer.role == 0 or nRep == 0) else (2 if nRep <= 5 else 1)
             for eventPlayer.b in range(eventPlayer.batch):
                 realStep()
                 if eventPlayer.s2 < 0:
@@ -331,7 +340,7 @@ rule "Bot: run the ten trips of one race":
                 if not AUTOPLAY and eventPlayer.steps < 30:
                     wait(0.08)
             wait()
-            if getServerLoad() > 180:
+            if getServerLoad() > 70:
                 wait(0.05)
             if paused:
                 waitUntil(not paused, 30)
@@ -360,6 +369,8 @@ rule "Bot: run the ten trips of one race":
                     if sorted(botD.Q.slice(revI * 4, 4)).last() > 0:
                         knowD += 1
                         createEffect(getAllPlayers(), Effect.SPHERE, Color.SKY_BLUE, CELLPOS(revI) + vect(0, 0.3, 0.8), 0.45, EffectReeval.NONE)
+                    if revI % 7 == 6:
+                        wait()
                 LOG("RLG,E,{},know,{},{},{}".format(GAME_ID, knowP, knowD, nRep))
                 coach = "Plain bot's first time at the goal: {} pad knows the way (orange). Replaying bot now: {} (blue).".format(knowP, knowD)
                 wait(1.5 if AUTOPLAY else 7)
@@ -371,9 +382,9 @@ rule "Bot: run the ten trips of one race":
             LOG("RLG,E,{},trip,{},{},{},{}".format(GAME_ID, raceNo, eventPlayer.role, eventPlayer.t + 1, eventPlayer.tripN))
             eventPlayer.tripStr = "{} {}".format(eventPlayer.tripStr, eventPlayer.tripN)
             if eventPlayer.role == 0:
-                hudP = "PLAIN, steps per trip:{}".format(eventPlayer.tripStr)
+                hudP = "Plain:{}".format(eventPlayer.tripStr)
             else:
-                hudD = "REPLAYING, steps per trip:{}".format(eventPlayer.tripStr)
+                hudD = "Replaying:{}".format(eventPlayer.tripStr)
     if showRace and raceNo == 2:
         eventPlayer.saveQ = eventPlayer.Q
         eventPlayer.saveS2 = eventPlayer.mS2
@@ -397,7 +408,8 @@ def runRace():
 
 def raceSummary():
     @Name "Game 8: the totals line under the race"
-    hudTot = "Real steps in 10 trips: plain {}, replaying {}. First short trip: plain {}, replaying {}.".format(botP.total, botD.total, botP.firstShort if botP.firstShort <= TRIPS else "none", botD.firstShort if botD.firstShort <= TRIPS else "none")
+    hudTot = "Real steps in 10 trips: plain {}, replaying {}".format(botP.total, botD.total)
+    hudTot2 = "First short trip: plain {}, replaying {}".format(botP.firstShort if botP.firstShort <= TRIPS else "none", botD.firstShort if botD.firstShort <= TRIPS else "none")
 
 # ---------------------------------------------------------------------------------------------------------------------
 # The player's choices
@@ -407,11 +419,12 @@ def pickReplays():
     if REPS[pickI] == usedR:
         pickI = (pickI + 1) % 3
     nRep = REPS[pickI]
-    raceHead = "Race {}: the replaying bot gets {} replays per real step".format(raceNo, nRep)
+    raceHead = "Race {}: {} replays per real step. Steps per trip:".format(raceNo, nRep)
     hudP = ""
     hudD = ""
     hudTot = ""
-    ctrl = "F (Interact): change the replays (0, 5, 20{}). R (Reload): start the race.".format("" if usedR < 0 else ", not {} again".format(usedR))
+    hudTot2 = ""
+    ctrl = "F (Interact): change the replays (0, 5, 20{}). R (Reload): start.".format("" if usedR < 0 else ", not {} again".format(usedR))
     if AUTOPLAY:
         wait(0.5)
         nRep = 0 if raceNo == 1 else 20
@@ -419,7 +432,7 @@ def pickReplays():
         picking = true
         waitUntil(not picking, 60)
         picking = false
-    raceHead = "Race {}: the replaying bot gets {} replays per real step".format(raceNo, nRep)
+    raceHead = "Race {}: {} replays per real step. Steps per trip:".format(raceNo, nRep)
     ctrl = "Answer: left click, right click, melee."
     LOG("RLG,E,{},pick,{},{}".format(GAME_ID, raceNo, nRep))
 
@@ -432,7 +445,7 @@ rule "Game 8: F changes the replays":
     if REPS[pickI] == usedR:
         pickI = (pickI + 1) % 3
     nRep = REPS[pickI]
-    raceHead = "Race {}: the replaying bot gets {} replays per real step".format(raceNo, nRep)
+    raceHead = "Race {}: {} replays per real step. Steps per trip:".format(raceNo, nRep)
 
 rule "Game 8: R starts the race":
     @Event eachPlayer
@@ -477,7 +490,8 @@ rule "Game 8: read the walk, pad by pad":
                     walkS2.append(walkCell)
                     walkCur = walkCell
                 LOG("RLG,E,{},walk,{},{},{}".format(GAME_ID, walkK.last(), walkRew.last(), walkS2.last()))
-                hudTot = "Your steps: {} (bumps into the wall: {}). Each one is in its memory.".format(len(walkK), walkBumps)
+                hudTot = "Your steps: {}, bumps into the wall: {}".format(len(walkK), walkBumps)
+                hudTot2 = "Each one goes into its memory."
     wait(0.05)
     if walking and not walkDone:
         loop()
@@ -558,7 +572,7 @@ rule "Game 8: run":
     botD.done = false
     raceGo = true
     qId = 1
-    qText = "Lecture 5 check. When the plain bot first reaches the goal, how many pads will know the way?"
+    qText = "Lecture 5: when the plain bot first reaches the goal, how many pads know the way?"
     qOpts = ["just the last pad", "about half its path", "its whole path"]
     qCorrect = 0
     qAuto = 0
@@ -602,7 +616,7 @@ rule "Game 8: run":
     sTotP = botP.total
     sTotD = botD.total
     qId = 3
-    qText = "Now {} replays (last race {}). The replaying bot's real steps in 10 trips, against last race?".format(r2, r1)
+    qText = "Now {} replays, last race {}. Its real steps in 10 trips, against last race?".format(r2, r1)
     qOpts = ["far fewer", "about the same", "far more"]
     qCorrect = 0 if sTotD * 3 < totD1 * 2 else (2 if sTotD * 2 > totD1 * 3 else 1)
     qAuto = 0
@@ -627,10 +641,11 @@ rule "Game 8: run":
     gap = NEW_GAP
     destroyAllEffects()
     drawMaze()
-    raceHead = "Race 3: the gap moved. Both bots keep what they learned. Replays: {}".format(nRep)
+    raceHead = "Race 3, gap moved: {} replays per step. Steps per trip:".format(nRep)
     hudP = ""
     hudD = ""
     hudTot = ""
+    hudTot2 = ""
     coach = "The gap moved, like the enemy team rotating: your read on where they set up is now out of date."
     LOG("RLG,E,{},pick,{},{}".format(GAME_ID, raceNo, nRep))
     showRace = false
@@ -653,7 +668,7 @@ rule "Game 8: run":
         qWhy = "Both had to stumble on the new gap: thinking cannot find what was never seen."
     ask()
     qId = 5
-    qText = "Its memory says the old gap is open and knows nothing of the new one. Which happens later?"
+    qText = "Its memory says the old gap is open. Which happens later?"
     qOpts = ["it fixes the old-gap memory", "it finds the new gap", "about the same time"]
     if sFix < 0 and sThrough < 0:
         qCorrect = 2
@@ -681,9 +696,9 @@ rule "Game 8: run":
 
     # --- Debrief ---------------------------------------------------------------------------------------------------
     ctrl = ""
-    db1 = "You walked once and coached two bots: one learned from real steps, one also replayed its memory."
-    db2 = "That is Dyna-Q: learn a model (its own copy of what moves do) from real steps, then plan by replaying it."
-    db3 = "In an LLM agent: practising on a simulated user. If the simulation is wrong, it learns wrong things fast."
+    db1 = "You walked once and coached two bots: one learned from real steps, one also replayed."
+    db2 = "That is Dyna-Q: learn a model (its copy of what moves do), then plan by replaying it."
+    db3 = "In an LLM agent: practice on a simulated user. A wrong simulation teaches wrong lessons."
     debriefOn = true
     coach = "Simplified: one tiny maze, an exact memory of each move, no bonus for old moves (Dyna-Q+), no search."
     LOG("RLG,E,{},runs,{},{}".format(GAME_ID, r1, r2))
@@ -701,3 +716,4 @@ rule "Game 8: the screen":
     hudText(getAllPlayers(), null, null, hudP, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudD, HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudTot, HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, hudTot2, HudPosition.RIGHT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)

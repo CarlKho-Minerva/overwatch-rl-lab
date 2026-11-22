@@ -143,7 +143,7 @@ def settleRound():
     CHECK("round {} total adds up".format(rnd), ROUND_TOTAL(found, secs, trapHit), total)
     LOG("RLG,E,{},round,{},{},{},{},{}".format(GAME_ID, rnd, found, secs, trapHit, total))
     totals[rnd - 1] = total
-    hudRounds = "round 1: {}     round 2: {}     round 3: {}     round 4: {}".format(totals[0], totals[1], totals[2], totals[3])
+    hudRounds = "round totals   1: {}   2: {}   3: {}   4: {}".format(totals[0], totals[1], totals[2], totals[3])
 
 rule "Game 1: every second of a round costs 1":
     @Condition roundOn
@@ -185,13 +185,13 @@ rule "Game 1: a fall sends you back to the middle":
 
 rule "Game 1: the screen":
     hudText(getAllPlayers(), hudScore, null, null, HudPosition.LEFT, 3, Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, "WASD walk. Answer questions with left click, right click or melee.", null, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if not debrief else null, null, "WASD walk. Answer questions with left click, right click or melee.", null, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if hudRounds != "" else null, null, null, hudRounds, HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if hudGap != "" else null, null, null, hudGap, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.GREEN, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if debrief else null, null, null, db[0], HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if debrief else null, null, null, db[1], HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if debrief else null, null, null, db[2], HudPosition.RIGHT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if debrief else null, null, null, db[3], HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if debrief else null, null, null, db[0], HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if debrief else null, null, null, db[1], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if debrief else null, null, null, db[2], HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if debrief else null, null, null, db[3], HudPosition.LEFT, 8, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
 
 rule "Game 1: run":
     @Condition ready
@@ -266,7 +266,7 @@ rule "Game 1: run":
     playRound()
     settleRound()
     r2Total = total
-    hudGap = "round 2 minus round 1: {}. That gap is what the score taught you.".format(r2Total - r1Total)
+    hudGap = "round 2 minus round 1: {}, what the score taught".format(r2Total - r1Total)
     LOG("RLG,E,{},gap,{},{},{}".format(GAME_ID, r1Total, r2Total, r2Total - r1Total))
     if r2Total > r1Total:
         coach = "Round 2 beat round 1 by {}. Same map, more score: that is learning from reward.".format(r2Total - r1Total)
@@ -330,9 +330,9 @@ rule "Game 1: run":
     BEAT(7)
 
     # Debrief.
-    db[0] = "What you did: found the paying ring from a number alone, then ran it from memory, blind."
-    db[1] = "What it is called: learning from reward, with late feedback; what you remembered was your state."
-    db[2] = "In a language-model agent: a task scored only at the end, with the transcript as its history."
+    db[0] = "What you did: found the paying ring from a number alone, then ran to it blind."
+    db[1] = "What it is called: learning from reward, with late feedback. Your memory was your state."
+    db[2] = "In a language-model agent: a task scored only at the end; the transcript is its history."
     db[3] = "Your predictions: {} of {} right.".format(predRight, predTotal)
     debrief = true
     coach = "Simplified: you always knew where you stood, and the rules held still. Real agents see less."

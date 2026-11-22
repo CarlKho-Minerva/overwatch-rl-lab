@@ -117,10 +117,11 @@ globalvar lucio = null
 globalvar autoLanes = [0, 0, 1, 1]
 globalvar dirName = ["forward", "back", "inland", "toward the drop"]
 globalvar laneName = ["EDGE", "INLAND"]
-globalvar outName = ["", "reached the goal", "fell", "time up"]
+globalvar outName = ["", "goal", "fell", "time up"]
 globalvar hudRun = ""
 globalvar hudRes = ["", "", "", ""]
 globalvar hudModel = ""
+globalvar hudModel2 = ""
 globalvar db1 = ""
 globalvar db2 = ""
 globalvar db3 = ""
@@ -158,7 +159,9 @@ def evalLane():
                         evSum += evP * evX
                 evDelta = max(evDelta, abs(evSum - evV[evK]))
                 evV[evK] = evSum
-            if evK % 8 == 0:
+            # Every 4 pads, not 8: the stand-in run of 2026-11-22 peaked at 82% server load, and this loop is the
+            # heaviest work the game does in one frame.
+            if evK % 4 == 0:
                 wait()
         if evDelta < 0.0005:
             break
@@ -167,7 +170,7 @@ def evalLane():
 def chooseLane():
     @Name "Game 5: the player picks a lane (left click edge, right click inland)"
     laneChoice = -1
-    laneHead = "Choose your lane for crossing {} of 4".format(crossing)
+    laneHead = "Crossing {} of 4, choose a lane.   LEFT CLICK: EDGE (11 steps)    RIGHT CLICK: INLAND (13 steps)".format(crossing)
     learner.disallowButton(Button.PRIMARY_FIRE)
     learner.disallowButton(Button.SECONDARY_FIRE)
     wait(0.4)
@@ -210,7 +213,7 @@ def crossOnce():
     outcome = 0
     edgeSteps = 0
     realFall = 0
-    hudRun = "Crossing {}: {} lane. Steps 0, return 0.".format(crossing, laneName[lane])
+    hudRun = "Now: {} lane, 0 steps, 0 boops, return 0".format(laneName[lane])
     coach = "GO. Walk the {} lane to the green ring. Each pad you step onto costs 1.".format(laneName[lane])
     tStart = NOW
     while outcome == 0:
@@ -268,7 +271,7 @@ def crossOnce():
                 LOG("RLG,E,{},step,{},{},{},{},{},{},{},{},{}".format(GAME_ID, crossing, steps, curCell, seenCell, roll, mv, newCell, stepR, 1 if boopsOn else 0))
                 if newCell >= 0:
                     curCell = newCell
-                hudRun = "Crossing {}: {} lane. Steps {}, boops {}, return {}.".format(crossing, laneName[lane], steps, boops, ret)
+                hudRun = "Now: {} lane, {} steps, {} boops, return {}".format(laneName[lane], steps, boops, ret)
     learner.stopThrottleInDirection()
     if outcome == 2 and realFall == 0:
         waitUntil(learner.fell == true, 3)
@@ -276,25 +279,28 @@ def crossOnce():
     # cross: crossing, lane, boops on, steps, boops, outcome (1 goal, 2 fell, 3 time up), return, steps from edge pads,
     #        fell for real in the game (1/0)
     LOG("RLG,E,{},cross,{},{},{},{},{},{},{},{},{}".format(GAME_ID, crossing, lane, 1 if boopsOn else 0, steps, boops, outcome, ret, edgeSteps, realFall))
-    hudRes[crossing - 1] = "Crossing {}: {} lane, {} steps, {} boops, {}. Return {}.".format(crossing, laneName[lane], steps, boops, outName[outcome], ret)
+    hudRes[crossing - 1] = "{}. {}: {} steps, {} boops, {}, return {}".format(crossing, laneName[lane], steps, boops, outName[outcome], ret)
     hudRun = ""
     if outcome == 2:
         HOLD(2)
         putHome()
 
 rule "Game 5: the screen (lane choice, controls, results)":
-    hudText(getAllPlayers() if laneActive else null, laneHead, "LEFT CLICK: EDGE lane (11 steps)      RIGHT CLICK: INLAND lane (13 steps)", null, HudPosition.TOP, 1, Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, "WASD: walk.  LEFT CLICK / RIGHT CLICK / MELEE: answer and choose.  Abilities are off.", HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    # Left block: title, coach, predictions (the core), then controls, the lane prompt while choosing, the debrief.
+    # Right block, kept narrow: this crossing, the four results, the long-run averages.
+    hudText(getAllPlayers(), null, null, "WASD: walk.  LEFT CLICK / RIGHT CLICK / MELEE: answer and choose.  Abilities are off.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if laneActive else null, null, laneHead, null, HudPosition.LEFT, 4, Color.WHITE, Color.YELLOW, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRun, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRes[0], HudPosition.RIGHT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRes[1], HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRes[2], HudPosition.RIGHT, 4, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudRes[3], HudPosition.RIGHT, 5, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, hudModel, HudPosition.RIGHT, 6, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, db1, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, db2, HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, db3, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, db4, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, hudModel2, HudPosition.RIGHT, 7, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, db1, HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, db2, HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, db3, HudPosition.LEFT, 7, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, db4, HudPosition.LEFT, 8, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
 
 rule "Game 5: run":
     @Condition ready
@@ -429,7 +435,8 @@ rule "Game 5: run":
     qAuto = 1
     qWhy = "Edge averages {}, inland {}. A {}% chance of -100 costs more than 2 extra steps.".format(vEdge, vIn, round(fEdge * 100))
     ask()
-    hudModel = "Long run, no boops: edge {}, inland {}.  With boops: edge {}, inland {}.".format(round(vEdge0), round(vIn0), vEdge, vIn)
+    hudModel = "Long run, no boops: edge {}, inland {}".format(round(vEdge0), round(vIn0))
+    hudModel2 = "Long run, with boops: edge {}, inland {}".format(vEdge, vIn)
     chooseLane()
     crossOnce()
     coach = "Return {}. Your four crossings are on the right; the long-run averages under them.".format(ret)
@@ -450,9 +457,9 @@ rule "Game 5: run":
     coach = "Honest note: the boop stands in for your own random move. A boop from the world, Q-learning counts too."
     HOLD(6)
 
-    db1 = "What you did: crossed beside a drop under random boops. Long run: edge {}, inland {}.".format(vEdge, vIn)
-    db2 = "What it is called: SARSA is on-policy, Q-learning off-policy. Next to a drop they disagree."
-    db3 = "In an agent: judge a plan by what the agent will really do, slips included, not by a perfect run."
+    db1 = "You did: four crossings beside a drop, boops on. Long run: edge {}, inland {}.".format(vEdge, vIn)
+    db2 = "It is called: SARSA learns on-policy, Q-learning off-policy. By a drop they disagree."
+    db3 = "In an agent: judge a plan by what it will really do, slips included, not a perfect run."
     db4 = "Your predictions: {} right of {}.".format(predRight, predTotal)
     coach = "Debrief. The game is over."
     LOG("RLG,E,{},debrief,{},{}".format(GAME_ID, predRight, predTotal))

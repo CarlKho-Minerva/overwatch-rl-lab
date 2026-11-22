@@ -57,40 +57,42 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: ringPos
-        28: ringName
-        29: vMc
-        30: vTd
-        31: rB
-        32: rO
-        33: tB
-        34: tO
-        35: legState
-        36: mud
-        37: legT
-        38: ret
-        39: counts
-        40: picks
-        41: walk
-        42: leg
-        43: nLegs
-        44: fullIdx
-        45: t0
-        46: tLeg
-        47: old
-        48: tgt
-        49: gSum
-        50: ii
-        51: histB
-        52: histO
-        53: swingIn
-        54: swingOut
-        55: swingB
-        56: swingO
-        57: board
-        58: status
-        59: deb
-        60: showDeb
+        27: qTxtTop
+        28: qTxtLow
+        29: ringPos
+        30: ringName
+        31: vMc
+        32: vTd
+        33: rB
+        34: rO
+        35: tB
+        36: tO
+        37: legState
+        38: mud
+        39: legT
+        40: ret
+        41: counts
+        42: picks
+        43: walk
+        44: leg
+        45: nLegs
+        46: fullIdx
+        47: t0
+        48: tLeg
+        49: old
+        50: tgt
+        51: gSum
+        52: ii
+        53: histB
+        54: histO
+        55: swingIn
+        56: swingOut
+        57: swingB
+        58: swingO
+        59: board
+        60: status
+        61: deb
+        62: showDeb
     player:
         0: fellCount
         1: fell
@@ -142,7 +144,7 @@ rule ("Initialize global variables") {
         Set Global Variable(histB, Empty Array);
         Set Global Variable(histO, Empty Array);
         Set Global Variable(swingIn, Empty Array);
-        Set Global Variable(board, Custom String(""));
+        Set Global Variable(board, Array(Custom String(""), Custom String(""), Custom String(""), Custom String(""), Custom String("")));
         Set Global Variable(status, Custom String(""));
         Set Global Variable(deb, Array(Custom String(""), Custom String(""), Custom String("")));
         Set Global Variable(showDeb, False);
@@ -307,13 +309,22 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -325,6 +336,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -398,9 +410,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 4: BACK FROM SPAWN"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -415,8 +424,9 @@ rule ("Game 4: rebuild the numbers above the rings and the board (only when a gu
         For Global Variable(ii, 0, 5, 1);
             Set Global Variable At Index(tB, Global.ii, Custom String("BLUE {0}", Value In Array(Global.rB, Global.ii)));
             Set Global Variable At Index(tO, Global.ii, Custom String("ORANGE {0}", Value In Array(Global.rO, Global.ii)));
+            "One right-hand row per ring (a single six-line string made the right block 179 characters, 2026-11-22)."
+            Set Global Variable At Index(board, Global.ii, Custom String("{0}:  blue {1}  orange {2}", Value In Array(Global.ringName, Global.ii), Value In Array(Global.rB, Global.ii), Value In Array(Global.rO, Global.ii)));
         End;
-        Set Global Variable(board, Custom String("SECONDS FROM EACH RING TO THE POINT\nSPAWN:  blue {0}  orange {1}\nRING 1:  blue {2}", First Of(Global.rB), First Of(Global.rO), Custom String("{0}  orange {1}\nRING 2:  blue {2}", Value In Array(Global.rB, 1), Value In Array(Global.rO, 1), Custom String("{0}  orange {1}\nRING 3:  blue {2}", Value In Array(Global.rB, 2), Value In Array(Global.rO, 2), Custom String("{0}  orange {1}\nRING 4:  blue {2}", Value In Array(Global.rB, 3), Value In Array(Global.rO, 3), Custom String("{0}  orange {1}", Value In Array(Global.rB, 4), Value In Array(Global.rO, 4)))))));
     }
 }
 
@@ -554,11 +564,16 @@ rule ("Game 4: the screen") {
     }
     actions {
         Create HUD Text(All Players(All Teams), Null, Null, Global.status, Right, 0, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Global.board, Right, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk to the next ring. Answer: left click, right click or melee. Abilities are off."), Right, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, First Of(Global.deb), Null, Left, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 1), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 2), Null, Left, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("SECONDS FROM EACH RING TO THE POINT"), Right, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, First Of(Global.board), Right, 2, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.board, 1), Right, 3, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.board, 2), Right, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.board, 3), Right, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.board, 4), Right, 6, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk to the next ring. Answer with left click, right click or melee."), Left, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, First Of(Global.deb), Null, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 1), Null, Left, 5, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showDeb, All Players(All Teams), Null), Null, Value In Array(Global.deb, 2), Null, Left, 6, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
     }
 }
 
@@ -570,9 +585,10 @@ rule ("Game 4: run") {
         Global.ready != False;
     }
     actions {
-        Set Ability 1 Enabled(Global.learner, False);
-        Set Ability 2 Enabled(Global.learner, False);
-        Set Ultimate Ability Enabled(Global.learner, False);
+        "2026-11-22: the button rule, not the ability switch: the core turns the ability switch back on after each\nquestion (it switches Blink off while a question is up, because right click is also Blink)."
+        Disallow Button(Global.learner, Button(Ability 1));
+        Disallow Button(Global.learner, Button(Ability 2));
+        Disallow Button(Global.learner, Button(Ultimate));
         "Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks)."
         Set Global Variable(chkName, Custom String("guess from spawn at 3 s a leg"));
         "Self-tests: every formula the game uses, on known numbers (the same ones tests/test_game_04.py checks)."

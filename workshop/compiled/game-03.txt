@@ -57,71 +57,75 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: padPos
-        28: dirv
-        29: goal
-        30: pits
-        31: V
-        32: Vnew
-        33: Vsave
-        34: chg
-        35: newPos
-        36: lastCh
-        37: arrow
-        38: arrowOld
-        39: flip
-        40: qs
-        41: qBest
-        42: sweepN
-        43: nChg
-        44: maxChg
-        45: looks
-        46: looks0
-        47: keepOld
-        48: wrongN
-        49: showArrows
-        50: runId
-        51: nSweeps
-        52: dStart
-        53: dMax
-        54: vStart
-        55: walkSim
-        56: wantF
-        57: gotF
-        58: wantR
-        59: markPit
-        60: gotR
-        61: walking
-        62: walkRet
-        63: walkSteps
-        64: walkEnd
-        65: walkRestarts
-        66: walkT0
-        67: lastMove
-        68: curP
-        69: prevP
-        70: pitFrom
-        71: pitTo
-        72: pitOk
-        73: pitTries
-        74: ctrl
-        75: boardTxt
-        76: showDebrief
-        77: deb
-        78: npP
-        79: npA
-        80: npS
-        81: npR
-        82: npRow
-        83: npCol
-        84: lp
-        85: la
-        86: wp
-        87: mp
-        88: sp
-        89: dp
-        90: rp
-        91: wk
+        27: qTxtTop
+        28: qTxtLow
+        29: padPos
+        30: dirv
+        31: goal
+        32: pits
+        33: V
+        34: Vnew
+        35: Vsave
+        36: chg
+        37: newPos
+        38: lastCh
+        39: arrow
+        40: arrowOld
+        41: flip
+        42: qs
+        43: qBest
+        44: sweepN
+        45: nChg
+        46: maxChg
+        47: looks
+        48: looks0
+        49: keepOld
+        50: wrongN
+        51: showArrows
+        52: runId
+        53: nSweeps
+        54: dStart
+        55: dMax
+        56: vStart
+        57: walkSim
+        58: wantF
+        59: gotF
+        60: wantR
+        61: markPit
+        62: gotR
+        63: walking
+        64: walkRet
+        65: walkSteps
+        66: walkEnd
+        67: walkRestarts
+        68: walkT0
+        69: lastMove
+        70: curP
+        71: prevP
+        72: pitFrom
+        73: pitTo
+        74: pitOk
+        75: pitTries
+        76: ctrl
+        77: boardTxt
+        78: boardTxt2
+        79: padTxt
+        80: showDebrief
+        81: deb
+        82: npP
+        83: npA
+        84: npS
+        85: npR
+        86: npRow
+        87: npCol
+        88: lp
+        89: la
+        90: wp
+        91: mp
+        92: sp
+        93: dp
+        94: rp
+        95: wk
     player:
         0: fellCount
         1: fell
@@ -187,6 +191,8 @@ rule ("Initialize global variables") {
         Set Global Variable(pitOk, False);
         Set Global Variable(ctrl, Custom String(""));
         Set Global Variable(boardTxt, Custom String(""));
+        Set Global Variable(boardTxt2, Custom String(""));
+        Set Global Variable(padTxt, Empty Array);
         Set Global Variable(showDebrief, False);
         Set Global Variable(deb, Array(Custom String(""), Custom String(""), Custom String("")));
     }
@@ -345,12 +351,21 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -362,6 +377,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -435,9 +451,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 3: THE WHITEBOARD"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -597,7 +610,11 @@ rule ("Game 3: redraw the whiteboard: rings, one number per pad, and the plan's 
         drawBoard;
     }
     actions {
-        Destroy All In-World Text;
+        "Only this board's own texts: the core's floating question is an in-world text too, and destroying every text\nwould remove it for the rest of the game."
+        For Global Variable(dp, 0, Count Of(Global.padTxt), 1);
+            Destroy In-World Text(Value In Array(Global.padTxt, Global.dp));
+        End;
+        Set Global Variable(padTxt, Empty Array);
         Destroy All Effects;
         Wait(0.016, Ignore Condition);
         Create Effect(All Players(All Teams), Ring, Color(Sky Blue), Value In Array(Global.padPos, 2), 1, None);
@@ -606,6 +623,7 @@ rule ("Game 3: redraw the whiteboard: rings, one number per pad, and the plan's 
         Create Effect(All Players(All Teams), Ring, Color(Red), Value In Array(Global.padPos, Value In Array(Global.pits, 1)), 1.8, None);
         For Global Variable(dp, 0, 25, 1);
             Create In-World Text(All Players(All Teams), If-Then-Else(Compare(Global.dp, ==, Global.goal), Custom String("GOAL +10"), If-Then-Else(Array Contains(Global.pits, Global.dp), If-Then-Else(And(Global.markPit, Compare(Global.dp, ==, Value In Array(Global.pits, 1))), Custom String("THIS PIT MOVES"), Custom String("PIT -10")), Custom String("{0}", Round To Integer(Value In Array(Global.V, Global.dp), To Nearest)))), Add(Value In Array(Global.padPos, Global.dp), Up), 2.5, Do Not Clip, None, If-Then-Else(Compare(Global.dp, ==, Global.goal), Color(Green), If-Then-Else(Array Contains(Global.pits, Global.dp), Custom Color(255, 112, 122, 255), If-Then-Else(Value In Array(Global.newPos, Global.dp), Color(Yellow), If-Then-Else(Compare(Value In Array(Global.V, Global.dp), >, 0), Color(Lime Green), Color(White))))), Default Visibility);
+            Modify Global Variable(padTxt, Append To Array, Last Text ID);
             If(And(Global.showArrows, Compare(Value In Array(Global.arrow, Global.dp), >=, 0)));
                 Create Beam Effect(All Players(All Teams), Grapple Beam, Add(Value In Array(Global.padPos, Global.dp), Vector(0, 0.3, 0)), Add(Add(Value In Array(Global.padPos, Global.dp), Multiply(Value In Array(Global.dirv, Value In Array(Global.arrow, Global.dp)), 2)), Vector(0, 0.3, 0)), If-Then-Else(Value In Array(Global.flip, Global.dp), Color(Yellow), Color(Green)), None);
             End;
@@ -613,7 +631,8 @@ rule ("Game 3: redraw the whiteboard: rings, one number per pad, and the plan's 
                 Wait(0.016, Ignore Condition);
             End;
         End;
-        Set Global Variable(boardTxt, Custom String("sweep {0}   |   pads changed {1}   |   biggest change {2}", Global.sweepN, If-Then-Else(Compare(Global.sweepN, >, 0), Global.nChg, 0), Custom String("{0}\nlook-aheads so far: {1}", If-Then-Else(Compare(Global.sweepN, >, 0), Round To Integer(Global.maxChg, To Nearest), 0), Subtract(Global.looks, Global.looks0))));
+        Set Global Variable(boardTxt, Custom String("sweep {0}   pads changed {1}   biggest change {2}", Global.sweepN, If-Then-Else(Compare(Global.sweepN, >, 0), Global.nChg, 0), If-Then-Else(Compare(Global.sweepN, >, 0), Round To Integer(Global.maxChg, To Nearest), 0)));
+        Set Global Variable(boardTxt2, Custom String("look-aheads so far: {0}", Subtract(Global.looks, Global.looks0)));
     }
 }
 
@@ -717,6 +736,7 @@ rule ("Game 3: the screen") {
     actions {
         Create HUD Text(All Players(All Teams), Null, Null, Global.ctrl, Left, 3, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Global.boardTxt, Right, 0, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.boardTxt2, Right, 1, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showDebrief, All Players(All Teams), Null), Null, Null, First Of(Global.deb), Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showDebrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.deb, 1), Left, 5, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
         Create HUD Text(If-Then-Else(Global.showDebrief, All Players(All Teams), Null), Null, Null, Value In Array(Global.deb, 2), Left, 6, Color(White), Color(White), Color(Lime Green), Visible To and String, Default Visibility);
@@ -801,17 +821,17 @@ rule ("Game 3: run") {
         Set Global Variable(showArrows, False);
         Call Subroutine(drawBoard);
         "---- Round 1: the rules, and the first sweep ----"
-        Set Global Variable(ctrl, Custom String("Answer: LEFT CLICK / RIGHT CLICK / MELEE.   F: run one sweep.   WASD: walk.   R: move a pit (later)."));
+        Set Global Variable(ctrl, Custom String("Answer: LEFT CLICK / RIGHT CLICK / MELEE.   F: one sweep.   WASD: walk."));
         Set Global Variable(coach, Custom String("Whiteboard before the round: you know this map's rules, so plan the dive instead of dying to find out."));
         Wait(7, Ignore Condition);
         Set Global Variable(coach, Custom String("Each step costs 1. The goal pays 10. A red pit costs 10 and ends the dive. Every pad starts at 0."));
         Wait(7, Ignore Condition);
         Set Global Variable(qId, 1);
-        Set Global Variable(qText, Custom String("Before any sweep: after ONE sweep, what will the pad right next to the goal show?"));
+        Set Global Variable(qText, Custom String("After ONE sweep, the pad next to the goal shows?"));
         Set Global Variable(qOpts, Array(Custom String("9"), Custom String("10"), Custom String("-1")));
         Set Global Variable(qCorrect, 0);
         Set Global Variable(qAuto, 0);
-        Set Global Variable(qWhy, Custom String("-1 for the step, +10 for the goal, plus the goal's own 0. That is lecture 2's one-step rule."));
+        Set Global Variable(qWhy, Custom String("-1 for the step, +10 for the goal, plus the goal's 0: lecture 2's one-step rule."));
         Call Subroutine(ask);
         Set Global Variable(runId, 1);
         Set Global Variable(coach, Custom String("Press F: each pad looks at its 4 moves (step reward + the number it lands on) and keeps the best."));
@@ -827,7 +847,7 @@ rule ("Game 3: run") {
             If(Compare(Global.sweepN, ==, 1));
                 Wait(3, Ignore Condition);
                 Set Global Variable(qId, 2);
-                Set Global Variable(qText, Custom String("Your start pad (blue ring) shows -1. On which sweep will it first turn positive?"));
+                Set Global Variable(qText, Custom String("Your start pad shows -1. Which sweep turns it positive?"));
                 Set Global Variable(qOpts, Array(Custom String("sweep 2"), Custom String("sweep {0}", Global.dStart), Custom String("sweep {0}", Multiply(2, Global.dStart))));
                 Set Global Variable(qCorrect, 1);
                 Set Global Variable(qAuto, 1);
@@ -837,21 +857,21 @@ rule ("Game 3: run") {
             Else If(Compare(Global.sweepN, ==, 2));
                 Wait(3, Ignore Condition);
                 Set Global Variable(qId, 3);
-                Set Global Variable(qText, Custom String("Most pads read -2 now. Is there ONE plan that scores exactly these numbers?"));
-                Set Global Variable(qOpts, Array(Custom String("yes, the best plan"), Custom String("yes, a worse plan"), Custom String("no plan at all")));
+                Set Global Variable(qText, Custom String("Does ONE plan score exactly these numbers?"));
+                Set Global Variable(qOpts, Array(Custom String("the best plan"), Custom String("a worse plan"), Custom String("no plan")));
                 Set Global Variable(qCorrect, 2);
                 Set Global Variable(qAuto, 0);
-                Set Global Variable(qWhy, Custom String("A -2 pad ringed by -2 pads scores -3 under any plan. Midway numbers are unfinished sums."));
+                Set Global Variable(qWhy, Custom String("A -2 pad ringed by -2 pads scores -3 under any plan. Midway numbers are half-done sums."));
                 Call Subroutine(ask);
                 Set Global Variable(coach, Custom String("Press F for sweep 3."));
             Else If(Compare(Global.sweepN, ==, 3));
                 Wait(3, Ignore Condition);
                 Set Global Variable(qId, 4);
-                Set Global Variable(qText, Custom String("Which sweep will be the first one that changes nothing at all?"));
-                Set Global Variable(qOpts, Array(Custom String("sweep {0}", Global.dMax), Custom String("sweep {0}", Add(Global.dMax, 1)), Custom String("none: it creeps on forever")));
+                Set Global Variable(qText, Custom String("Which sweep is the first to change nothing?"));
+                Set Global Variable(qOpts, Array(Custom String("sweep {0}", Global.dMax), Custom String("sweep {0}", Add(Global.dMax, 1)), Custom String("never")));
                 Set Global Variable(qCorrect, 1);
                 Set Global Variable(qAuto, 1);
-                Set Global Variable(qWhy, Custom String("The farthest pad gets its number on sweep {0}. Sweep {1} changes nothing: that is how you know.", Global.dMax, Add(Global.dMax, 1)));
+                Set Global Variable(qWhy, Custom String("The farthest pad settles on sweep {0}. Sweep {1} changes nothing: that is how you know.", Global.dMax, Add(Global.dMax, 1)));
                 Call Subroutine(ask);
                 Set Global Variable(coach, Custom String("Keep pressing F until a sweep changes nothing."));
             End;
@@ -870,15 +890,15 @@ rule ("Game 3: run") {
         Set Global Variable(coach, Custom String("{0} sweeps x {1} pads x 4 moves = {2} look-aheads. A real match has far too many states to sweep.", Global.nSweeps, Subtract(24, Count Of(Global.pits)), Global.looks));
         Wait(7, Ignore Condition);
         Set Global Variable(qId, 5);
-        Set Global Variable(qText, Custom String("Your start pad says {0}. Walk the green lines to the goal. What will you score?", Round To Integer(Value In Array(Global.V, 2), To Nearest)));
-        Set Global Variable(qOpts, Array(Custom String("10, what the goal pays"), Custom String("{0}", Round To Integer(Value In Array(Global.V, 2), To Nearest)), Custom String("it depends on luck")));
+        Set Global Variable(qText, Custom String("Start pad says {0}. Walk the lines. Your score?", Round To Integer(Value In Array(Global.V, 2), To Nearest)));
+        Set Global Variable(qOpts, Array(Custom String("10"), Custom String("{0}", Round To Integer(Value In Array(Global.V, 2), To Nearest)), Custom String("luck decides")));
         Set Global Variable(qCorrect, 1);
         Set Global Variable(qAuto, 1);
         Set Global Variable(qWhy, Custom String("Walk it and see."));
         Call Subroutine(ask);
         "---- Round 3: walk the plan ----"
         Call Subroutine(putHome);
-        Set Global Variable(ctrl, Custom String("WASD: walk the green lines from the blue ring to the goal. Each pad you enter costs 1."));
+        Set Global Variable(ctrl, Custom String("WASD: walk the green lines from the blue ring to the goal. Each pad costs 1."));
         Set Global Variable(coach, Custom String("Walk the plan. You can leave it if you like; the board counts every pad you step on."));
         Set Global Variable(walkRet, 0);
         Set Global Variable(walkSteps, 0);
@@ -934,7 +954,7 @@ rule ("Game 3: run") {
         "2026-11-22: this used to say \"the right-hand pit\", which was the left-hand one from the start pad and\nneither from where the walk ends. The board now labels the pit that moves."
         Set Global Variable(markPit, True);
         Call Subroutine(drawBoard);
-        Set Global Variable(ctrl, Custom String("WASD: go to any pad.   R: move the pit marked THIS PIT MOVES onto the pad you stand on."));
+        Set Global Variable(ctrl, Custom String("WASD: go to a pad.   R: move the pit marked THIS PIT MOVES to that pad."));
         Set Global Variable(coach, Custom String("The enemy moved. Stand on any pad and press R: the pit marked THIS PIT MOVES jumps there."));
         While(Not(Global.pitOk));
             Set Global Variable(gotR, False);
@@ -977,7 +997,7 @@ rule ("Game 3: run") {
         End;
         Call Subroutine(drawBoard);
         Set Global Variable(qId, 6);
-        Set Global Variable(qText, Custom String("The pit moved, and the board still shows the old plan. How many old lines are now wrong?"));
+        Set Global Variable(qText, Custom String("The pit moved. How many old lines are now wrong?"));
         Set Global Variable(qOpts, Array(Custom String("none"), Custom String("1 to 3"), Custom String("4 or more")));
         Set Global Variable(qCorrect, If-Then-Else(Compare(Global.wrongN, ==, 0), 0, If-Then-Else(Compare(Global.wrongN, <=, 3), 1, 2)));
         Set Global Variable(qAuto, Global.qCorrect);
@@ -1009,7 +1029,7 @@ rule ("Game 3: run") {
         Set Global Variable(ctrl, Custom String(""));
         Wait(8, Ignore Condition);
         "---- Debrief ----"
-        Set Global Variable(deb, Array(Custom String("You did: planned the dive on a whiteboard, one sweep per F, then walked the plan and changed the map."), Custom String("Called: dynamic programming. Value iteration repeats a one-step look ahead on every pad until nothing moves."), Custom String("In an LLM agent: it can think a tool call through only if it has a model of what that tool will do.")));
+        Set Global Variable(deb, Array(Custom String("You did: planned the dive one sweep per F, walked the plan, then moved a pit."), Custom String("Called: dynamic programming, here value iteration: look one step ahead, repeat."), Custom String("In an LLM agent: it can plan tool calls only if it knows what each tool does.")));
         Set Global Variable(showDebrief, True);
         Set Global Variable(coach, Custom String("Predictions right: {0} of {1}. Simplified: moves never slip, and 25 pads is tiny next to a real game.", Global.predRight, Global.predTotal));
         Wait(12, Ignore Condition);

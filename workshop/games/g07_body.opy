@@ -99,7 +99,7 @@ globalvar worldTxt = ["", "", ""]
 globalvar barTxt = ["", "", ""]
 globalvar oddsHead = ""
 globalvar botExTxt = ""
-globalvar info = ["", "", ""]
+globalvar info = ["", "", "", ""]
 globalvar nDummies = 0
 globalvar holdT
 
@@ -140,7 +140,7 @@ def buildTexts():
     oddsHead = "nudge size {}   its usual reward (baseline) {}".format(alpha, base)
     exF = botP
     exBot = EXPLOIT(exF)
-    botExTxt = "a perfect counter-picker would net {} wins per 100 rounds against these odds".format(round(exBot * 100))
+    botExTxt = "vs these odds a perfect counter nets {} wins per 100".format(round(exBot * 100))
 
 def getPick():
     @Name "Game 7: wait for the player's pick (left click, right click, melee), outside of questions"
@@ -194,8 +194,8 @@ def playRound():
         draws += 1
     LOG("RLG,E,{},pick,{},{},{},{},{},{}".format(GAME_ID, rnd + 1, phase, youPick, drawK, bPick, bR))
     LOG("RLG,E,{},odds,{},{},{},{},{},{}".format(GAME_ID, rnd + 1, pBefore[0], pBefore[1], pBefore[2], alpha, base))
-    info[1] = "Round {}: you {}, bot {}. {}. Score: you {}, bot {}, draws {}.".format(rnd + 1, heroName[youPick], heroName[bPick], "Bot wins" if bR > 0 else ("You win" if bR < 0 else "Draw"), winsYou, winsBot, draws)
-    coach = "{} had {}% and scored {} vs its usual {}: its preference moves {} x {} x {} = {}.".format(heroName[bPick], round(pBefore[bPick] * 100), bR, base, alpha, bR - base, 1 - pBefore[bPick], alpha * (bR - base) * (1 - pBefore[bPick]))
+    info[1] = "Round {}: you {}, bot {}: {}. You {}, bot {}, draws {}.".format(rnd + 1, heroName[youPick], heroName[bPick], "Bot wins" if bR > 0 else ("You win" if bR < 0 else "Draw"), winsYou, winsBot, draws)
+    coach = "{} had {}%, scored {} vs its usual {}: preference moves {} x {} x {} = {}.".format(heroName[bPick], round(pBefore[bPick] * 100), bR, base, alpha, bR - base, 1 - pBefore[bPick], alpha * (bR - base) * (1 - pBefore[bPick]))
     learn()
     LOG("RLG,E,{},pref,{},{},{},{},{}".format(GAME_ID, rnd + 1, botH[0], botH[1], botH[2], base))
     if phase > 0:
@@ -207,7 +207,8 @@ def playRound():
         exF = botP
         exBot = EXPLOIT(exF)
         LOG("RLG,E,{},mix,{},{},{},{},{},{}".format(GAME_ID, rnd + 1, youF[0], youF[1], youF[2], exYou, exBot))
-        info[2] = "Your mix: TRACER {}% WIDOW {}% PHARAH {}%. A perfect counter would net {} wins minus losses per 100.".format(round(youF[0] * 100), round(youF[1] * 100), round(youF[2] * 100), round(exYou * 100))
+        info[2] = "Your mix: TRACER {}%, WIDOWMAKER {}%, PHARAH {}%.".format(round(youF[0] * 100), round(youF[1] * 100), round(youF[2] * 100))
+        info[3] = "A perfect counter-picker would net {} wins minus losses per 100 rounds vs it.".format(round(exYou * 100))
     buildTexts()
     rnd += 1
     wait(0.5 if AUTOPLAY else 4.5)
@@ -247,7 +248,8 @@ rule "Game 7: the screen":
     hudText(getAllPlayers(), null, null, info[0], HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, info[1], HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, info[2], HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), "THIS GAME'S RULE", "Tracer beats Widowmaker, Widowmaker beats Pharah, Pharah beats Tracer", "a rule made for this game, not a claim about real Overwatch", HudPosition.RIGHT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.NONE)
+    hudText(getAllPlayers(), null, null, info[3], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), "THIS GAME'S RULE", "Tracer beats Widowmaker, Widowmaker beats Pharah, Pharah beats Tracer", "a rule made for this game, not real Overwatch", HudPosition.RIGHT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.NONE)
     hudText(getAllPlayers(), "THE BOT'S ODDS FOR ITS NEXT PICK", oddsHead, null, HudPosition.RIGHT, 1, Color.YELLOW, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     progressBarHud(getAllPlayers(), botP[0] * 100, barTxt[0], HudPosition.RIGHT, 2, Color.ORANGE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
     progressBarHud(getAllPlayers(), botP[1] * 100, barTxt[1], HudPosition.RIGHT, 3, Color.LIGHT_PURPLE, Color.WHITE, ProgressHudReeval.VISIBILITY_AND_VALUES)
@@ -309,7 +311,7 @@ rule "Game 7: run":
     info[0] = "PICK when a round asks: LEFT CLICK Tracer, RIGHT CLICK Widowmaker, MELEE Pharah."
     coach = "Counter-picking: the bot learns to pick whatever beats the hero you keep playing."
     wait(1 if AUTOPLAY else 7)
-    coach = "It keeps no scores for moves. It keeps three odds, the bars on the right, and draws its pick from them."
+    coach = "It keeps no scores, only three odds (the bars on the right), and draws its pick from them."
     wait(1 if AUTOPLAY else 7)
 
     # Phase A: one hero, again and again.
@@ -321,12 +323,12 @@ rule "Game 7: run":
     qWhy = "It nudges up whatever won. Against one hero, only that hero's counter keeps winning."
     ask()
     phase = 0
-    info[2] = "The push = nudge size x (reward minus its usual) x (1 minus the odds it gave that pick)."
+    info[2] = "The push: nudge size x (reward minus its usual) x (1 minus the pick's odds)."
     coach = "Pick any hero, then keep picking it. Watch the bars on the right."
     wait(1 if AUTOPLAY else 4)
     for roundsLeft in range(N_A):
         playRound()
-    coach = "Its odds moved, not scores. Odds for each move are a policy; learning them directly is a policy gradient."
+    coach = "It moved odds, not scores. Odds per move are a policy; learning them directly is a policy gradient."
     wait(1 if AUTOPLAY else 8)
     coach = "Its rule, REINFORCE: push up what beat its usual reward, more if the pick was a surprise."
     wait(1 if AUTOPLAY else 8)
@@ -337,7 +339,7 @@ rule "Game 7: run":
     qOpts = ["evenly onto all three", "onto heroes that did well", "nowhere"]
     qCorrect = 0
     qAuto = 0
-    qWhy = "Evenly: best hero 93%, the others 3% each, whatever they earned. This bot aims its odds."
+    qWhy = "Evenly: best hero 93%, others 3% each, whatever they earned. This bot aims its odds."
     ask()
 
     # Why the best policy can need randomness.
@@ -346,9 +348,9 @@ rule "Game 7: run":
     qOpts = ["nothing, if the rule is clever", "anyone who spots the rule", "only luck"]
     qCorrect = 1
     qAuto = 1
-    qWhy = "Any fixed rule can be read and countered every round. Random-on-purpose odds cannot be read."
+    qWhy = "Any fixed rule can be read and countered every round. Random odds cannot be read."
     ask()
-    coach = "The lecture's other case: two squares look alike, so one fixed move fails in one. A coin flip escapes."
+    coach = "Silver's other case: two squares look alike, so one fixed move fails in one. A coin flip escapes."
     wait(1 if AUTOPLAY else 8)
 
     qId = 4
@@ -356,7 +358,7 @@ rule "Game 7: run":
     qOpts = ["a third each", "mostly the hero that wins", "the same hero, always"]
     qCorrect = 0
     qAuto = 0
-    qWhy = "A third each: every counter wins as often as it loses. Silver's rock-paper-scissors answer."
+    qWhy = "A third each: every counter wins as often as it loses (Silver's rock-paper-scissors)."
     ask()
 
     # Phase B: free play against a fresh bot; his own mix is measured.
@@ -376,7 +378,7 @@ rule "Game 7: run":
     qOpts = ["swing hard", "settle near a third", "move as before"]
     qCorrect = 0
     qAuto = 1
-    qWhy = "A big step overreacts to one lucky round; near 100% the surprise term is tiny, so it sticks."
+    qWhy = "Big steps overreact to one lucky round; near 100% the surprise is tiny, so it sticks."
     ask()
     alpha = ALPHA_BIG
     phase = 2
@@ -391,9 +393,10 @@ rule "Game 7: run":
     pickOpen = false
     botFx = HIDE_POS
     youFx = HIDE_POS
-    info[0] = "What you did: you played habits, and a bot that keeps only odds learned to counter them."
-    info[1] = "What it is called: a policy gradient, REINFORCE with a baseline, on a softmax policy."
-    info[2] = "In a language model: temperature spreads its odds; training nudges up outputs that scored well."
+    info[0] = "What you did: played habits; a bot that keeps only odds learned to counter them."
+    info[1] = "What it is called: policy gradient, REINFORCE with a baseline, softmax policy."
+    info[2] = "In a language model: temperature spreads its odds over words,"
+    info[3] = "and training nudges up the outputs that scored well."
     coach = "You got {} of {} predictions right. Simplified: one situation, one-round episodes, no critic.".format(predRight, predTotal)
     wait(1 if AUTOPLAY else 3)
     finish()

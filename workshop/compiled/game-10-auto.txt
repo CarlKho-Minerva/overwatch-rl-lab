@@ -57,63 +57,65 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: payTab
-        28: leftPos
-        29: rightPos
-        30: widowPos
-        31: widow
-        32: spawnTry
-        33: phase
-        34: peekN
-        35: phasePeeks
-        36: pick
-        37: pickOpen
-        38: pickTxt
-        39: autoPicks
-        40: nL
-        41: nN
-        42: aL
-        43: aA
-        44: herBR
-        45: herQ
-        46: drawU
-        47: aim
-        48: pay
-        49: score
-        50: ev
-        51: evSum
-        52: phasePay
-        53: dieRoll
-        54: dieSays
-        55: followed
-        56: tmo
-        57: beam
-        58: barHer
-        59: barHim
-        60: barHerTxt
-        61: barHimTxt
-        62: scoreTxt
-        63: infoTxt
-        64: mA
-        65: mB
-        66: mC
-        67: mD
-        68: mDen
-        69: gVal
-        70: gP
-        71: gQ
-        72: spT
-        73: spNL
-        74: spN
-        75: spML
-        76: spM
-        77: spTr
-        78: spWi
-        79: spLast
-        80: spFlips
-        81: spPay
-        82: spSnap
-        83: spI
+        27: qTxtTop
+        28: qTxtLow
+        29: payTab
+        30: leftPos
+        31: rightPos
+        32: widowPos
+        33: widow
+        34: spawnTry
+        35: phase
+        36: peekN
+        37: phasePeeks
+        38: pick
+        39: pickOpen
+        40: pickTxt
+        41: autoPicks
+        42: nL
+        43: nN
+        44: aL
+        45: aA
+        46: herBR
+        47: herQ
+        48: drawU
+        49: aim
+        50: pay
+        51: score
+        52: ev
+        53: evSum
+        54: phasePay
+        55: dieRoll
+        56: dieSays
+        57: followed
+        58: tmo
+        59: beam
+        60: barHer
+        61: barHim
+        62: barHerTxt
+        63: barHimTxt
+        64: scoreTxt
+        65: infoTxt
+        66: mA
+        67: mB
+        68: mC
+        69: mD
+        70: mDen
+        71: gVal
+        72: gP
+        73: gQ
+        74: spT
+        75: spNL
+        76: spN
+        77: spML
+        78: spM
+        79: spTr
+        80: spWi
+        81: spLast
+        82: spFlips
+        83: spPay
+        84: spSnap
+        85: spI
     player:
         0: fellCount
         1: fell
@@ -326,13 +328,22 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -344,6 +355,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -417,9 +429,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 10: THE PEEK"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -449,15 +458,16 @@ rule ("Game 10: rebuild the HUD strings (only when something changes)") {
     actions {
         Set Global Variable(barHer, Multiply(100, Global.herQ));
         Set Global Variable(barHim, Divide(Multiply(100, Global.nL), Max(Global.nN, 1)));
-        Set Global Variable(barHerTxt, Custom String("Widowmaker aims LEFT this peek: {0}%{1}", Round To Integer(Multiply(100, Global.herQ), To Nearest), If-Then-Else(Compare(Global.phase, >=, 3), Custom String("   (safe mix 57%)"), Custom String(""))));
-        Set Global Variable(barHimTxt, Custom String("you peeked LEFT {0} of {1} times: {2}", Global.nL, Global.nN, Custom String("{0}%{1}", Round To Integer(Global.barHim, To Nearest), If-Then-Else(Compare(Global.phase, >=, 3), Custom String("   (safe mix 29%)"), Custom String("")))));
+        "Bar labels stay under 44 characters, or the game wraps them under the bar onto the next row."
+        Set Global Variable(barHerTxt, Custom String("her LEFT odds now: {0}%{1}", Round To Integer(Multiply(100, Global.herQ), To Nearest), If-Then-Else(Compare(Global.phase, >=, 3), Custom String("  (safe mix 57%)"), Custom String(""))));
+        Set Global Variable(barHimTxt, Custom String("you went LEFT {0}/{1}: {2}", Global.nL, Global.nN, Custom String("{0}%{1}", Round To Integer(Global.barHim, To Nearest), If-Then-Else(Compare(Global.phase, >=, 3), Custom String("  (safe mix 29%)"), Custom String("")))));
         Set Global Variable(scoreTxt, Custom String("your points {0}    hers {1}    peek {2} of 14", Global.score, Subtract(0, Global.score), Global.peekN));
         If(Compare(Global.phase, ==, 1));
             Set Global Variable(infoTxt, Custom String("This Widowmaker never changes: she always holds RIGHT."));
         Else If(Compare(Global.phase, ==, 2));
-            Set Global Variable(infoTxt, Custom String("She aims where your habits say you go half the time, and repeats her own habits otherwise."));
+            Set Global Variable(infoTxt, Custom String("She aims at your habit half the time, else at her own."));
         Else;
-            Set Global Variable(infoTxt, Custom String("The die says {0}. It says LEFT 2 times in 7. The mix averages +0.14 a peek whatever she does.", If-Then-Else(Compare(Global.dieSays, ==, 1), Custom String("LEFT"), Custom String("RIGHT"))));
+            Set Global Variable(infoTxt, Custom String("The die says {0}. It says LEFT 2 times in 7.", If-Then-Else(Compare(Global.dieSays, ==, 1), Custom String("LEFT"), Custom String("RIGHT"))));
         End;
     }
 }
@@ -486,7 +496,7 @@ rule ("Game 10: one peek. Both choose at once, then the result shows in the worl
         Wait Until(Not(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire)))), 3);
         Set Global Variable(pick, -1);
         Set Global Variable(tmo, 0);
-        Set Global Variable(pickTxt, Custom String("PEEK {0} OF 14:   LEFT CLICK = left corner      RIGHT CLICK = right corner", Global.peekN));
+        Set Global Variable(pickTxt, Custom String("PEEK {0} OF 14: LEFT CLICK left, RIGHT CLICK right", Global.peekN));
         Set Global Variable(pickOpen, True);
         Wait(0.4, Ignore Condition);
         Set Global Variable(pick, If-Then-Else(Compare(Global.phase, ==, 3), Global.dieSays, Value In Array(Global.autoPicks, Subtract(Global.peekN, 1))));
@@ -638,9 +648,10 @@ rule ("Game 10: the screen") {
         Create Progress Bar HUD Text(If-Then-Else(Compare(Global.phase, >=, 1), All Players(All Teams), Null), Global.barHer, Global.barHerTxt, Right, 1, Custom Color(255, 112, 122, 255), Color(White), Visible To Values and Color, Default Visibility);
         Create Progress Bar HUD Text(If-Then-Else(Compare(Global.phase, >=, 1), All Players(All Teams), Null), Global.barHim, Global.barHimTxt, Right, 2, Color(Yellow), Color(White), Visible To Values and Color, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.phase, >=, 1), All Players(All Teams), Null), Null, Null, Global.infoTxt, Right, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.pickOpen, All Players(All Teams), Null), Global.pickTxt, Null, Null, Top, 1, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("1. You peeked a fixed Widowmaker, then one who learned your habits, then by a 2-in-7 die."), Left, 3, Color(White), Color(White), Color(White), Visible To, Default Visibility);
-        Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("2. Answering a habit is a best response. The die is minimax: the Nash mix nobody can exploit."), Left, 4, Color(White), Color(White), Color(White), Visible To, Default Visibility);
+        "The peek prompt is a row of the left block: a row at the top centre ran over the title and the right panel."
+        Create HUD Text(If-Then-Else(Global.pickOpen, All Players(All Teams), Null), Global.pickTxt, Null, Null, Left, 3, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("1. You peeked a fixed Widowmaker, then a learning one, then by a 2-in-7 die."), Left, 3, Color(White), Color(White), Color(White), Visible To, Default Visibility);
+        Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("2. Answering a habit is a best response. The die is the minimax mix nobody can exploit."), Left, 4, Color(White), Color(White), Color(White), Visible To, Default Visibility);
         Create HUD Text(If-Then-Else(Compare(Global.phase, ==, 5), All Players(All Teams), Null), Null, Null, Custom String("3. An agent trained against one fixed simulated user learns that user, not the task."), Left, 5, Color(White), Color(White), Color(White), Visible To, Default Visibility);
     }
 }
@@ -653,6 +664,9 @@ rule ("Game 10: run") {
         Global.ready != False;
     }
     actions {
+        "2026-11-22: right click picks the right corner, and on Tracer right click is also Blink. Nothing here needs\nBlink or Recall (the game moves him to his corner), so both are off for the whole game."
+        Disallow Button(Global.learner, Button(Ability 1));
+        Disallow Button(Global.learner, Button(Ability 2));
         "The world: two corners, labelled, and the Widowmaker's spot."
         Create Effect(All Players(All Teams), Ring, Color(Orange), Global.leftPos, 1.5, None);
         Create Effect(All Players(All Teams), Ring, Color(Sky Blue), Global.rightPos, 1.5, None);
@@ -835,12 +849,12 @@ rule ("Game 10: run") {
         Call Subroutine(ask);
         Set Global Variable(phase, 4);
         Set Global Variable(coach, Custom String("Self-play: a learning Tracer against a learning Widowmaker, 300 peeks, shown every 20."));
-        Set Global Variable(infoTxt, Custom String("Each learner answers the other's average so far, so the averages move slowly and settle."));
+        Set Global Variable(infoTxt, Custom String("Each answers the other's average, so the averages settle."));
         For Global Variable(spI, 0, 15, 1);
             Set Global Variable(barHim, Divide(Multiply(100, Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 1))), Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 2))));
             Set Global Variable(barHer, Divide(Multiply(100, Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 3))), Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 4))));
-            Set Global Variable(barHimTxt, Custom String("learning Tracer peeked LEFT {0}% so far   (safe mix 29%)", Round To Integer(Global.barHim, To Nearest)));
-            Set Global Variable(barHerTxt, Custom String("learning Widowmaker aimed LEFT {0}% so far   (safe mix 57%)", Round To Integer(Global.barHer, To Nearest)));
+            Set Global Variable(barHimTxt, Custom String("bot Tracer LEFT share: {0}%  (safe mix 29%)", Round To Integer(Global.barHim, To Nearest)));
+            Set Global Variable(barHerTxt, Custom String("bot Widow LEFT share: {0}%  (safe mix 57%)", Round To Integer(Global.barHer, To Nearest)));
             Set Global Variable(scoreTxt, Custom String("self-play: peek {0} of 300", Value In Array(Global.spSnap, Multiply(Global.spI, 7))));
             Set Facing(Global.widow, Direction Towards(Eye Position(Global.widow), Add(If-Then-Else(Compare(Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 6)), ==, 1), Global.leftPos, Global.rightPos), Vector(0, 1.4, 0))), To World);
             Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,10,sp,{0},{1},{2}", Value In Array(Global.spSnap, Multiply(Global.spI, 7)), Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 1)), Custom String("{0},{1},{2}", Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 2)), Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 3)), Custom String("{0},{1},{2}", Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 4)), Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 5)), Value In Array(Global.spSnap, Add(Multiply(Global.spI, 7), 6))))));

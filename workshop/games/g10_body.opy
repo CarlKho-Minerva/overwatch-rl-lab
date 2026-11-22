@@ -133,15 +133,16 @@ def redraw():
     @Name "Game 10: rebuild the HUD strings (only when something changes)"
     barHer = 100 * herQ
     barHim = 100 * nL / max(nN, 1)
-    barHerTxt = "Widowmaker aims LEFT this peek: {}%{}".format(round(100 * herQ), "   (safe mix 57%)" if phase >= 3 else "")
-    barHimTxt = "you peeked LEFT {} of {} times: {}%{}".format(nL, nN, round(barHim), "   (safe mix 29%)" if phase >= 3 else "")
+    # Bar labels stay under 44 characters, or the game wraps them under the bar onto the next row.
+    barHerTxt = "her LEFT odds now: {}%{}".format(round(100 * herQ), "  (safe mix 57%)" if phase >= 3 else "")
+    barHimTxt = "you went LEFT {}/{}: {}%{}".format(nL, nN, round(barHim), "  (safe mix 29%)" if phase >= 3 else "")
     scoreTxt = "your points {}    hers {}    peek {} of {}".format(score, 0 - score, peekN, N_PEEKS)
     if phase == 1:
         infoTxt = "This Widowmaker never changes: she always holds RIGHT."
     elif phase == 2:
-        infoTxt = "She aims where your habits say you go half the time, and repeats her own habits otherwise."
+        infoTxt = "She aims at your habit half the time, else at her own."
     else:
-        infoTxt = "The die says {}. It says LEFT 2 times in 7. The mix averages +0.14 a peek whatever she does.".format("LEFT" if dieSays == 1 else "RIGHT")
+        infoTxt = "The die says {}. It says LEFT 2 times in 7.".format("LEFT" if dieSays == 1 else "RIGHT")
 
 def peek():
     @Name "Game 10: one peek. Both choose at once, then the result shows in the world"
@@ -162,7 +163,7 @@ def peek():
     waitUntil(not learner.isHoldingButton(Button.PRIMARY_FIRE) and not learner.isHoldingButton(Button.SECONDARY_FIRE), 3)
     pick = -1
     tmo = 0
-    pickTxt = "PEEK {} OF {}:   LEFT CLICK = left corner      RIGHT CLICK = right corner".format(peekN, N_PEEKS)
+    pickTxt = "PEEK {} OF {}: LEFT CLICK left, RIGHT CLICK right".format(peekN, N_PEEKS)
     pickOpen = true
     if AUTOPLAY:
         wait(0.4)
@@ -275,13 +276,18 @@ rule "Game 10: the screen":
     progressBarHud(getAllPlayers() if phase >= 1 else null, barHer, barHerTxt, HudPosition.RIGHT, 1, Color.LIGHT_RED, Color.WHITE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR)
     progressBarHud(getAllPlayers() if phase >= 1 else null, barHim, barHimTxt, HudPosition.RIGHT, 2, Color.YELLOW, Color.WHITE, ProgressHudReeval.VISIBILITY_VALUES_AND_COLOR)
     hudText(getAllPlayers() if phase >= 1 else null, null, null, infoTxt, HudPosition.RIGHT, 3, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if pickOpen else null, pickTxt, null, null, HudPosition.TOP, 1, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers() if phase == 5 else null, null, null, "1. You peeked a fixed Widowmaker, then one who learned your habits, then by a 2-in-7 die.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
-    hudText(getAllPlayers() if phase == 5 else null, null, null, "2. Answering a habit is a best response. The die is minimax: the Nash mix nobody can exploit.", HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
+    # The peek prompt is a row of the left block: a row at the top centre ran over the title and the right panel.
+    hudText(getAllPlayers() if pickOpen else null, pickTxt, null, null, HudPosition.LEFT, 3, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers() if phase == 5 else null, null, null, "1. You peeked a fixed Widowmaker, then a learning one, then by a 2-in-7 die.", HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
+    hudText(getAllPlayers() if phase == 5 else null, null, null, "2. Answering a habit is a best response. The die is the minimax mix nobody can exploit.", HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
     hudText(getAllPlayers() if phase == 5 else null, null, null, "3. An agent trained against one fixed simulated user learns that user, not the task.", HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY)
 
 rule "Game 10: run":
     @Condition ready
+    # 2026-11-22: right click picks the right corner, and on Tracer right click is also Blink. Nothing here needs
+    # Blink or Recall (the game moves him to his corner), so both are off for the whole game.
+    learner.disallowButton(Button.ABILITY_1)
+    learner.disallowButton(Button.ABILITY_2)
     # The world: two corners, labelled, and the Widowmaker's spot.
     createEffect(getAllPlayers(), Effect.RING, Color.ORANGE, leftPos, 1.5, EffectReeval.NONE)
     createEffect(getAllPlayers(), Effect.RING, Color.SKY_BLUE, rightPos, 1.5, EffectReeval.NONE)
@@ -436,12 +442,12 @@ rule "Game 10: run":
     ask()
     phase = 4
     coach = "Self-play: a learning Tracer against a learning Widowmaker, 300 peeks, shown every 20."
-    infoTxt = "Each learner answers the other's average so far, so the averages move slowly and settle."
+    infoTxt = "Each answers the other's average, so the averages settle."
     for spI in range(15):
         barHim = 100 * spSnap[spI * 7 + 1] / spSnap[spI * 7 + 2]
         barHer = 100 * spSnap[spI * 7 + 3] / spSnap[spI * 7 + 4]
-        barHimTxt = "learning Tracer peeked LEFT {}% so far   (safe mix 29%)".format(round(barHim))
-        barHerTxt = "learning Widowmaker aimed LEFT {}% so far   (safe mix 57%)".format(round(barHer))
+        barHimTxt = "bot Tracer LEFT share: {}%  (safe mix 29%)".format(round(barHim))
+        barHerTxt = "bot Widow LEFT share: {}%  (safe mix 57%)".format(round(barHer))
         scoreTxt = "self-play: peek {} of 300".format(spSnap[spI * 7])
         widow.setFacing(directionTowards(widow.getEyePosition(), (leftPos if spSnap[spI * 7 + 6] == 1 else rightPos) + vect(0, 1.4, 0)), Relativity.TO_WORLD)
         LOG("RLG,E,{},sp,{},{},{},{},{},{},{}".format(GAME_ID, spSnap[spI * 7], spSnap[spI * 7 + 1], spSnap[spI * 7 + 2], spSnap[spI * 7 + 3], spSnap[spI * 7 + 4], spSnap[spI * 7 + 5], spSnap[spI * 7 + 6]))

@@ -102,6 +102,8 @@ globalvar pitOk = false
 globalvar pitTries = 0
 globalvar ctrl = ""
 globalvar boardTxt = ""
+globalvar boardTxt2 = ""
+globalvar padTxt = []
 globalvar showDebrief = false
 globalvar deb = ["", "", ""]
 globalvar npP
@@ -228,7 +230,11 @@ def simWalk():
 
 def drawBoard():
     @Name "Game 3: redraw the whiteboard: rings, one number per pad, and the plan's lines"
-    destroyAllInWorldText()
+    # Only this board's own texts: the core's floating question is an in-world text too, and destroying every text
+    # would remove it for the rest of the game.
+    for dp in range(len(padTxt)):
+        destroyInWorldText(padTxt[dp])
+    padTxt = []
     destroyAllEffects()
     wait()
     createEffect(getAllPlayers(), Effect.RING, Color.SKY_BLUE, padPos[START], 1, EffectReeval.NONE)
@@ -237,11 +243,13 @@ def drawBoard():
     createEffect(getAllPlayers(), Effect.RING, Color.RED, padPos[pits[1]], 1.8, EffectReeval.NONE)
     for dp in range(25):
         createInWorldText(getAllPlayers(), "GOAL +10" if dp == goal else (("THIS PIT MOVES" if markPit and dp == pits[1] else "PIT -10") if dp in pits else "{}".format(round(V[dp]))), padPos[dp] + vect(0, 1, 0), 2.5, Clip.NONE, WorldTextReeval.NONE, Color.GREEN if dp == goal else (Color.LIGHT_RED if dp in pits else (Color.YELLOW if newPos[dp] else (Color.LIME_GREEN if V[dp] > 0 else Color.WHITE))))
+        padTxt.append(getLastCreatedText())
         if showArrows and arrow[dp] >= 0:
             createBeam(getAllPlayers(), Beam.GRAPPLE, padPos[dp] + vect(0, 0.3, 0), padPos[dp] + dirv[arrow[dp]] * 2 + vect(0, 0.3, 0), Color.YELLOW if flip[dp] else Color.GREEN, EffectReeval.NONE)
         if dp % 5 == 4:
             wait()
-    boardTxt = "sweep {}   |   pads changed {}   |   biggest change {}\nlook-aheads so far: {}".format(sweepN, nChg if sweepN > 0 else 0, round(maxChg) if sweepN > 0 else 0, looks - looks0)
+    boardTxt = "sweep {}   pads changed {}   biggest change {}".format(sweepN, nChg if sweepN > 0 else 0, round(maxChg) if sweepN > 0 else 0)
+    boardTxt2 = "look-aheads so far: {}".format(looks - looks0)
 
 def logBoard():
     @Name "Game 3: log the whole board after a visible sweep"
@@ -295,6 +303,7 @@ rule "Game 3: the screen":
     @Condition ready
     hudText(getAllPlayers(), null, null, ctrl, HudPosition.LEFT, 3, Color.WHITE, Color.WHITE, Color.ORANGE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, boardTxt, HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, boardTxt2, HudPosition.RIGHT, 1, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if showDebrief else null, null, null, deb[0], HudPosition.LEFT, 4, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if showDebrief else null, null, null, deb[1], HudPosition.LEFT, 5, Color.WHITE, Color.WHITE, Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers() if showDebrief else null, null, null, deb[2], HudPosition.LEFT, 6, Color.WHITE, Color.WHITE, Color.LIME_GREEN, HudReeval.VISIBILITY_AND_STRING)
@@ -351,17 +360,17 @@ rule "Game 3: run":
     drawBoard()
 
     # ---- Round 1: the rules, and the first sweep ----
-    ctrl = "Answer: LEFT CLICK / RIGHT CLICK / MELEE.   F: run one sweep.   WASD: walk.   R: move a pit (later)."
+    ctrl = "Answer: LEFT CLICK / RIGHT CLICK / MELEE.   F: one sweep.   WASD: walk."
     coach = "Whiteboard before the round: you know this map's rules, so plan the dive instead of dying to find out."
     HOLD(7)
     coach = "Each step costs 1. The goal pays 10. A red pit costs 10 and ends the dive. Every pad starts at 0."
     HOLD(7)
     qId = 1
-    qText = "Before any sweep: after ONE sweep, what will the pad right next to the goal show?"
+    qText = "After ONE sweep, the pad next to the goal shows?"
     qOpts = ["9", "10", "-1"]
     qCorrect = 0
     qAuto = 0
-    qWhy = "-1 for the step, +10 for the goal, plus the goal's own 0. That is lecture 2's one-step rule."
+    qWhy = "-1 for the step, +10 for the goal, plus the goal's 0: lecture 2's one-step rule."
     ask()
     runId = 1
     coach = "Press F: each pad looks at its 4 moves (step reward + the number it lands on) and keeps the best."
@@ -376,7 +385,7 @@ rule "Game 3: run":
         if sweepN == 1:
             HOLD(3)
             qId = 2
-            qText = "Your start pad (blue ring) shows -1. On which sweep will it first turn positive?"
+            qText = "Your start pad shows -1. Which sweep turns it positive?"
             qOpts = ["sweep 2", "sweep {}".format(dStart), "sweep {}".format(2 * dStart)]
             qCorrect = 1
             qAuto = 1
@@ -386,21 +395,21 @@ rule "Game 3: run":
         elif sweepN == 2:
             HOLD(3)
             qId = 3
-            qText = "Most pads read -2 now. Is there ONE plan that scores exactly these numbers?"
-            qOpts = ["yes, the best plan", "yes, a worse plan", "no plan at all"]
+            qText = "Does ONE plan score exactly these numbers?"
+            qOpts = ["the best plan", "a worse plan", "no plan"]
             qCorrect = 2
             qAuto = 0
-            qWhy = "A -2 pad ringed by -2 pads scores -3 under any plan. Midway numbers are unfinished sums."
+            qWhy = "A -2 pad ringed by -2 pads scores -3 under any plan. Midway numbers are half-done sums."
             ask()
             coach = "Press F for sweep 3."
         elif sweepN == 3:
             HOLD(3)
             qId = 4
-            qText = "Which sweep will be the first one that changes nothing at all?"
-            qOpts = ["sweep {}".format(dMax), "sweep {}".format(dMax + 1), "none: it creeps on forever"]
+            qText = "Which sweep is the first to change nothing?"
+            qOpts = ["sweep {}".format(dMax), "sweep {}".format(dMax + 1), "never"]
             qCorrect = 1
             qAuto = 1
-            qWhy = "The farthest pad gets its number on sweep {}. Sweep {} changes nothing: that is how you know.".format(dMax, dMax + 1)
+            qWhy = "The farthest pad settles on sweep {}. Sweep {} changes nothing: that is how you know.".format(dMax, dMax + 1)
             ask()
             coach = "Keep pressing F until a sweep changes nothing."
 
@@ -418,8 +427,8 @@ rule "Game 3: run":
     coach = "{} sweeps x {} pads x 4 moves = {} look-aheads. A real match has far too many states to sweep.".format(nSweeps, 25 - 1 - len(pits), looks)
     HOLD(7)
     qId = 5
-    qText = "Your start pad says {}. Walk the green lines to the goal. What will you score?".format(round(V[START]))
-    qOpts = ["10, what the goal pays", "{}".format(round(V[START])), "it depends on luck"]
+    qText = "Start pad says {}. Walk the lines. Your score?".format(round(V[START]))
+    qOpts = ["10", "{}".format(round(V[START])), "luck decides"]
     qCorrect = 1
     qAuto = 1
     qWhy = "Walk it and see."
@@ -427,7 +436,7 @@ rule "Game 3: run":
 
     # ---- Round 3: walk the plan ----
     putHome()
-    ctrl = "WASD: walk the green lines from the blue ring to the goal. Each pad you enter costs 1."
+    ctrl = "WASD: walk the green lines from the blue ring to the goal. Each pad costs 1."
     coach = "Walk the plan. You can leave it if you like; the board counts every pad you step on."
     walkRet = 0
     walkSteps = 0
@@ -485,7 +494,7 @@ rule "Game 3: run":
     # neither from where the walk ends. The board now labels the pit that moves.
     markPit = true
     drawBoard()
-    ctrl = "WASD: go to any pad.   R: move the pit marked THIS PIT MOVES onto the pad you stand on."
+    ctrl = "WASD: go to a pad.   R: move the pit marked THIS PIT MOVES to that pad."
     coach = "The enemy moved. Stand on any pad and press R: the pit marked THIS PIT MOVES jumps there."
     while not pitOk:
         gotR = false
@@ -525,7 +534,7 @@ rule "Game 3: run":
         newPos[sp] = false
     drawBoard()
     qId = 6
-    qText = "The pit moved, and the board still shows the old plan. How many old lines are now wrong?"
+    qText = "The pit moved. How many old lines are now wrong?"
     qOpts = ["none", "1 to 3", "4 or more"]
     qCorrect = 0 if wrongN == 0 else (1 if wrongN <= 3 else 2)
     qAuto = qCorrect
@@ -558,7 +567,7 @@ rule "Game 3: run":
     HOLD(8)
 
     # ---- Debrief ----
-    deb = ["You did: planned the dive on a whiteboard, one sweep per F, then walked the plan and changed the map.", "Called: dynamic programming. Value iteration repeats a one-step look ahead on every pad until nothing moves.", "In an LLM agent: it can think a tool call through only if it has a model of what that tool will do."]
+    deb = ["You did: planned the dive one sweep per F, walked the plan, then moved a pit.", "Called: dynamic programming, here value iteration: look one step ahead, repeat.", "In an LLM agent: it can plan tool calls only if it knows what each tool does."]
     showDebrief = true
     coach = "Predictions right: {} of {}. Simplified: moves never slip, and 25 pads is tiny next to a real game.".format(predRight, predTotal)
     HOLD(12)

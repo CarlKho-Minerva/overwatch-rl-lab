@@ -67,6 +67,8 @@ globalvar selfBad = 0
 globalvar loadSamples = 0
 globalvar loadSumRun = 0
 globalvar loadPeakRun = 0
+globalvar qTxtTop = null
+globalvar qTxtLow = null
 playervar fellCount = 0
 playervar fell = false
 
@@ -174,17 +176,33 @@ def ask():
     learner.disallowButton(Button.PRIMARY_FIRE)
     learner.disallowButton(Button.SECONDARY_FIRE)
     learner.disallowButton(Button.MELEE)
+    # 2026-11-22: on Tracer the right mouse button is also Blink, so a right-click answer threw the player 7.5 m
+    # forward, off his pad or off the island (seen when the human builds were played with real input). Ability 1 is
+    # switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps
+    # Blink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends.
+    learner.setAbility1Enabled(false)
     # 2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment
     # their conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question.
     waitUntil(not (learner.isHoldingButton(Button.PRIMARY_FIRE) or learner.isHoldingButton(Button.SECONDARY_FIRE) or learner.isHoldingButton(Button.MELEE)), 8)
     wait(0.4)
     qActive = true
+    # The question floats in the middle of the view, a few metres in front of the learner's eyes, and its options under
+    # it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,
+    # 2026-11-22: three placements tried). In the world it is clear of every HUD line.
+    # It is made for each question and removed after it: made once at the start, it was wiped for good by any game
+    # that redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question.
+    createInWorldText(getAllPlayers(), qText, learner.getEyePosition() + learner.getFacingDirection() * 5 + vect(0, 1.0, 0), 1.9, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.YELLOW)
+    qTxtTop = getLastCreatedText()
+    createInWorldText(getAllPlayers(), qLine, learner.getEyePosition() + learner.getFacingDirection() * 5 + vect(0, 0.45, 0), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE)
+    qTxtLow = getLastCreatedText()
     if AUTOPLAY:
         wait(1.2)
         qAnswer = qAuto
     else:
         waitUntil(qAnswer >= 0 or gameOver, 90)
     qActive = false
+    destroyInWorldText(qTxtTop)
+    destroyInWorldText(qTxtLow)
     qRight = qAnswer == qCorrect
     predTotal += 1
     if qRight:
@@ -195,6 +213,7 @@ def ask():
     learner.allowButton(Button.PRIMARY_FIRE)
     learner.allowButton(Button.SECONDARY_FIRE)
     learner.allowButton(Button.MELEE)
+    learner.setAbility1Enabled(true)
 
 rule "Core: left click answers the first option":
     @Event eachPlayer
@@ -230,8 +249,3 @@ rule "Core: the screen":
     hudText(getAllPlayers(), GAME_TITLE, null, null, HudPosition.LEFT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, coach, null, HudPosition.LEFT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     hudText(getAllPlayers(), null, null, "predictions right: {} of {}".format(predRight, predTotal), HudPosition.LEFT, 2, Color.WHITE, Color.WHITE, Color.SKY_BLUE, HudReeval.VISIBILITY_AND_STRING)
-    # The question floats in the middle of the view, a few metres in front of the learner's eyes, and its options under
-    # it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,
-    # 2026-11-22: three placements tried). In the world it is clear of every HUD line.
-    createInWorldText(getAllPlayers() if qActive else null, qText, learner.getEyePosition() + learner.getFacingDirection() * 5 + vect(0, 1.0, 0), 1.9, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.YELLOW)
-    createInWorldText(getAllPlayers() if qActive else null, qLine, learner.getEyePosition() + learner.getFacingDirection() * 5 + vect(0, 0.45, 0), 1.5, Clip.NONE, WorldTextReeval.VISIBILITY_POSITION_AND_STRING, Color.WHITE)

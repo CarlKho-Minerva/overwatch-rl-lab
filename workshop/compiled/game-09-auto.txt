@@ -57,66 +57,69 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: odds
-        28: padPos
-        29: label
-        30: payTab
-        31: coinTab
-        32: lnTab
-        33: gI
-        34: gU
-        35: gV
-        36: setupDone
-        37: myN
-        38: myS
-        39: myT
-        40: myTot
-        41: myReg
-        42: myUb
-        43: wantOpen
-        44: canOpen
-        45: roundEnd
-        46: roundNo
-        47: autoBox
-        48: oBox
-        49: oK
-        50: oPay
-        51: sN
-        52: sS
-        53: sTot
-        54: sReg
-        55: sA
-        56: sPay
-        57: sK
-        58: sTn
-        59: sX
-        60: sV
-        61: armPick
-        62: rpK
-        63: rpR
-        64: rpT
-        65: rpA
-        66: rpN
-        67: rpS
-        68: rpV
-        69: rpX
-        70: rpI
-        71: rpC
-        72: rpSum
-        73: rpReg
-        74: replayDone
-        75: replayT0
-        76: beamsOn
-        77: beamEnd
-        78: padTxt
-        79: ubTxt
-        80: hudMine
-        81: hudStrat
-        82: hudReg
-        83: hudRp
-        84: showRp
-        85: showEnd
-        86: endLine
+        27: qTxtTop
+        28: qTxtLow
+        29: odds
+        30: padPos
+        31: label
+        32: payTab
+        33: coinTab
+        34: lnTab
+        35: gI
+        36: gU
+        37: gV
+        38: setupDone
+        39: myN
+        40: myS
+        41: myT
+        42: myTot
+        43: myReg
+        44: myUb
+        45: wantOpen
+        46: canOpen
+        47: roundEnd
+        48: roundNo
+        49: autoBox
+        50: oBox
+        51: oK
+        52: oPay
+        53: sN
+        54: sS
+        55: sTot
+        56: sReg
+        57: sA
+        58: sPay
+        59: sK
+        60: sTn
+        61: sX
+        62: sV
+        63: armPick
+        64: rpK
+        65: rpR
+        66: rpT
+        67: rpA
+        68: rpN
+        69: rpS
+        70: rpV
+        71: rpX
+        72: rpI
+        73: rpC
+        74: rpSum
+        75: rpReg
+        76: replayDone
+        77: replayT0
+        78: beamsOn
+        79: beamEnd
+        80: padTxt
+        81: ubTxt
+        82: hudMine
+        83: hudStrat
+        84: hudReg
+        85: hudGreedy
+        86: hudRp
+        87: showRp
+        88: showEnd
+        89: endLine
     player:
         0: fellCount
         1: fell
@@ -183,10 +186,11 @@ rule ("Initialize global variables") {
         Set Global Variable(hudMine, Custom String(""));
         Set Global Variable(hudStrat, Custom String(""));
         Set Global Variable(hudReg, Custom String(""));
-        Set Global Variable(hudRp, Array(Custom String(""), Custom String(""), Custom String("")));
+        Set Global Variable(hudGreedy, Custom String(""));
+        Set Global Variable(hudRp, Array(Custom String(""), Custom String(""), Custom String(""), Custom String("")));
         Set Global Variable(showRp, False);
         Set Global Variable(showEnd, False);
-        Set Global Variable(endLine, Array(Custom String(""), Custom String(""), Custom String(""), Custom String("")));
+        Set Global Variable(endLine, Array(Custom String(""), Custom String(""), Custom String(""), Custom String(""), Custom String("")));
     }
 }
 
@@ -348,13 +352,22 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "switched off while a question is up. This is the ability switch, not the button rule, so a game that keeps\nBlink off for good with disallowButton(Button.ABILITY_1) is not undone when the question ends."
+        Set Ability 1 Enabled(Global.learner, False);
         "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
         Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
+        "It is made for each question and removed after it: made once at the start, it was wiped for good by any game\nthat redrew its board with destroyAllInWorldText (games 2, 3 and 6 did), and a person then saw no question."
+        Create In-World Text(All Players(All Teams), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
+        Set Global Variable(qTxtTop, Last Text ID);
+        Create In-World Text(All Players(All Teams), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
+        Set Global Variable(qTxtLow, Last Text ID);
         Wait(1.2, Ignore Condition);
         Set Global Variable(qAnswer, Global.qAuto);
         Set Global Variable(qActive, False);
+        Destroy In-World Text(Global.qTxtTop);
+        Destroy In-World Text(Global.qTxtLow);
         Set Global Variable(qRight, Compare(Global.qAnswer, ==, Global.qCorrect));
         Modify Global Variable(predTotal, Add, 1);
         If(Global.qRight);
@@ -366,6 +379,7 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Allow Button(Global.learner, Button(Primary Fire));
         Allow Button(Global.learner, Button(Secondary Fire));
         Allow Button(Global.learner, Button(Melee));
+        Set Ability 1 Enabled(Global.learner, True);
     }
 }
 
@@ -439,9 +453,6 @@ rule ("Core: the screen") {
         Create HUD Text(All Players(All Teams), Custom String("RL 9: LOOT BOXES"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Global.coach, Null, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         Create HUD Text(All Players(All Teams), Null, Null, Custom String("predictions right: {0} of {1}", Global.predRight, Global.predTotal), Left, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        "it. At the top of the screen it ran into whatever a game had put on the left and right (seen in the game,\n2026-11-22: three placements tried). In the world it is clear of every HUD line."
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qText, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Up), 1.9, Do Not Clip, Visible To Position and String, Color(Yellow), Default Visibility);
-        Create In-World Text(If-Then-Else(Global.qActive, All Players(All Teams), Null), Global.qLine, Add(Add(Eye Position(Global.learner), Multiply(Facing Direction Of(Global.learner), 5)), Vector(0, 0.45, 0)), 1.5, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
     }
 }
 
@@ -456,6 +467,9 @@ rule ("Game 9: run") {
         Set Global Variable(odds, Randomized Array(Array(0.2, 0.4, 0.55, 0.7)));
         For Global Variable(gI, 0, 120, 1);
             Set Global Variable At Index(payTab, Global.gI, If-Then-Else(Compare(Random Real(0, 1), <, Value In Array(Global.odds, Round To Integer(Divide(Global.gI, 30), Down))), 1, 0));
+            If(Compare(Modulo(Global.gI, 30), ==, 29));
+                Wait(0.016, Ignore Condition);
+            End;
         End;
         For Global Variable(gI, 0, 30, 1);
             Set Global Variable At Index(coinTab, Global.gI, Random Integer(0, 39));
@@ -470,9 +484,11 @@ rule ("Game 9: run") {
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,odds,{0},{1},{2}", First Of(Global.odds), Value In Array(Global.odds, 1), Custom String("{0},{1}", Value In Array(Global.odds, 2), Value In Array(Global.odds, 3))));
         For Global Variable(gI, 0, 8, 1);
             Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,draws,{0},{1},{2}", Round To Integer(Divide(Global.gI, 2), Down), Modulo(Global.gI, 2), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Multiply(Global.gI, 15)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 1)), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 2)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 3)), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 4)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 5)), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 6)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 7)), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 8)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 9)), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 10)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 11)), Custom String("{0},{1},{2}", Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 12)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 13)), Value In Array(Global.payTab, Add(Multiply(Global.gI, 15), 14)))))))))));
+            Wait(0.016, Ignore Condition);
         End;
         For Global Variable(gI, 0, 2, 1);
             Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,coin,{0},{1},{2}", Global.gI, Value In Array(Global.coinTab, Multiply(Global.gI, 15)), Custom String("{0},{1},{2}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 1)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 2)), Custom String("{0},{1},{2}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 3)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 4)), Custom String("{0},{1},{2}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 5)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 6)), Custom String("{0},{1},{2}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 7)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 8)), Custom String("{0},{1},{2}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 9)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 10)), Custom String("{0},{1},{2}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 11)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 12)), Custom String("{0},{1}", Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 13)), Value In Array(Global.coinTab, Add(Multiply(Global.gI, 15), 14)))))))))));
+            Wait(0.016, Ignore Condition);
         End;
         "Self-tests, one per formula the game uses"
         Set Global Variable(chkName, Custom String("ln 8"));
@@ -490,6 +506,7 @@ rule ("Game 9: run") {
         Set Global Variable(chkExp, 0.179);
         Set Global Variable(chkGot, 0.179200000000000);
         Call Subroutine(check);
+        Wait(0.016, Ignore Condition);
         Set Global Variable(chkName, Custom String("3 or more of 4 from a 0.55 box"));
         Set Global Variable(chkExp, 0.391);
         Set Global Variable(chkGot, 0.390981250000000);
@@ -502,6 +519,7 @@ rule ("Game 9: run") {
         Set Global Variable(chkExp, 2.039);
         Set Global Variable(chkGot, Square Root(Multiply(2, Value In Array(Global.lnTab, 8))));
         Call Subroutine(check);
+        Wait(0.016, Ignore Condition);
         Set Global Variable(chkName, Custom String("best case of a box at 4 of 6 after 8 opens in all"));
         Set Global Variable(chkExp, 1.499);
         Set Global Variable(chkGot, Add(0.666666666666666, Square Root(Divide(Multiply(2, Value In Array(Global.lnTab, 8)), 6))));
@@ -567,7 +585,7 @@ rule ("Game 9: run") {
         Set Global Variable(qOpts, Array(Custom String("never again"), Custom String("opens it again later"), Custom String("opens it every time")));
         Set Global Variable(qCorrect, 1);
         Set Global Variable(qAuto, 1);
-        Set Global Variable(qWhy, Custom String("Its bonus grows with all opens: after 8, a once-lost box scores {0} against {1} for one at 4 of 6.", Divide(Round To Integer(Multiply(100, Square Root(Multiply(2, Value In Array(Global.lnTab, 8)))), To Nearest), 100), Divide(Round To Integer(Multiply(100, Add(0.666666666666666, Square Root(Divide(Multiply(2, Value In Array(Global.lnTab, 8)), 6)))), To Nearest), 100)));
+        Set Global Variable(qWhy, Custom String("Its bonus grows with all opens: after 8, a once-lost box scores {0}, one at 4 of 6 only {1}.", Divide(Round To Integer(Multiply(100, Square Root(Multiply(2, Value In Array(Global.lnTab, 8)))), To Nearest), 100), Divide(Round To Integer(Multiply(100, Add(0.666666666666666, Square Root(Divide(Multiply(2, Value In Array(Global.lnTab, 8)), 6)))), To Nearest), 100)));
         Call Subroutine(ask);
         Set Global Variable(coach, Custom String("Optimism in the face of uncertainty: what you barely know might be the best, so you look."));
         Wait(1, Ignore Condition);
@@ -583,7 +601,7 @@ rule ("Game 9: run") {
         Set Global Variable(qOpts, Array(Custom String("only greedy"), Custom String("greedy and the coin"), Custom String("all three")));
         Set Global Variable(qCorrect, 1);
         Set Global Variable(qAuto, 1);
-        Set Global Variable(qWhy, Custom String("Greedy can stick on a worse box; the coin pays 2.40 per 100 forever. The optimist's bill shrinks."));
+        Set Global Variable(qWhy, Custom String("Greedy can stick on a worse box; the coin pays 2.40 per 100 forever. Optimism's bill shrinks."));
         Call Subroutine(ask);
         Set Global Variable(showRp, True);
         Set Global Variable(coach, Custom String("Right side: regret added per 100 opens. Short games favour the coin; the optimist's line bends."));
@@ -597,7 +615,7 @@ rule ("Game 9: run") {
         Set Global Variable(qOpts, Array(Custom String("the box I know"), Custom String("the barely known box")));
         Set Global Variable(qCorrect, 0);
         Set Global Variable(qAuto, 0);
-        Set Global Variable(qWhy, Custom String("Nothing you learn now can change a later open. Information is worth most when many opens remain."));
+        Set Global Variable(qWhy, Custom String("Nothing learned now can change a later open. Information is worth most when many opens remain."));
         Call Subroutine(ask);
         Set Global Variable(coach, Custom String("That is the value of information: an open is worth more when it could change what you do next."));
         Wait(1, Ignore Condition);
@@ -606,10 +624,11 @@ rule ("Game 9: run") {
         Call Subroutine(openRound);
         Call Subroutine(roundSummary);
         "Debrief"
-        Set Global Variable At Index(endLine, 0, Custom String("The odds were A {0}, B {1}, C {2}", First Of(Global.odds), Value In Array(Global.odds, 1), Custom String("{0}, D {1}. You opened A {2}", Value In Array(Global.odds, 2), Value In Array(Global.odds, 3), Custom String("{0}, B {1}, C {2}", First Of(Global.myN), Value In Array(Global.myN, 1), Custom String("{0}, D {1} times.", Value In Array(Global.myN, 2), Value In Array(Global.myN, 3))))));
-        Set Global Variable At Index(endLine, 1, Custom String("You did: {0} from 30 opens, regret {1}. Greedy {2}", Global.myTot, Global.myReg, Custom String("{0}, coin {1}, optimist {2} on the same luck.", First Of(Global.sTot), Value In Array(Global.sTot, 1), Value In Array(Global.sTot, 2))));
-        Set Global Variable At Index(endLine, 2, Custom String("It is called: the explore-exploit dilemma, scored by regret; optimism (UCB1) explores where unsure."));
-        Set Global Variable At Index(endLine, 3, Custom String("In an agent: the tool call it knows, or one that might be better. What it does not know is part of its state."));
+        Set Global Variable At Index(endLine, 0, Custom String("Odds were A {0}, B {1}, C {2}", First Of(Global.odds), Value In Array(Global.odds, 1), Custom String("{0}, D {1}. Your opens: A {2}", Value In Array(Global.odds, 2), Value In Array(Global.odds, 3), Custom String("{0}, B {1}, C {2}", First Of(Global.myN), Value In Array(Global.myN, 1), Custom String("{0}, D {1}.", Value In Array(Global.myN, 2), Value In Array(Global.myN, 3))))));
+        Set Global Variable At Index(endLine, 1, Custom String("You: {0} from 30 opens, regret {1}. Same luck: greedy {2}", Global.myTot, Global.myReg, Custom String("{0}, coin {1}, optimist {2}.", First Of(Global.sTot), Value In Array(Global.sTot, 1), Value In Array(Global.sTot, 2))));
+        Set Global Variable At Index(endLine, 2, Custom String("Called: the explore-exploit dilemma, scored by regret. UCB1 explores where unsure."));
+        Set Global Variable At Index(endLine, 3, Custom String("In an agent: the tool call it knows, or one that might be better."));
+        Set Global Variable At Index(endLine, 4, Custom String("What it does not know is part of its state."));
         Set Global Variable(showEnd, True);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,end,{0},{1},{2}", Global.myTot, Global.myReg, Custom String("{0},{1},{2}", First Of(Global.sTot), First Of(Global.sReg), Custom String("{0},{1},{2}", Value In Array(Global.sTot, 1), Value In Array(Global.sReg, 1), Custom String("{0},{1},{2}", Value In Array(Global.sTot, 2), Value In Array(Global.sReg, 2), Global.predRight)))));
         Set Global Variable(coach, Custom String("Predictions right: {0} of {1}. Debrief on the left.", Global.predRight, Global.predTotal));
@@ -686,7 +705,9 @@ rule ("Game 9: open box oBox for the learner, and one open for each strategy") {
             Modify Global Variable At Index(sTot, Global.sK, Add, Value In Array(Global.sPay, Global.sK));
             Modify Global Variable At Index(sReg, Global.sK, Add, Subtract(0.7, Value In Array(Global.odds, Global.armPick)));
         End;
+        Wait(0.016, Ignore Condition);
         Call Subroutine(refreshView);
+        Wait(0.016, Ignore Condition);
         "open: t, box, which open of that box, paid, his total, his regret"
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,open,{0},{1},{2}", Global.myT, Global.oBox, Custom String("{0},{1},{2}", Global.oK, Global.oPay, Custom String("{0},{1}", Global.myTot, Global.myReg))));
         "step: t, coin draw, then box and pay for greedy, coin, optimist"
@@ -745,7 +766,8 @@ rule ("Game 9: regret so far, and where each strategy has been opening") {
         roundSummary;
     }
     actions {
-        Set Global Variable(hudReg, Custom String("regret so far:  you {0}   greedy {1}   coin {2}", Global.myReg, First Of(Global.sReg), Custom String("{0}   optimist {1}\ngreedy opened A {2}", Value In Array(Global.sReg, 1), Value In Array(Global.sReg, 2), Custom String("{0} B {1} C {2}", First Of(Global.sN), Value In Array(Global.sN, 1), Custom String("{0} D {1}", Value In Array(Global.sN, 2), Value In Array(Global.sN, 3))))));
+        Set Global Variable(hudReg, Custom String("regret so far:  you {0}   greedy {1}   coin {2}", Global.myReg, First Of(Global.sReg), Custom String("{0}   optimist {1}", Value In Array(Global.sReg, 1), Value In Array(Global.sReg, 2))));
+        Set Global Variable(hudGreedy, Custom String("greedy has opened A {0}, B {1}, C {2}", First Of(Global.sN), Value In Array(Global.sN, 1), Custom String("{0}, D {1}", Value In Array(Global.sN, 2), Value In Array(Global.sN, 3))));
         "round: number, t, his total, his regret, then total and regret for greedy, coin, optimist"
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,round,{0},{1},{2}", Global.roundNo, Global.myT, Custom String("{0},{1},{2}", Global.myTot, Global.myReg, Custom String("{0},{1},{2}", First Of(Global.sTot), First Of(Global.sReg), Custom String("{0},{1},{2}", Value In Array(Global.sTot, 1), Value In Array(Global.sReg, 1), Custom String("{0},{1}", Value In Array(Global.sTot, 2), Value In Array(Global.sReg, 2)))))));
         Set Global Variable(coach, Custom String("Regret: per open, how much less your box pays on average than the best box. Added up. Lower is better."));
@@ -781,6 +803,8 @@ rule ("Game 9: replays") {
         Global.setupDone != False;
     }
     actions {
+        "line is 100). Now it waits out the match-start load, runs 5 opens per frame, and gives the server an extra frame\nwhenever its load reads over 60. The draws and their order are unchanged."
+        Wait(3, Ignore Condition);
         Set Global Variable(replayT0, Total Time Elapsed);
         Set Global Variable(rpSum, Empty Array);
         Set Global Variable At Index(rpSum, 35, 0);
@@ -810,8 +834,11 @@ rule ("Game 9: replays") {
                             Modify Global Variable At Index(rpSum, Add(Multiply(Add(Multiply(Global.rpK, 3), Round To Integer(Divide(Global.rpT, 100), Down)), 4), Global.rpI), Add, Value In Array(Global.rpN, Global.rpI));
                         End;
                     End;
-                    If(Compare(Modulo(Global.rpT, 15), ==, 14));
+                    If(Compare(Modulo(Global.rpT, 5), ==, 4));
                         Wait(0.016, Ignore Condition);
+                        If(Compare(Server Load, >, 60));
+                            Wait(0.016, Ignore Condition);
+                        End;
                     End;
                 End;
             End;
@@ -819,10 +846,13 @@ rule ("Game 9: replays") {
         For Global Variable(rpC, 0, 9, 1);
             Set Global Variable At Index(rpReg, Global.rpC, Divide(Add(Add(Add(Multiply(Value In Array(Global.rpSum, Multiply(Global.rpC, 4)), Subtract(0.7, First Of(Global.odds))), Multiply(Value In Array(Global.rpSum, Add(Multiply(Global.rpC, 4), 1)), Subtract(0.7, Value In Array(Global.odds, 1)))), Multiply(Value In Array(Global.rpSum, Add(Multiply(Global.rpC, 4), 2)), Subtract(0.7, Value In Array(Global.odds, 2)))), Multiply(Value In Array(Global.rpSum, Add(Multiply(Global.rpC, 4), 3)), Subtract(0.7, Value In Array(Global.odds, 3)))), 20));
             Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,replay,{0},{1},{2}", Round To Integer(Divide(Global.rpC, 3), Down), Modulo(Global.rpC, 3), Custom String("{0},{1},{2}", Value In Array(Global.rpSum, Multiply(Global.rpC, 4)), Value In Array(Global.rpSum, Add(Multiply(Global.rpC, 4), 1)), Custom String("{0},{1},{2}", Value In Array(Global.rpSum, Add(Multiply(Global.rpC, 4), 2)), Value In Array(Global.rpSum, Add(Multiply(Global.rpC, 4), 3)), Value In Array(Global.rpReg, Global.rpC)))));
+            Wait(0.016, Ignore Condition);
         End;
-        Set Global Variable At Index(hudRp, 0, Custom String("20 replays of 300 opens. Regret added in opens 1-100, 101-200, 201-300:"));
-        Set Global Variable At Index(hudRp, 1, Custom String("greedy {0}, {1}, {2}", Divide(Round To Integer(Multiply(First Of(Global.rpReg), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 1), First Of(Global.rpReg)), 10), To Nearest), 10), Custom String("{0}      coin {1}, {2}", Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 2), Value In Array(Global.rpReg, 1)), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Value In Array(Global.rpReg, 3), 10), To Nearest), 10), Custom String("{0}, {1}", Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 4), Value In Array(Global.rpReg, 3)), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 5), Value In Array(Global.rpReg, 4)), 10), To Nearest), 10)))));
-        Set Global Variable At Index(hudRp, 2, Custom String("optimist {0}, {1}, {2}      the coin can never go under 2.40 per 100", Divide(Round To Integer(Multiply(Value In Array(Global.rpReg, 6), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 7), Value In Array(Global.rpReg, 6)), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 8), Value In Array(Global.rpReg, 7)), 10), To Nearest), 10)));
+        Set Global Variable At Index(hudRp, 0, Custom String("20 replays of 300 opens. Regret added per 100 opens:"));
+        Set Global Variable At Index(hudRp, 1, Custom String("greedy {0}, {1}, {2}", Divide(Round To Integer(Multiply(First Of(Global.rpReg), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 1), First Of(Global.rpReg)), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 2), Value In Array(Global.rpReg, 1)), 10), To Nearest), 10)));
+        Wait(0.016, Ignore Condition);
+        Set Global Variable At Index(hudRp, 2, Custom String("coin {0}, {1}, {2}   (never under 2.40)", Divide(Round To Integer(Multiply(Value In Array(Global.rpReg, 3), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 4), Value In Array(Global.rpReg, 3)), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 5), Value In Array(Global.rpReg, 4)), 10), To Nearest), 10)));
+        Set Global Variable At Index(hudRp, 3, Custom String("optimist {0}, {1}, {2}", Divide(Round To Integer(Multiply(Value In Array(Global.rpReg, 6), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 7), Value In Array(Global.rpReg, 6)), 10), To Nearest), 10), Divide(Round To Integer(Multiply(Subtract(Value In Array(Global.rpReg, 8), Value In Array(Global.rpReg, 7)), 10), To Nearest), 10)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,E,9,replaytime,{0}", Subtract(Total Time Elapsed, Global.replayT0)));
         Set Global Variable(replayDone, True);
     }
@@ -836,17 +866,24 @@ rule ("Game 9: the screen") {
         Global.setupDone != False;
     }
     actions {
-        Create HUD Text(All Players(All Teams), Null, Null, Global.hudMine, Left, 3, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Global.hudStrat, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Global.hudReg, Left, 5, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, First Of(Global.endLine), Left, 6, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 1), Left, 7, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 2), Left, 8, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 3), Left, 9, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk.  Interact (F) on a yellow pad: open that box.\nAnswer: left click, right click, melee."), Right, 0, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, First Of(Global.hudRp), Right, 1, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, Value In Array(Global.hudRp, 1), Right, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
-        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, Value In Array(Global.hudRp, 2), Right, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        "Left block (the core's title, coach and score are rows 0 to 2): during play rows 3 to 6, at the end the five\ndebrief rows take their place, so at most 8 rows show. Text rows stay under 88 characters, the right block's\nunder 58 (LAYOUT_BRIEF, 2026-11-22)."
+        Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudMine, Left, 3, Color(White), Color(White), Color(Yellow), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudStrat, Left, 4, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudReg, Left, 5, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, Null, All Players(All Teams)), Null, Null, Global.hudGreedy, Left, 6, Color(White), Color(White), Color(Orange), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, First Of(Global.endLine), Left, 7, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 1), Left, 8, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 2), Left, 9, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 3), Left, 10, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showEnd, All Players(All Teams), Null), Null, Null, Value In Array(Global.endLine, 4), Left, 11, Color(White), Color(White), Color(Green), Visible To and String, Default Visibility);
+        "Right block: the controls, then the replays once question 4 is answered (at most 6 rows)."
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("WASD: walk. Interact (F) on a yellow pad: open it."), Right, 0, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("Answer: left click, right click or melee."), Right, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, First Of(Global.hudRp), Right, 2, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, Value In Array(Global.hudRp, 1), Right, 3, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, Value In Array(Global.hudRp, 2), Right, 4, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else(Global.showRp, All Players(All Teams), Null), Null, Null, Value In Array(Global.hudRp, 3), Right, 5, Color(White), Color(White), Color(Sky Blue), Visible To and String, Default Visibility);
+        Wait(0.016, Ignore Condition);
         Create In-World Text(All Players(All Teams), First Of(Global.padTxt), Add(First Of(Global.padPos), Vector(0, 1.2, 1.2)), 1.6, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Create In-World Text(All Players(All Teams), Value In Array(Global.padTxt, 1), Add(Value In Array(Global.padPos, 1), Vector(0, 1.2, 1.2)), 1.6, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
         Create In-World Text(All Players(All Teams), Value In Array(Global.padTxt, 2), Add(Value In Array(Global.padPos, 2), Vector(0, 1.2, 1.2)), 1.6, Do Not Clip, Visible To Position and String, Color(White), Default Visibility);
