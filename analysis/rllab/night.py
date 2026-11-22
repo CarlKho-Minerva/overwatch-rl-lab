@@ -22,6 +22,10 @@ LINE = re.compile(r"^\[(\d+):(\d+):(\d+)\] NS,([A-Z]+),(.*)$")
 
 
 def _num(x: str):
+    if "*" in x:
+        # Overwatch runs its chat filter over Workshop strings: a number containing a filtered digit run is written
+        # with stars. Seen 2026-11-22: a time of 1488.56 s logged as "****.56". Such a field is unreadable.
+        return None
     if x in ("True", "False"):
         return x == "True"
     try:
@@ -48,6 +52,8 @@ class Match:
     end: dict = field(default_factory=dict)
     fails: list = field(default_factory=list)
     nbytes: int = 0
+    masked: int = 0             # lines with a field the game's text filter starred out
+    dropped: int = 0            # of those, lines that could not be used
 
 
 M_FIELDS = ["version", "bots", "team1_bots", "cell", "run_speed", "coast", "move_speed", "eval_eps", "max_steps",
@@ -71,6 +77,20 @@ def parse(path) -> Match:
         if not hit:
             continue
         kind, vals = hit.group(4), [_num(v) for v in hit.group(5).split(",")]
+        if any(v is None for v in vals):
+            m.masked += 1
+            stamp = int(hit.group(1)) * 3600 + int(hit.group(2)) * 60 + int(hit.group(3))
+            if kind == "E" and len(vals) >= 10 and vals[9] is None and all(v is not None for v in vals[:9]):
+                vals[9] = float(stamp)      # only the time was starred: use the line's own clock stamp (within a second or two)
+            elif kind == "F" and len(vals) >= 15 and vals[14] is None and all(v is not None for v in vals[:14]):
+                vals[14] = None             # a run's duration is optional
+            elif kind == "H" and len(vals) >= 13 and vals[12] is None and all(v is not None for v in vals[:12]):
+                vals[12] = float(stamp)
+            elif kind == "L":
+                continue
+            else:
+                m.dropped += 1
+                continue
         if kind == "M":
             m.header = dict(zip(M_FIELDS, vals))
         elif kind == "CAL":

@@ -114,6 +114,14 @@ So: the script queues its lines and one rule writes the queue once a second, and
 of bytes written so that a block ends well before 256 KB in any case. If you add logging, add it through the
 `LOG` macro.
 
+## The game's chat filter edits your numbers
+
+Found on 2026-11-22. Overwatch runs its text filter over Workshop strings, log lines included. A number that
+contains a filtered run of digits is written with stars: an episode time of 1488.56 seconds reached the log
+file as `****.56`. It is rare (one line in about 40,000 that night) and it can hit any field. The reader in
+`rllab/night.py` counts such lines; where only a time was starred it uses the line's own clock stamp, and
+otherwise it leaves the line out and says how many.
+
 ## Checking a log
 
 ```

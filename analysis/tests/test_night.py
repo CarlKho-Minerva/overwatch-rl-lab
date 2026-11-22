@@ -97,3 +97,14 @@ def test_night_logs_replay_and_sanity(path):
     assert not ns.sanity(m)
     checked, bad = ns.replay_steps(m)
     assert not bad, bad[:3]
+
+
+def test_a_number_starred_by_the_games_text_filter_does_not_break_the_reader(tmp_path):
+    """Overwatch's chat filter rewrote a logged time of 1488.56 as ****.56 (2026-11-22). The episode is kept, timed by its stamp."""
+    p = tmp_path / "log.txt"
+    p.write_text("[00:00:08] NS,M,208,10,5,2,12.02,0.50,200,10,100,60,1000,-1,50,-100,-50,15,10,16,14,18\n"
+                 "[00:24:55] NS,E,7,1,144,0,37,13,1,2.58,0,****.56,-1\n"
+                 "[00:24:56] NS,E,7,1,145,0,****,13,1,2.58,0,1496.10,-1\n")
+    m = ns.parse(p)
+    assert m.masked == 2 and m.dropped == 1
+    assert len(m.episodes) == 1 and m.episodes[0]["t"] == 24 * 60 + 55
