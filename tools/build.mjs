@@ -21,12 +21,17 @@ const targets = [
     ["workshop/variants/fail_wrong_map.opy", "workshop/compiled/variant-fail-wrong-map.txt"],
     ["workshop/variants/fail_rooted_tracer.opy", "workshop/compiled/variant-fail-rooted-tracer.txt"],
     ["workshop/variants/fail_no_floor_at_origin.opy", "workshop/compiled/variant-fail-no-floor-at-origin.txt"],
+    ["workshop/night/night.opy", "workshop/compiled/night-school.txt"],
+    ["workshop/night/night_test.opy", "workshop/compiled/night-school-test.txt"],
+    ["workshop/night/night_golden.opy", "workshop/compiled/night-school-golden.txt"],
 ];
 
 // With an argument, build only that source file (used by tools/warm_start.py).
 const only = process.argv[2];
 const list = only
-    ? [[only.replace(/\\/g, "/"), "workshop/compiled/variant-" + basename(only, ".opy").replace(/_/g, "-") + ".txt"]]
+    ? (targets.filter(([src]) => src === only.replace(/\\/g, "/")).length
+        ? targets.filter(([src]) => src === only.replace(/\\/g, "/"))
+        : [[only.replace(/\\/g, "/"), "workshop/compiled/variant-" + basename(only, ".opy").replace(/_/g, "-") + ".txt"]])
     : targets;
 
 await overpy.readyPromise;
