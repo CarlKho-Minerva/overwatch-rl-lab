@@ -21,7 +21,7 @@ the action Tracer currently rates best in each cell; dots are cells she has not 
 ## The course, and a wall she cannot see
 
 **The course.** David Silver's ten lectures were transcribed in full and gone through in his order, each idea followed
-by the same idea on the strip with what the bots did: [course/](course/README.md) (9 of 10 written so far), with
+by the same idea on the strip with what the bots did: [course/](course/README.md) (10 of 10 written so far), with
 an outline per lecture for a video series in [series/](series/README.md). Lecture transcripts are not in this
 repository; the pages are re-explanations with time stamps into the videos.
 

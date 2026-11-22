@@ -19,8 +19,9 @@ says which comparisons were planned before the runs and which were not.
 | 7 | [Policy Gradient](lecture-07.md) | [video](https://www.youtube.com/watch?v=KHZVXao4qXs) | [outline](../series/episode-07.md) |
 | 8 | [Integrating Learning and Planning](lecture-08.md) | [video](https://www.youtube.com/watch?v=ItMutbeOHtc) | [outline](../series/episode-08.md) |
 | 9 | [Exploration and Exploitation](lecture-09.md) | [video](https://www.youtube.com/watch?v=sGuiWX07sKw) | [outline](../series/episode-09.md) |
+| 10 | [Classic Games](lecture-10.md) | [video](https://www.youtube.com/watch?v=kZ_AUmFcZtk) | [outline](../series/episode-10.md) |
 
-9 of 10 lectures are written so far.
+10 of 10 lectures are written so far.
 
 The finale: [lesson 11, the wall she cannot see](lesson-11-partial-observability.md). Partial observability on the island, by simulation, and on a local language model.
 

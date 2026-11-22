@@ -27,9 +27,10 @@ They are a starting point for whoever records them.
 | 7 | [The Tracer who learned to jump](episode-07.md) | Policy Gradient | a Tracer with POLICY GRADIENT over her head spawns at the edge row and runs straight off. Respawn. Same move. | POLICY GRADIENT against ACTOR-CRITIC, return per episode. | `workshop/compiled/night-school.txt` |
 | 8 | [Twenty Steps in Her Head](episode-08.md) | Integrating Learning and Planning | two Tracers at the left end of the edge row, DYNA-Q and Q-LEARNING over their heads; both take early random steps and Q-LEARNING walks off the edge. | DYNA-Q against Q-LEARNING, mean return over the first 40 episodes (-31.7 against -57.6) and the last 40 (15.1 against 7.5, inconclusive). | `workshop/compiled/night-school.txt` |
 | 9 | [The price of finding out](episode-09.md) | Exploration and Exploitation | ten Tracers on the strip; Q + OPTIMISM steps off the edge on purpose, and her score line drops by 100. | the four Q explorers, falls per 100. | `workshop/compiled/night-school.txt` |
+| 10 | [The Blocker](episode-10.md) | Classic Games | a Tracer runs the edge row and stops dead against a standing enemy bot at column 6; cut to the name over each. | the two-player build, 12 short runs, labelled exploratory. | `workshop/compiled/night-school-duel.txt` |
 | 11 | [The Wall She Cannot See](episode-11.md) | Partial observability (lecture 1's thread, picked up) | A Tracer walks at an empty-looking square and stops dead, three times. | BLIND against REMEMBERS BUMPS on the short strip: test crossings reaching the goal. Then the same forgetting in a support chat. | `workshop/compiled/night-school-pomdp4.txt` |
 
-9 of the ten lecture outlines are written so far.
+10 of the ten lecture outlines are written so far.
 
 ## Footage this repository can produce
 
