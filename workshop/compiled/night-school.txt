@@ -39,75 +39,76 @@ variables {
         6: cLam
         7: cBonus
         8: cTrain
-        9: cfgBotsPerTeam
-        10: cfgMoveSpeed
-        11: cfgEvalEps
-        12: cfgSoftMin
-        13: cfgRunMaxMin
-        14: cfgAutoRestart
-        15: cfgMaxSteps
-        16: cfgEvalMaxSteps
-        17: cfgCell
-        18: gamma
-        19: rStep
-        20: rGoal
-        21: rFall
-        22: rTimeout
-        23: calStage
-        24: calMsg
-        25: floorY
-        26: isleCenter
-        27: edgeXMin
-        28: edgeXMax
-        29: edgeZMin
-        30: edgeZMax
-        31: probeDir
-        32: probeLo
-        33: probeHi
-        34: probeMid
-        35: probeI
-        36: cell
-        37: gridX0
-        38: zBase
-        39: zSign
-        40: cellPos
-        41: startPos
-        42: goalPos
-        43: camEye
-        44: camLook
-        45: runSpeed
-        46: coastDist
-        47: actTimeout
-        48: calP0
-        49: calP1
-        50: calT0
-        51: spawnTry
-        52: spawnI
-        53: spawnCalls
-        54: n1
-        55: n2
-        56: bots
-        57: nBots
-        58: condOffset
-        59: matchT0
-        60: stopping
-        61: logBytes
-        62: totalEpisodes
-        63: totalSteps
-        64: feat
-        65: featI
-        66: uiI
-        67: uiJ
-        68: glyphSet
-        69: stopReason
-        70: hudHead
-        71: hudLine
-        72: hudFeat
-        73: hudI
-        74: logQ
-        75: flushN
-        76: flushI
-        77: scriptPlan
+        9: cAgg
+        10: cfgBotsPerTeam
+        11: cfgMoveSpeed
+        12: cfgEvalEps
+        13: cfgSoftMin
+        14: cfgRunMaxMin
+        15: cfgAutoRestart
+        16: cfgMaxSteps
+        17: cfgEvalMaxSteps
+        18: cfgCell
+        19: gamma
+        20: rStep
+        21: rGoal
+        22: rFall
+        23: rTimeout
+        24: calStage
+        25: calMsg
+        26: floorY
+        27: isleCenter
+        28: edgeXMin
+        29: edgeXMax
+        30: edgeZMin
+        31: edgeZMax
+        32: probeDir
+        33: probeLo
+        34: probeHi
+        35: probeMid
+        36: probeI
+        37: cell
+        38: gridX0
+        39: zBase
+        40: zSign
+        41: cellPos
+        42: startPos
+        43: goalPos
+        44: camEye
+        45: camLook
+        46: runSpeed
+        47: coastDist
+        48: actTimeout
+        49: calP0
+        50: calP1
+        51: calT0
+        52: spawnTry
+        53: spawnI
+        54: spawnCalls
+        55: n1
+        56: n2
+        57: bots
+        58: nBots
+        59: condOffset
+        60: matchT0
+        61: stopping
+        62: logBytes
+        63: totalEpisodes
+        64: totalSteps
+        65: feat
+        66: featI
+        67: uiI
+        68: uiJ
+        69: glyphSet
+        70: stopReason
+        71: hudHead
+        72: hudLine
+        73: hudFeat
+        74: hudI
+        75: logQ
+        76: flushN
+        77: flushI
+        78: scriptPlan
     player:
         0: bid
         1: side
@@ -151,51 +152,54 @@ variables {
         39: epR
         40: glyph
         41: curS
-        42: curA
-        43: curExplore
-        44: nextS
-        45: nextA
-        46: nextExplore
-        47: reward
-        48: terminal
-        49: outcome
-        50: epSteps
-        51: epReturn
-        52: epEdgeSum
-        53: epSlips
-        54: stepCol
-        55: stepRow
-        56: tgtCol
-        57: tgtRow
-        58: tgtPos
-        59: actDir
-        60: intended
-        61: obsP
-        62: obsCell
-        63: selS
-        64: selA
-        65: selExplore
-        66: rowQ
-        67: rowMax
-        68: idx
-        69: qOld
-        70: tgt
-        71: delta
-        72: g
-        73: k
-        74: a
-        75: sweep
-        76: vDelta
-        77: qNew
-        78: s2
-        79: pIdx
-        80: gS
-        81: theta
-        82: probs
-        83: baseline
-        84: u
-        85: actCount
-        86: qDirect
+        42: curCell
+        43: nextCell
+        44: agg
+        45: curA
+        46: curExplore
+        47: nextS
+        48: nextA
+        49: nextExplore
+        50: reward
+        51: terminal
+        52: outcome
+        53: epSteps
+        54: epReturn
+        55: epEdgeSum
+        56: epSlips
+        57: stepCol
+        58: stepRow
+        59: tgtCol
+        60: tgtRow
+        61: tgtPos
+        62: actDir
+        63: intended
+        64: obsP
+        65: obsCell
+        66: selS
+        67: selA
+        68: selExplore
+        69: rowQ
+        70: rowMax
+        71: idx
+        72: qOld
+        73: tgt
+        74: delta
+        75: g
+        76: k
+        77: a
+        78: sweep
+        79: vDelta
+        80: qNew
+        81: s2
+        82: pIdx
+        83: gS
+        84: theta
+        85: probs
+        86: baseline
+        87: u
+        88: actCount
+        89: qDirect
 }
 
 subroutines {
@@ -219,15 +223,16 @@ rule ("Initialize global variables") {
         Ongoing - Global;
     }
     actions {
-        Set Global Variable(cName, Array(Custom String("SARSA"), Custom String("Q-LEARNING"), Custom String("EXPECTED SARSA"), Custom String("Q + FADING EXPLORATION"), Custom String("Q + OPTIMISM"), Custom String("DYNA-Q"), Custom String("MONTE CARLO"), Custom String("SARSA LAMBDA"), Custom String("Q + COUNT BONUS"), Custom String("RANDOM WALK"), Custom String("PLANNER"), Custom String("POLICY GRADIENT"), Custom String("ACTOR-CRITIC"), Custom String("MONTE CARLO + OPTIMISM")));
-        Set Global Variable(cAlgo, Array(0, 1, 2, 1, 1, 3, 4, 5, 1, 6, 7, 8, 9, 4));
-        Set Global Variable(cEps, Array(0.1, 0.1, 0.1, -1, 0, 0.1, 0.1, 0.1, 0, 1, 0, 0, 0, 0.1));
-        Set Global Variable(cAlpha, Array(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.3, 0.5, 0.1, 0, 0.02, 0.1, 0.2));
-        Set Global Variable(cQInit, Array(0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 40));
-        Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0));
-        Set Global Variable(cTrain, Array(150, 150, 150, 150, 150, 150, 150, 150, 150, 300, 40, 150, 150, 150));
+        Set Global Variable(cName, Array(Custom String("SARSA"), Custom String("Q-LEARNING"), Custom String("EXPECTED SARSA"), Custom String("Q + FADING EXPLORATION"), Custom String("Q + OPTIMISM"), Custom String("DYNA-Q"), Custom String("MONTE CARLO"), Custom String("SARSA LAMBDA"), Custom String("Q + COUNT BONUS"), Custom String("RANDOM WALK"), Custom String("PLANNER"), Custom String("POLICY GRADIENT"), Custom String("ACTOR-CRITIC"), Custom String("MONTE CARLO + OPTIMISM"), Custom String("Q, 16 COARSE STATES"), Custom String("Q, ROW ONLY")));
+        Set Global Variable(cAlgo, Array(0, 1, 2, 1, 1, 3, 4, 5, 1, 6, 7, 8, 9, 4, 1, 1));
+        Set Global Variable(cEps, Array(0.1, 0.1, 0.1, -1, 0, 0.1, 0.1, 0.1, 0, 1, 0, 0, 0, 0.1, 0.1, 0.1));
+        Set Global Variable(cAlpha, Array(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.3, 0.5, 0.1, 0, 0.02, 0.1, 0.2, 0.5, 0.5));
+        Set Global Variable(cQInit, Array(0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0));
+        Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cTrain, Array(150, 150, 150, 150, 150, 150, 150, 150, 150, 300, 40, 150, 150, 150, 150, 150));
+        Set Global Variable(cAgg, Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2));
         Set Global Variable(cfgBotsPerTeam, Workshop Setting Integer(Custom String("Night School"), Custom String("Bots per team"), 5, 1, 5, 0));
         Set Global Variable(cfgMoveSpeed, Workshop Setting Integer(Custom String("Night School"), Custom String("Bot move speed percent"), 200, 50, 300, 1));
         Set Global Variable(cfgEvalEps, Workshop Setting Integer(Custom String("Night School"), Custom String("Greedy evaluation episodes per run"), 10, 0, 100, 2));
@@ -434,11 +439,11 @@ rule ("Init: spawn the bots, measure their run speed, start the block") {
             Abort;
         End;
         Set Global Variable(actTimeout, Add(Divide(Multiply(2.5, Global.cell), Global.runSpeed), 0.25));
-        Set Global Variable(condOffset, Random Integer(0, 13));
+        Set Global Variable(condOffset, Random Integer(0, 15));
         Set Global Variable(feat, Array(First Of(Global.bots), Last Of(Global.bots)));
         Set Global Variable(matchT0, Total Time Elapsed);
-        "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
-        Modify Global Variable(logQ, Append To Array, Custom String("NS,M,205,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},14", Global.condOffset, Global.spawnCalls)))))))));
+        "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions, no-new-run minute, longest run (minutes)"
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,M,206,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},16,{2}", Global.condOffset, Global.spawnCalls, Custom String("{0},{1}", Global.cfgSoftMin, Global.cfgRunMaxMin))))))))));
         Modify Global Variable(logQ, Append To Array, Custom String("NS,CAL,{0},{1},{2}", Global.floorY, Global.edgeXMin, Custom String("{0},{1},{2}", Global.edgeXMax, Global.edgeZMin, Custom String("{0},{1},{2}", Global.edgeZMax, Global.gridX0, Global.actTimeout))));
         Modify Global Variable(logBytes, Add, 260);
         For Global Variable(spawnI, 0, Global.nBots, 1);
@@ -505,8 +510,8 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
         stepEnv;
     }
     actions {
-        Set Player Variable(Event Player, stepCol, Modulo((Event Player).curS, 12));
-        Set Player Variable(Event Player, stepRow, Round To Integer(Divide((Event Player).curS, 12), Down));
+        Set Player Variable(Event Player, stepCol, Modulo((Event Player).curCell, 12));
+        Set Player Variable(Event Player, stepRow, Round To Integer(Divide((Event Player).curCell, 12), Down));
         Set Player Variable(Event Player, actDir, Value In Array(Array(Left, Right, Vector(0, 0, Value In Array(Global.zSign, (Event Player).side)), Vector(0, 0, Subtract(0, Value In Array(Global.zSign, (Event Player).side)))), (Event Player).curA));
         Set Player Variable(Event Player, tgtCol, Add((Event Player).stepCol, Value In Array(Array(1, -1, 0, 0), (Event Player).curA)));
         Set Player Variable(Event Player, tgtRow, Add((Event Player).stepRow, Value In Array(Array(0, 0, 1, -1), (Event Player).curA)));
@@ -515,7 +520,7 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
         Set Player Variable(Event Player, outcome, 0);
         If(Or(Or(Compare((Event Player).tgtCol, <, 0), Compare((Event Player).tgtCol, >=, 12)), Compare((Event Player).tgtRow, >=, 4)));
             "Blocked: that side of the grid is open floor and the rule says no. The step still costs its reward."
-            Set Player Variable(Event Player, intended, (Event Player).curS);
+            Set Player Variable(Event Player, intended, (Event Player).curCell);
             Wait(0.032, Ignore Condition);
         Else;
             Set Player Variable(Event Player, intended, Add(Multiply((Event Player).tgtRow, 12), (Event Player).tgtCol));
@@ -537,7 +542,8 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
             End;
         End;
         Call Subroutine(observe);
-        Set Player Variable(Event Player, nextS, (Event Player).obsCell);
+        Set Player Variable(Event Player, nextCell, (Event Player).obsCell);
+        Set Player Variable(Event Player, nextS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).nextCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).nextCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).nextCell, 12), 3), Down)), Round To Integer(Divide((Event Player).nextCell, 12), Down))));
         If(Or(Compare(Y Component Of(Position Of(Event Player)), <, Subtract(Global.floorY, 1.2)), (Event Player).died));
             Set Player Variable(Event Player, terminal, True);
             Set Player Variable(Event Player, outcome, 2);
@@ -547,10 +553,10 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
             End;
         Else;
             Modify Player Variable(Event Player, epEdgeSum, Add, Add(Multiply(Value In Array(Global.zSign, (Event Player).side), Subtract(Z Component Of((Event Player).obsP), Value In Array(Global.zBase, (Event Player).side))), 0.5));
-            If(Compare((Event Player).nextS, !=, (Event Player).intended));
+            If(Compare((Event Player).nextCell, !=, (Event Player).intended));
                 Modify Player Variable(Event Player, epSlips, Add, 1);
             End;
-            If(Compare((Event Player).nextS, ==, 11));
+            If(Compare((Event Player).nextCell, ==, 11));
                 Set Player Variable(Event Player, terminal, True);
                 Set Player Variable(Event Player, outcome, 1);
                 Modify Player Variable(Event Player, reward, Add, Global.rGoal);
@@ -615,7 +621,7 @@ rule ("Agent: refresh the policy arrow for cell gS") {
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("G"));
             Abort;
         End;
-        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply((Event Player).gS, 4), 4));
+        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply(If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).gS, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).gS, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).gS, 12), 3), Down)), Round To Integer(Divide((Event Player).gS, 12), Down))), 4), 4));
         Set Player Variable(Event Player, rowMax, Last Of(Sorted Array((Event Player).rowQ, Current Array Element)));
         If(Compare(First Of(Sorted Array((Event Player).rowQ, Current Array Element)), ==, (Event Player).rowMax));
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("·"));
@@ -693,7 +699,7 @@ rule ("Agent: the update after one real step") {
             Modify Player Variable(Event Player, epR, Append To Array, (Event Player).reward);
         End;
         Modify Player Variable At Index(Event Player, Nsa, (Event Player).idx, Add, 1);
-        Set Player Variable(Event Player, gS, (Event Player).curS);
+        Set Player Variable(Event Player, gS, (Event Player).curCell);
         Call Subroutine(updateGlyph);
     }
 }
@@ -785,7 +791,7 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         startRun;
     }
     actions {
-        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 14));
+        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 16));
         Set Player Variable(Event Player, algo, Value In Array(Global.cAlgo, (Event Player).cond));
         Set Player Variable(Event Player, alpha, Value In Array(Global.cAlpha, (Event Player).cond));
         Set Player Variable(Event Player, eps0, Value In Array(Global.cEps, (Event Player).cond));
@@ -794,6 +800,7 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         Set Player Variable(Event Player, lam, Value In Array(Global.cLam, (Event Player).cond));
         Set Player Variable(Event Player, bonus, Value In Array(Global.cBonus, (Event Player).cond));
         Set Player Variable(Event Player, trainEps, Value In Array(Global.cTrain, (Event Player).cond));
+        Set Player Variable(Event Player, agg, Value In Array(Global.cAgg, (Event Player).cond));
         Set Player Variable(Event Player, Q, Empty Array);
         Set Player Variable At Index(Event Player, Q, 191, 0);
         If(Compare(Value In Array(Global.cQInit, (Event Player).cond), !=, 0));
@@ -834,8 +841,8 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         Set Player Variable(Event Player, actCount, 0);
         Set Player Variable(Event Player, runT0, Total Time Elapsed);
         Start Forcing Dummy Bot Name(Event Player, Custom String("{0} {1}", Value In Array(Global.cName, (Event Player).cond), (Event Player).bid));
-        "H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t"
-        Modify Global Variable(logQ, Append To Array, Custom String("NS,H,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).cond, (Event Player).algo, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).eps0, 1000), To Nearest), Round To Integer(Multiply((Event Player).alpha, 1000), To Nearest), Custom String("{0},{1},{2}", Value In Array(Global.cQInit, (Event Player).cond), (Event Player).planN, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).lam, 1000), To Nearest), (Event Player).bonus, Custom String("{0},{1},{2}", (Event Player).trainEps, (Event Player).side, Subtract(Total Time Elapsed, Global.matchT0))))))));
+        "H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t, state detail (0 cell, 1 quarter, 2 row)"
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,H,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).cond, (Event Player).algo, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).eps0, 1000), To Nearest), Round To Integer(Multiply((Event Player).alpha, 1000), To Nearest), Custom String("{0},{1},{2}", Value In Array(Global.cQInit, (Event Player).cond), (Event Player).planN, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).lam, 1000), To Nearest), (Event Player).bonus, Custom String("{0},{1},{2}", (Event Player).trainEps, (Event Player).side, Custom String("{0},{1}", Subtract(Total Time Elapsed, Global.matchT0), (Event Player).agg))))))));
         Modify Global Variable(logBytes, Add, 70);
         If(Compare((Event Player).algo, ==, 7));
             Call Subroutine(planDP);
@@ -912,7 +919,8 @@ rule ("Run: one episode") {
             Set Player Variable At Index(Event Player, E, 191, 0);
         End;
         Call Subroutine(observe);
-        Set Player Variable(Event Player, curS, (Event Player).obsCell);
+        Set Player Variable(Event Player, curCell, (Event Player).obsCell);
+        Set Player Variable(Event Player, curS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).curCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).curCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).curCell, 12), 3), Down)), Round To Integer(Divide((Event Player).curCell, 12), Down))));
         Set Player Variable(Event Player, selS, (Event Player).curS);
         Call Subroutine(chooseAction);
         Set Player Variable(Event Player, curA, (Event Player).selA);
@@ -938,13 +946,14 @@ rule ("Run: one episode") {
             Modify Player Variable(Event Player, runSteps, Add, 1);
             Modify Player Variable(Event Player, epReturn, Add, (Event Player).reward);
             Set Player Variable(Event Player, curS, (Event Player).nextS);
+            Set Player Variable(Event Player, curCell, (Event Player).nextCell);
             Set Player Variable(Event Player, curA, (Event Player).nextA);
             Set Player Variable(Event Player, curExplore, (Event Player).nextExplore);
         End;
         Stop Throttle In Direction(Event Player);
         If((Event Player).isTraining);
             Call Subroutine(learnEpisodeEnd);
-            If(Or(Or(Or(Compare((Event Player).algo, ==, 3), Compare((Event Player).algo, ==, 4)), Compare((Event Player).algo, ==, 5)), Compare((Event Player).algo, ==, 8)));
+            If(Or(Or(Or(Or(Compare((Event Player).algo, ==, 3), Compare((Event Player).algo, ==, 4)), Compare((Event Player).algo, ==, 5)), Compare((Event Player).algo, ==, 8)), Compare((Event Player).agg, >, 0)));
                 "These methods change many cells per episode: redraw every arrow."
                 For Player Variable(Event Player, gS, 0, 48, 1);
                     Call Subroutine(updateGlyph);

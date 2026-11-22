@@ -39,6 +39,9 @@ def run_rows(matches):
                 "match": Path(m.path).name, "version": m.header["version"], "move_speed": m.header["move_speed"],
                 "bot": key[0], "run": key[1], "cond": info["cond"], "algo": info["algo"], "side": info.get("side"),
                 "complete": info.get("complete", 0), "train": train, "eval": ev,
+                # A run that used its whole time allowance is a finished run with fewer episodes, not a broken one.
+                "capped": int(info.get("complete", 0) == 0 and info.get("seconds") is not None
+                              and info["seconds"] >= m.header.get("run_max_min", 18) * 60 - 2 and len(train) >= 20),
                 "steps": info.get("steps"), "slips": info.get("slips"), "seconds": info.get("seconds"),
             })
     return rows
@@ -61,7 +64,7 @@ def condition_table(rows, n_last=40, min_train=100):
     out = {}
     for cond in sorted({r["cond"] for r in rows}):
         rs = [r for r in rows if r["cond"] == cond and len(r["train"]) >= min(min_train, 1)]
-        full = [r for r in rs if r["complete"] == 1]
+        full = [r for r in rs if r["complete"] == 1 or r["capped"]]
         d = {"name": ns.CONDITION_NAMES[cond] if cond < len(ns.CONDITION_NAMES) else str(cond), "runs": len(rs), "complete": len(full)}
         if full:
             d["falls_per_100"] = mean(100 * sum(e["outcome"] == 2 for e in r["train"]) / len(r["train"]) for r in full)
@@ -105,7 +108,7 @@ def main(argv):
     if show_runs:
         for r in rows:
             tr, ev = r["train"], r["eval"]
-            print(f"  {r['match'][-12:-4]} bot {r['bot']} run {r['run']} {ns.CONDITION_NAMES[r['cond']]:<24} side {r['side']} complete {r['complete']} "
+            print(f"  {r['match'][-12:-4]} bot {r['bot']} run {r['run']} {ns.CONDITION_NAMES[r['cond']]:<24} side {r['side']} complete {r['complete']}{'c' if r['capped'] else ' '} "
                   f"train {len(tr):>3} goal {sum(e['outcome'] == 1 for e in tr):>3} fell {sum(e['outcome'] == 2 for e in tr):>3} timeout {sum(e['outcome'] == 3 for e in tr):>3} "
                   f"first goal {first_goal(tr)} | eval {sum(e['outcome'] == 1 for e in ev)}/{len(ev)} | "
                   f"steps {r['steps']} slips {r['slips']} {(r['seconds'] / r['steps']) if r['steps'] else float('nan'):.2f} s/step")

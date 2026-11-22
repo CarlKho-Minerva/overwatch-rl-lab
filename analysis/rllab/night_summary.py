@@ -18,8 +18,8 @@ from .night_report import collect, run_rows, first_goal, mean
 
 BG, PANEL, INK, MUTED, GRID = "#141310", "#1d1b17", "#f4eee3", "#c3bbad", "#2c2924"
 COLORS = {0: "#6fb3ff", 1: "#ff8a5c", 2: "#b08cff", 3: "#ffd166", 4: "#7bd389", 5: "#f25f9c", 6: "#9aa5b1", 7: "#4dd0c8",
-          8: "#e0b0ff", 9: "#8f877a", 10: "#ffffff", 11: "#ff5a5f"}
-MARKERS = {0: "o", 1: "s", 2: "D", 3: "^", 4: "v", 5: "P", 6: "X", 7: "h", 8: "<", 9: ".", 10: "*", 11: ">"}
+          8: "#e0b0ff", 9: "#8f877a", 10: "#ffffff", 11: "#ff5a5f", 12: "#c2f970", 13: "#d9b38c", 14: "#59c3c3", 15: "#f4d35e"}
+MARKERS = {0: "o", 1: "s", 2: "D", 3: "^", 4: "v", 5: "P", 6: "X", 7: "h", 8: "<", 9: ".", 10: "*", 11: ">", 12: "p", 13: "d", 14: "H", 15: "8"}
 
 
 def boot_ci(xs, fn=mean, n=4000, seed=7):
@@ -68,8 +68,8 @@ def per_run(r, n_last=40):
 def summarise(matches, n_last=40):
     std = [m for m in matches if 200 <= m.header.get("version", 0) < 1000]
     rows = [r for r in run_rows(std)]
-    full = [r for r in rows if r["complete"] == 1]
-    S: dict = {"n_matches": len(std), "n_runs": len(rows), "n_runs_complete": len(full),
+    full = [r for r in rows if r["complete"] == 1 or r["capped"]]
+    S: dict = {"n_matches": len(std), "n_runs": len(rows), "n_runs_complete": len(full), "n_runs_capped": sum(r["capped"] for r in rows),
                "n_episodes": sum(len(m.episodes) for m in std), "n_steps": sum(e["steps"] for m in std for e in m.episodes)}
     dur = sum(max((e["t"] for e in m.episodes), default=0) for m in std)
     S["game_hours"] = dur / 3600
@@ -107,6 +107,9 @@ def summarise(matches, n_last=40):
         es = [x["eval_steps"] for x in ev if x["eval_steps"]]
         d["eval_steps"] = mean(es) if es else None
         d["per_run_falls"] = [x["falls"] for x in rs]
+        d["per_run_falls_per_100"] = [x["falls_per_100"] for x in rs]
+        d["capped_runs"] = sum(1 for r in full if r["cond"] == cond and r["capped"])
+        d["episodes_mean"] = mean(x["n"] for x in rs)
         d["per_run_last_return"] = [x["last_return"] for x in rs]
         d["per_run_last_edge"] = [x["last_edge"] for x in rs]
         conds[cond] = d
@@ -129,6 +132,10 @@ def summarise(matches, n_last=40):
         "fading_vs_q_falls": contrast(3, 1, "falls_per_100"), "optimism_vs_q_falls": contrast(4, 1, "falls_per_100"),
         "bonus_vs_q_falls": contrast(8, 1, "falls_per_100"), "mc_vs_sarsa_return": contrast(6, 0, "last_return"),
         "pg_vs_q_return": contrast(11, 1, "last_return"), "lambda_vs_sarsa_falls": contrast(7, 0, "falls_per_100"),
+        "ac_vs_pg_return": contrast(12, 11, "last_return"), "ac_vs_q_return": contrast(12, 1, "last_return"),
+        "mcopt_vs_mc_return": contrast(13, 6, "last_return"),
+        "coarse_vs_q_falls": contrast(14, 1, "falls_per_100"), "rowonly_vs_q_falls": contrast(15, 1, "falls_per_100"),
+        "rowonly_vs_q_return": contrast(15, 1, "last_return"),
     }
 
     # Prediction (the random-walk bot): error of the TD(0) and Monte Carlo value tables against the exact answer.
@@ -164,6 +171,7 @@ def summarise(matches, n_last=40):
             by_ep.setdefault((ep, kind), []).append(rowsv["rmse"])
     S["prediction"] = {f"{'td' if k == 0 else 'mc'}_{ep}": {"rmse": mean(v), "runs": len(v)} for (ep, k), v in sorted(by_ep.items())}
     S["exact_random_start_value"] = exact[ns.START]
+    S["exact_random_inland_value"] = exact[3 * ns.NCOLS]
     rnd = [e for m in std for e in m.episodes if m.runs.get((e["bot"], e["run"]), {}).get("algo") == ns.RANDOM]
     if rnd:
         S["random_walk"] = {"episodes": len(rnd), "mean_return": mean(e["ret"] for e in rnd), "mean_steps": mean(e["steps"] for e in rnd),
@@ -185,7 +193,7 @@ def summarise(matches, n_last=40):
 
 def curves(rows, cond, n_eps, key="ret", window=10):
     """Mean learning curve of a condition over complete runs: smoothed per-episode values."""
-    runs = [[e[key] if key != "fell" else (100.0 if e["outcome"] == 2 else 0.0) for e in r["train"][:n_eps]] for r in rows if r["cond"] == cond and r["complete"] == 1]
+    runs = [[e[key] if key != "fell" else (100.0 if e["outcome"] == 2 else 0.0) for e in r["train"][:n_eps]] for r in rows if r["cond"] == cond and (r["complete"] == 1 or r["capped"])]
     runs = [r for r in runs if len(r) >= n_eps]
     if not runs:
         return None
@@ -194,14 +202,18 @@ def curves(rows, cond, n_eps, key="ret", window=10):
     return sm, len(runs)
 
 
-def figures(S, rows, out: Path):
+def plt_style():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-
     plt.rcParams.update({"figure.facecolor": PANEL, "axes.facecolor": PANEL, "savefig.facecolor": PANEL, "axes.edgecolor": "#484239",
                          "axes.labelcolor": MUTED, "xtick.color": "#8f877a", "ytick.color": "#8f877a", "text.color": INK,
                          "grid.color": GRID, "font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
+    return plt
+
+
+def figures(S, rows, out: Path):
+    plt = plt_style()
     made = []
 
     def curve_fig(name, conds, title, key, ylabel, n_eps=150, ylim=None):
@@ -234,17 +246,19 @@ def figures(S, rows, out: Path):
     curve_fig("fig_control_falls.png", [0, 1, 2], "Share of episodes ending in a fall (percent, smoothed over 10)", "fell", "falls per 100 episodes", ylim=(0, 100))
     curve_fig("fig_explore_falls.png", [1, 3, 4, 8], "Four ways to explore: share of episodes ending in a fall", "fell", "falls per 100 episodes", ylim=(0, 100))
     curve_fig("fig_dyna_return.png", [1, 5], "Thinking between steps: Dyna-Q against plain Q-learning", "ret", "return")
-    curve_fig("fig_all_return.png", [0, 1, 2, 3, 4, 5, 6, 7, 8, 11], "Every learner: return per training episode", "ret", "return")
+    curve_fig("fig_all_return.png", [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15], "Every learner: return per training episode", "ret", "return")
     curve_fig("fig_mc_td_return.png", [0, 6, 7], "Learn every step, or wait for the end of the episode", "ret", "return")
-    curve_fig("fig_pg_return.png", [1, 11], "Learning values against learning the policy directly", "ret", "return")
+    curve_fig("fig_pg_return.png", [1, 11, 12], "Learning values against learning the policy directly", "ret", "return")
+    curve_fig("fig_coarse_falls.png", [1, 14, 15], "Told less about where she stands: share of episodes ending in a fall", "fell", "falls per 100 episodes", ylim=(0, 100))
+    curve_fig("fig_mc_return.png", [6, 13, 0], "Monte Carlo with and without an optimistic start, against SARSA", "ret", "return")
 
     # Dot plot: falls per 100 training episodes, every run a dot, mean and interval per condition.
-    conds = [c for c in (10, 5, 4, 8, 0, 2, 7, 3, 1, 6, 11) if c in S["conditions"]]
+    conds = [c for c in (10, 15, 14, 5, 4, 8, 0, 2, 7, 3, 1, 12, 13, 6, 11) if c in S["conditions"]]
     if conds:
         fig, ax = plt.subplots(figsize=(8.6, 0.5 * len(conds) + 1.6), dpi=160)
         for i, c in enumerate(conds):
             d = S["conditions"][c]
-            per = [100 * f / max(1, t) for f, t in zip(d["per_run_falls"], [150 if c != 10 else 40] * len(d["per_run_falls"]))]
+            per = d["per_run_falls_per_100"]
             ax.scatter(per, [i + (random.Random(i * 31 + k).random() - 0.5) * 0.3 for k in range(len(per))], s=14, color=COLORS[c], alpha=0.55, marker=MARKERS[c], lw=0)
             ax.plot([d["falls_per_100_lo"], d["falls_per_100_hi"]], [i, i], color=INK, lw=1.6)
             ax.scatter([d["falls_per_100"]], [i], s=46, color=INK, zorder=3)
@@ -280,12 +294,81 @@ def figures(S, rows, out: Path):
     return made
 
 
+def policy_figure(matches, conds, out: Path, name: str, title: str):
+    """Where each method walks and which way it points: one small grid per method, all complete runs pooled.
+
+    Shade = share of the method's steps taken from that cell. Arrow = the move most runs rate best there (drawn only
+    where at least half the runs that visited the cell agree). The edge is the top side; the goal is top right.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    data = {}
+    for m in matches:
+        if not (200 <= m.header.get("version", 0) < 1000):
+            continue
+        for key, info in m.runs.items():
+            if info.get("cond") in conds and info.get("complete") == 1 and info.get("agg", 0) == 0 and key in m.qrows:
+                data.setdefault(info["cond"], []).append(m.qrows[key])
+    conds = [c for c in conds if data.get(c)]
+    if not conds:
+        return None
+    fig, axes = plt.subplots(len(conds), 1, figsize=(8.6, 2.15 * len(conds) + 0.5), dpi=160)
+    axes = [axes] if len(conds) == 1 else list(axes)
+    arrows = {0: (0.32, 0), 1: (-0.32, 0), 2: (0, 0.32), 3: (0, -0.32)}     # y grows downward in the picture: inland is down
+    for ax, c in zip(axes, conds):
+        runs = data[c]
+        visits = [0.0] * ns.NCELLS
+        votes = [[0, 0, 0, 0] for _ in range(ns.NCELLS)]
+        for q in runs:
+            tot = sum(v for (_, v) in q.values()) or 1
+            for cell, (vals, v) in q.items():
+                if cell >= ns.NCELLS:
+                    continue
+                visits[cell] += v / tot / len(runs)
+                if max(vals) != min(vals):
+                    votes[cell][vals.index(max(vals))] += 1
+        vmax = max(visits) or 1
+        for cell in range(ns.NCELLS):
+            col, row = cell % ns.NCOLS, cell // ns.NCOLS
+            shade = visits[cell] / vmax
+            ax.add_patch(plt.Rectangle((col, row), 1, 1, facecolor=COLORS[c], alpha=0.08 + 0.72 * shade, edgecolor="#484239", lw=0.6))
+            if cell == ns.GOAL:
+                ax.text(col + 0.5, row + 0.5, "goal", ha="center", va="center", fontsize=8, color=INK)
+                continue
+            n = sum(votes[cell])
+            if n and max(votes[cell]) >= n / 2:
+                dx, dy = arrows[votes[cell].index(max(votes[cell]))]
+                ax.annotate("", xy=(col + 0.5 + dx, row + 0.5 + dy), xytext=(col + 0.5 - dx, row + 0.5 - dy), arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.1))
+        ax.plot([0, ns.NCOLS], [0, 0], color="#ff5a5f", lw=3, solid_capstyle="butt")
+        ax.text(0.5, 0.5, "start", ha="center", va="center", fontsize=8, color=INK, alpha=0.0)
+        ax.set_xlim(0, ns.NCOLS)
+        ax.set_ylim(ns.NROWS, -0.12)
+        ax.set_aspect("equal")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+        ax.set_title(f"{ns.CONDITION_NAMES[c]}  ({len(runs)} runs)", loc="left", fontsize=11, color=INK)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=11, color=MUTED)
+    fig.tight_layout()
+    fig.savefig(out / name)
+    plt.close(fig)
+    return name
+
+
 def main(argv):
     logs, out = Path(argv[0]), Path(argv[1])
     out.mkdir(parents=True, exist_ok=True)
     matches = collect([logs])
     S, rows = summarise(matches)
     S["figures"] = figures(S, rows, out)
+    plt_style()
+    for name, conds, title in (("fig_policy_control.png", [0, 1], "Red line: the island's edge. Darker: where she spent her steps. Arrow: the move most runs rate best."),
+                                ("fig_policy_explore.png", [3, 4, 8], "Red line: the island's edge. Darker: where she spent her steps. Arrow: the move most runs rate best.")):
+        made = policy_figure(matches, conds, out, name, title)
+        if made:
+            S["figures"].append(made)
     (out / "summary.json").write_text(json.dumps(S, indent=1, default=str))
     print(f"{S['n_matches']} matches, {S['n_runs_complete']} complete runs of {S['n_runs']}, {S['n_episodes']} episodes, {S['n_steps']} real steps, "
           f"{S['game_hours']:.2f} h, {S['steps_per_sec']:.1f} steps/s; replay {S['replay_checked'] - S['replay_bad']}/{S['replay_checked']}; figures {len(S['figures'])}")

@@ -47,7 +47,7 @@ def test_random_policy_value_is_bad_everywhere():
 def test_golden_log_matches_reference(path):
     """Every table the game logged after the scripted walk equals the table recomputed here."""
     m = ns.parse(path)
-    assert m.header["version"] in (9202, 9204, 9205, 9207)
+    assert m.header["version"] in (9202, 9204, 9205, 9207, 9209)
     rules = ns.Rules(r_step=m.header["r_step"], r_goal=m.header["r_goal"], r_fall=m.header["r_fall"],
                      r_timeout=m.header["r_timeout"], max_steps=m.header["max_steps"], gamma=m.header["gamma_milli"] / 1000)
     eps = ns.walk(GOLDEN_PLAN, rules)
@@ -74,7 +74,7 @@ def test_golden_log_matches_reference(path):
             seen_algos.add(algo)
             continue
         else:
-            ref_all = ns.learn(algo, eps, alpha=info["alpha_milli"] / 1000, eps=max(info["eps_milli"], 0) / 1000,
+            ref_all = ns.learn(algo, ns.aggregate(eps, info.get("agg", 0)), alpha=info["alpha_milli"] / 1000, eps=max(info["eps_milli"], 0) / 1000,
                                lam=info["lam_milli"] / 1000, q_init=info["q_init"], gamma=rules.gamma)
             ref, key = (ref_all["theta"], "theta") if algo in (ns.PG, ns.AC) else (ref_all["Q"], "Q")
             for cell, (_, visits) in rows.items():

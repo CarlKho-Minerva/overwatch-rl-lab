@@ -16,7 +16,8 @@ START, GOAL = 0, 11
 ALGO_NAMES = ["sarsa", "qlearning", "expected_sarsa", "dyna", "monte_carlo", "sarsa_lambda", "random", "planner", "policy_gradient", "actor_critic"]
 SARSA, QL, ESARSA, DYNA, MC, LAMBDA, RANDOM, DP, PG, AC = range(10)
 CONDITION_NAMES = ["SARSA", "Q-learning", "Expected SARSA", "Q + fading exploration", "Q + optimism", "Dyna-Q",
-                   "Monte Carlo", "SARSA(lambda)", "Q + count bonus", "Random walk", "Planner", "Policy gradient", "Actor-critic", "Monte Carlo + optimism"]
+                   "Monte Carlo", "SARSA(lambda)", "Q + count bonus", "Random walk", "Planner", "Policy gradient", "Actor-critic", "Monte Carlo + optimism",
+                   "Q, 16 coarse states", "Q, row only"]
 LINE = re.compile(r"^\[(\d+):(\d+):(\d+)\] NS,([A-Z]+),(.*)$")
 
 
@@ -50,8 +51,8 @@ class Match:
 
 
 M_FIELDS = ["version", "bots", "team1_bots", "cell", "run_speed", "coast", "move_speed", "eval_eps", "max_steps",
-            "eval_max_steps", "gamma_milli", "r_step", "r_goal", "r_fall", "r_timeout", "cond_offset", "spawn_calls", "nconds"]
-H_FIELDS = ["bot", "run", "cond", "algo", "eps_milli", "alpha_milli", "q_init", "plan_n", "lam_milli", "bonus", "train_eps", "side", "t0"]
+            "eval_max_steps", "gamma_milli", "r_step", "r_goal", "r_fall", "r_timeout", "cond_offset", "spawn_calls", "nconds", "soft_min", "run_max_min"]
+H_FIELDS = ["bot", "run", "cond", "algo", "eps_milli", "alpha_milli", "q_init", "plan_n", "lam_milli", "bonus", "train_eps", "side", "t0", "agg"]
 F_FIELDS = ["bot", "run", "cond", "complete", "train_done", "goals", "falls", "timeouts", "eval_done", "eval_goals",
             "eval_falls", "eval_timeouts", "steps", "slips", "seconds"]
 E_FIELDS = ["bot", "run", "ep", "mode", "ret", "steps", "outcome", "edge", "slips", "t"]
@@ -121,6 +122,20 @@ def move(s: int, a: int):
     if tc < 0 or tc >= NCOLS or tr >= NROWS:
         return s, False
     return tr * NCOLS + tc, False
+
+
+def agg_state(cell: int, agg: int) -> int:
+    """What the bot is told about a cell: 0 the cell itself, 1 row and quarter of the strip (16 states), 2 the row (4 states)."""
+    if agg == 1:
+        return (cell // NCOLS) * 4 + (cell % NCOLS) // 3
+    if agg == 2:
+        return cell // NCOLS
+    return cell
+
+
+def aggregate(episodes, agg: int):
+    """The same episodes as the bot with a coarser view saw them."""
+    return [[(agg_state(s, agg), a, r, agg_state(s2, agg), a2, term) for (s, a, r, s2, a2, term) in ep] for ep in episodes]
 
 
 def walk(plan, rules: Rules = Rules()):

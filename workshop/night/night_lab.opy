@@ -83,6 +83,7 @@ globalvar cPlan = CONDITION_PLANS
 globalvar cLam = CONDITION_LAMBDAS
 globalvar cBonus = CONDITION_BONUSES
 globalvar cTrain = CONDITION_TRAIN_EPS
+globalvar cAgg = CONDITION_AGGS
 
 # ---------------------------------------------------------------------------
 # Workshop Settings (lobby > Settings > Workshop Settings)
@@ -206,6 +207,9 @@ playervar epS = []
 playervar epR = []
 playervar glyph = []
 playervar curS
+playervar curCell
+playervar nextCell
+playervar agg = 0
 playervar curA
 playervar curExplore
 playervar nextS
@@ -289,6 +293,10 @@ rule "Log: write the queued lines in one frame, once a second":
     loop()
 
 macro BELOW = (eventPlayer.getPosition().y < floorY - 1.2)
+# What the bot is told about where it stands (Lecture 6). 0: the exact cell, 48 states. 1: the row and which
+# quarter of the strip, 16 states. 2: the row only, 4 states. The real cell still decides what happens to it.
+macro AGG(c):
+    (c if eventPlayer.agg == 0 else (floor(c / NCOLS) * 4 + floor((c % NCOLS) / 3) if eventPlayer.agg == 1 else floor(c / NCOLS)))
 macro onPlatform(p):
     abs(raycast(p + vect(0, 2, 0), p - vect(0, 2, 0), null, null, false).getHitPosition().y - floorY) < 0.3
 
@@ -397,8 +405,8 @@ rule "Init: spawn the bots, measure their run speed, start the block":
     feat = [bots[0], bots.last()]
     matchT0 = NOW
     # M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,
-    #    gamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions
-    LOG("NS,M,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(BUILD_VERSION, nBots, len([p for p in getPlayers(Team.1) if p.isDummy()]), cell, runSpeed, coastDist, cfgMoveSpeed, cfgEvalEps, cfgMaxSteps, cfgEvalMaxSteps, round(gamma * 1000), rStep, rGoal, rFall, rTimeout, condOffset, spawnCalls, NCOND))
+    #    gamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions, no-new-run minute, longest run (minutes)
+    LOG("NS,M,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(BUILD_VERSION, nBots, len([p for p in getPlayers(Team.1) if p.isDummy()]), cell, runSpeed, coastDist, cfgMoveSpeed, cfgEvalEps, cfgMaxSteps, cfgEvalMaxSteps, round(gamma * 1000), rStep, rGoal, rFall, rTimeout, condOffset, spawnCalls, NCOND, cfgSoftMin, cfgRunMaxMin))
     LOG("NS,CAL,{},{},{},{},{},{},{}".format(floorY, edgeXMin, edgeXMax, edgeZMin, edgeZMax, gridX0, actTimeout))
     logBytes += 260
     for spawnI in range(nBots):
@@ -438,8 +446,8 @@ rule "Environment: a bot died (fell too far before the reset caught it)":
 
 def stepEnv():
     @Name "Environment: carry out action curA with the real bot and observe the result"
-    eventPlayer.stepCol = eventPlayer.curS % NCOLS
-    eventPlayer.stepRow = floor(eventPlayer.curS / NCOLS)
+    eventPlayer.stepCol = eventPlayer.curCell % NCOLS
+    eventPlayer.stepRow = floor(eventPlayer.curCell / NCOLS)
     eventPlayer.actDir = [vect(1, 0, 0), vect(-1, 0, 0), vect(0, 0, zSign[eventPlayer.side]), vect(0, 0, 0 - zSign[eventPlayer.side])][eventPlayer.curA]
     eventPlayer.tgtCol = eventPlayer.stepCol + [1, -1, 0, 0][eventPlayer.curA]
     eventPlayer.tgtRow = eventPlayer.stepRow + [0, 0, 1, -1][eventPlayer.curA]
@@ -448,7 +456,7 @@ def stepEnv():
     eventPlayer.outcome = Outcome.RUNNING
     if eventPlayer.tgtCol < 0 or eventPlayer.tgtCol >= NCOLS or eventPlayer.tgtRow >= NROWS:
         # Blocked: that side of the grid is open floor and the rule says no. The step still costs its reward.
-        eventPlayer.intended = eventPlayer.curS
+        eventPlayer.intended = eventPlayer.curCell
         wait(0.032)
     else:
         eventPlayer.intended = eventPlayer.tgtRow * NCOLS + eventPlayer.tgtCol
@@ -467,7 +475,8 @@ def stepEnv():
         else:
             waitUntil(eventPlayer.getHorizontalSpeed() < 0.2 or BELOW or eventPlayer.died, 0.4)
     observe()
-    eventPlayer.nextS = eventPlayer.obsCell
+    eventPlayer.nextCell = eventPlayer.obsCell
+    eventPlayer.nextS = AGG(eventPlayer.nextCell)
     if BELOW or eventPlayer.died:
         eventPlayer.terminal = true
         eventPlayer.outcome = Outcome.FELL
@@ -476,9 +485,9 @@ def stepEnv():
             eventPlayer.epSlips += 1
     else:
         eventPlayer.epEdgeSum += zSign[eventPlayer.side] * (eventPlayer.obsP.z - zBase[eventPlayer.side]) + MARGIN
-        if eventPlayer.nextS != eventPlayer.intended:
+        if eventPlayer.nextCell != eventPlayer.intended:
             eventPlayer.epSlips += 1
-        if eventPlayer.nextS == GOAL_CELL:
+        if eventPlayer.nextCell == GOAL_CELL:
             eventPlayer.terminal = true
             eventPlayer.outcome = Outcome.GOAL
             eventPlayer.reward += rGoal
@@ -531,7 +540,7 @@ def updateGlyph():
     if eventPlayer.gS == GOAL_CELL:
         eventPlayer.glyph[eventPlayer.gS] = "G"
         return
-    eventPlayer.rowQ = (eventPlayer.theta if (eventPlayer.algo == Alg.PG or eventPlayer.algo == Alg.AC) else eventPlayer.Q).slice(eventPlayer.gS * NA, NA)
+    eventPlayer.rowQ = (eventPlayer.theta if (eventPlayer.algo == Alg.PG or eventPlayer.algo == Alg.AC) else eventPlayer.Q).slice(AGG(eventPlayer.gS) * NA, NA)
     eventPlayer.rowMax = sorted(eventPlayer.rowQ).last()
     if sorted(eventPlayer.rowQ)[0] == eventPlayer.rowMax:
         eventPlayer.glyph[eventPlayer.gS] = "·"
@@ -600,7 +609,7 @@ def learnStep():
         eventPlayer.epS.append(eventPlayer.curS)
         eventPlayer.epR.append(eventPlayer.reward)
     eventPlayer.Nsa[eventPlayer.idx] += 1
-    eventPlayer.gS = eventPlayer.curS
+    eventPlayer.gS = eventPlayer.curCell
     updateGlyph()
 
 def learnEpisodeEnd():
@@ -672,6 +681,7 @@ def startRun():
     eventPlayer.lam = cLam[eventPlayer.cond]
     eventPlayer.bonus = cBonus[eventPlayer.cond]
     eventPlayer.trainEps = cTrain[eventPlayer.cond]
+    eventPlayer.agg = cAgg[eventPlayer.cond]
     eventPlayer.Q = []
     eventPlayer.Q[NQ - 1] = 0
     if cQInit[eventPlayer.cond] != 0:
@@ -710,8 +720,8 @@ def startRun():
     eventPlayer.actCount = 0
     eventPlayer.runT0 = NOW
     eventPlayer.startForcingName("{} {}".format(cName[eventPlayer.cond], eventPlayer.bid))
-    # H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t
-    LOG("NS,H,{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.cond, eventPlayer.algo, round(eventPlayer.eps0 * 1000), round(eventPlayer.alpha * 1000), cQInit[eventPlayer.cond], eventPlayer.planN, round(eventPlayer.lam * 1000), eventPlayer.bonus, eventPlayer.trainEps, eventPlayer.side, NOW - matchT0))
+    # H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t, state detail (0 cell, 1 quarter, 2 row)
+    LOG("NS,H,{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.cond, eventPlayer.algo, round(eventPlayer.eps0 * 1000), round(eventPlayer.alpha * 1000), cQInit[eventPlayer.cond], eventPlayer.planN, round(eventPlayer.lam * 1000), eventPlayer.bonus, eventPlayer.trainEps, eventPlayer.side, NOW - matchT0, eventPlayer.agg))
     logBytes += 70
     if eventPlayer.algo == Alg.DP:
         planDP()
@@ -762,7 +772,8 @@ def runEpisode():
         eventPlayer.E = []
         eventPlayer.E[NQ - 1] = 0
     observe()
-    eventPlayer.curS = eventPlayer.obsCell
+    eventPlayer.curCell = eventPlayer.obsCell
+    eventPlayer.curS = AGG(eventPlayer.curCell)
     eventPlayer.selS = eventPlayer.curS
     chooseAction()
     eventPlayer.curA = eventPlayer.selA
@@ -786,12 +797,13 @@ def runEpisode():
         eventPlayer.runSteps += 1
         eventPlayer.epReturn += eventPlayer.reward
         eventPlayer.curS = eventPlayer.nextS
+        eventPlayer.curCell = eventPlayer.nextCell
         eventPlayer.curA = eventPlayer.nextA
         eventPlayer.curExplore = eventPlayer.nextExplore
     eventPlayer.stopThrottleInDirection()
     if eventPlayer.isTraining:
         learnEpisodeEnd()
-        if eventPlayer.algo == Alg.DYNA or eventPlayer.algo == Alg.MC or eventPlayer.algo == Alg.LAMBDA or eventPlayer.algo == Alg.PG:
+        if eventPlayer.algo == Alg.DYNA or eventPlayer.algo == Alg.MC or eventPlayer.algo == Alg.LAMBDA or eventPlayer.algo == Alg.PG or eventPlayer.agg > 0:
             # These methods change many cells per episode: redraw every arrow.
             for eventPlayer.gS in range(NCELLS):
                 updateGlyph()
