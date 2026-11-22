@@ -159,14 +159,17 @@ def summarise(matches, n_last=40):
             if key[0] != Path(m.path).name or len(rowsv) < ns.NROWS or "rmse" in rowsv:
                 continue
             v = visits.get(key[:4], {})
+            # Typical error, counting each cell by how often the walker stood on it up to this checkpoint
+            # (cells she has never visited have no estimate and are left out).
             sq, n = 0.0, 0
             for row in range(ns.NROWS):
                 for c in range(ns.NCOLS):
                     cell = row * ns.NCOLS + c
-                    if cell == ns.GOAL or (v and v.get(row, [1] * 12)[c] < 1):
+                    w = v.get(row, [0] * 12)[c] if v else 1
+                    if cell == ns.GOAL or w < 1:
                         continue
-                    sq += (rowsv[row][c] - exact[cell]) ** 2
-                    n += 1
+                    sq += w * (rowsv[row][c] - exact[cell]) ** 2
+                    n += w
             rowsv["rmse"] = math.sqrt(sq / max(1, n))
             rowsv["cells"] = n
     by_ep: dict = {}
