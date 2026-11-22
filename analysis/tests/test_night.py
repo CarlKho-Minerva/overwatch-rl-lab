@@ -67,7 +67,7 @@ def test_golden_log_matches_reference(path):
             finals = [p for p in m.ptables if p["bot"] == bot and p["run"] == run and p["ep"] == 4]
             assert finals, "no value tables logged for the prediction bot"
             for p in finals:
-                want = {0: ref_all["Vtd"], 1: ref_all["Vmc"], 2: ref_all["Nv"]}[p["kind"]]
+                want = {0: ref_all["Vtd"], 1: ref_all["Vmc"], 2: ref_all["Nv"], 3: ref_all["Vtd2"]}[p["kind"]]
                 for c, v in enumerate(p["values"]):
                     assert v == pytest.approx(want[p["row"] * ns.NCOLS + c], abs=0.011), (bot, run, p["kind"], p["row"], c)
                     compared += 1

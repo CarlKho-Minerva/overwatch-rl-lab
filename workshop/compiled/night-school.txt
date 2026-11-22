@@ -147,59 +147,60 @@ variables {
         34: mSeen
         35: Vtd
         36: Vmc
-        37: Nv
-        38: epS
-        39: epR
-        40: glyph
-        41: curS
-        42: curCell
-        43: nextCell
-        44: agg
-        45: curA
-        46: curExplore
-        47: nextS
-        48: nextA
-        49: nextExplore
-        50: reward
-        51: terminal
-        52: outcome
-        53: epSteps
-        54: epReturn
-        55: epEdgeSum
-        56: epSlips
-        57: stepCol
-        58: stepRow
-        59: tgtCol
-        60: tgtRow
-        61: tgtPos
-        62: actDir
-        63: intended
-        64: obsP
-        65: obsCell
-        66: selS
-        67: selA
-        68: selExplore
-        69: rowQ
-        70: rowMax
-        71: idx
-        72: qOld
-        73: tgt
-        74: delta
-        75: g
-        76: k
-        77: a
-        78: sweep
-        79: vDelta
-        80: qNew
-        81: s2
-        82: pIdx
-        83: gS
-        84: theta
-        85: probs
-        86: baseline
-        87: u
-        88: actCount
-        89: qDirect
+        37: Vtd2
+        38: Nv
+        39: epS
+        40: epR
+        41: glyph
+        42: curS
+        43: curCell
+        44: nextCell
+        45: agg
+        46: curA
+        47: curExplore
+        48: nextS
+        49: nextA
+        50: nextExplore
+        51: reward
+        52: terminal
+        53: outcome
+        54: epSteps
+        55: epReturn
+        56: epEdgeSum
+        57: epSlips
+        58: stepCol
+        59: stepRow
+        60: tgtCol
+        61: tgtRow
+        62: tgtPos
+        63: actDir
+        64: intended
+        65: obsP
+        66: obsCell
+        67: selS
+        68: selA
+        69: selExplore
+        70: rowQ
+        71: rowMax
+        72: idx
+        73: qOld
+        74: tgt
+        75: delta
+        76: g
+        77: k
+        78: a
+        79: sweep
+        80: vDelta
+        81: qNew
+        82: s2
+        83: pIdx
+        84: gS
+        85: theta
+        86: probs
+        87: baseline
+        88: u
+        89: actCount
+        90: qDirect
 }
 
 subroutines {
@@ -231,7 +232,7 @@ rule ("Initialize global variables") {
         Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
         Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0, 0, 0));
         Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cTrain, Array(150, 150, 150, 150, 150, 150, 150, 150, 150, 300, 40, 150, 150, 150, 150, 150));
+        Set Global Variable(cTrain, Array(150, 150, 150, 150, 150, 150, 150, 150, 150, 200, 40, 150, 150, 150, 150, 150));
         Set Global Variable(cAgg, Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2));
         Set Global Variable(cfgBotsPerTeam, Workshop Setting Integer(Custom String("Night School"), Custom String("Bots per team"), 5, 1, 5, 0));
         Set Global Variable(cfgMoveSpeed, Workshop Setting Integer(Custom String("Night School"), Custom String("Bot move speed percent"), 200, 50, 300, 1));
@@ -285,6 +286,7 @@ rule ("Initialize player variables") {
         Set Player Variable(Event Player, mSeen, Empty Array);
         Set Player Variable(Event Player, Vtd, Empty Array);
         Set Player Variable(Event Player, Vmc, Empty Array);
+        Set Player Variable(Event Player, Vtd2, Empty Array);
         Set Player Variable(Event Player, Nv, Empty Array);
         Set Player Variable(Event Player, epS, Empty Array);
         Set Player Variable(Event Player, epR, Empty Array);
@@ -443,7 +445,7 @@ rule ("Init: spawn the bots, measure their run speed, start the block") {
         Set Global Variable(feat, Array(First Of(Global.bots), Last Of(Global.bots)));
         Set Global Variable(matchT0, Total Time Elapsed);
         "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions, no-new-run minute, longest run (minutes)"
-        Modify Global Variable(logQ, Append To Array, Custom String("NS,M,206,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},16,{2}", Global.condOffset, Global.spawnCalls, Custom String("{0},{1}", Global.cfgSoftMin, Global.cfgRunMaxMin))))))))));
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,M,207,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},16,{2}", Global.condOffset, Global.spawnCalls, Custom String("{0},{1}", Global.cfgSoftMin, Global.cfgRunMaxMin))))))))));
         Modify Global Variable(logQ, Append To Array, Custom String("NS,CAL,{0},{1},{2}", Global.floorY, Global.edgeXMin, Custom String("{0},{1},{2}", Global.edgeXMax, Global.edgeZMin, Custom String("{0},{1},{2}", Global.edgeZMax, Global.gridX0, Global.actTimeout))));
         Modify Global Variable(logBytes, Add, 260);
         For Global Variable(spawnI, 0, Global.nBots, 1);
@@ -695,6 +697,7 @@ rule ("Agent: the update after one real step") {
             "Prediction (Lecture 4): the policy is fixed (uniform random); TD(0) learns its value every step."
             Set Player Variable(Event Player, tgt, Add((Event Player).reward, If-Then-Else((Event Player).terminal, 0, Multiply(Global.gamma, Value In Array((Event Player).Vtd, (Event Player).nextS)))));
             Modify Player Variable At Index(Event Player, Vtd, (Event Player).curS, Add, Multiply((Event Player).alpha, Subtract((Event Player).tgt, Value In Array((Event Player).Vtd, (Event Player).curS))));
+            Modify Player Variable At Index(Event Player, Vtd2, (Event Player).curS, Add, Multiply(0.5, Subtract(Add((Event Player).reward, If-Then-Else((Event Player).terminal, 0, Multiply(Global.gamma, Value In Array((Event Player).Vtd2, (Event Player).nextS)))), Value In Array((Event Player).Vtd2, (Event Player).curS))));
             Modify Player Variable(Event Player, epS, Append To Array, (Event Player).curS);
             Modify Player Variable(Event Player, epR, Append To Array, (Event Player).reward);
         End;
@@ -821,6 +824,8 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         Set Player Variable At Index(Event Player, Vtd, 47, 0);
         Set Player Variable(Event Player, Vmc, Empty Array);
         Set Player Variable At Index(Event Player, Vmc, 47, 0);
+        Set Player Variable(Event Player, Vtd2, Empty Array);
+        Set Player Variable At Index(Event Player, Vtd2, 47, 0);
         Set Player Variable(Event Player, Nv, Empty Array);
         Set Player Variable At Index(Event Player, Nv, 47, 0);
         For Player Variable(Event Player, k, 0, 48, 1);
@@ -857,12 +862,13 @@ rule ("Log: the bot's tables (Q or preferences per visited state; value tables f
     }
     actions {
         If(Compare((Event Player).algo, ==, 6));
-            "P: bot, run, episode, kind (0 TD(0), 1 Monte Carlo, 2 visits), row, then the 12 values of that row"
+            "P: bot, run, episode, kind (0 TD(0) step 0.1, 1 Monte Carlo, 2 visits, 3 TD(0) step 0.5), row, then the 12 values of that row"
             For Player Variable(Event Player, k, 0, 4, 1);
                 Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},0,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 11)))))))))));
                 Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},1,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 11)))))))))));
                 Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},2,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Multiply((Event Player).k, 12)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 11)))))))))));
-                Modify Global Variable(logBytes, Add, 300);
+                Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},3,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 11)))))))))));
+                Modify Global Variable(logBytes, Add, 400);
                 Wait(0.016, Ignore Condition);
             End;
             Abort;

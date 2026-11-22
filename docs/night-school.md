@@ -35,7 +35,7 @@ All use reward -1 per step, +50 goal, -100 fall, -50 timeout at 100 steps, disco
 | 6 | MONTE CARLO | every-visit Monte Carlo control | alpha 0.2, epsilon 0.1 | 4, 5 |
 | 7 | SARSA LAMBDA | SARSA(lambda), replacing traces | lambda 0.8, alpha 0.3, epsilon 0.1 | 4, 5 |
 | 8 | Q + COUNT BONUS | Q-learning | bonus 10 / sqrt(visits + 1), epsilon 0 | 9 |
-| 9 | RANDOM WALK | uniform random policy; TD(0) and Monte Carlo value tables | TD alpha 0.1; 300 episodes | 1, 2, 4 |
+| 9 | RANDOM WALK | uniform random policy; two TD(0) value tables and a Monte Carlo one | TD alpha 0.1 and 0.5; 200 episodes | 1, 2, 4 |
 | 10 | PLANNER | value iteration on the grid's rules, then walks it | 40 episodes | 3 |
 | 11 | POLICY GRADIENT | REINFORCE with a state baseline, softmax | step 0.02, baseline rate 0.2 | 7 |
 | 12 | ACTOR-CRITIC | one-step actor-critic, softmax | actor step 0.1, critic rate 0.2 | 7 |
@@ -65,7 +65,7 @@ Every line starts with `NS,` after the game's own `[HH:MM:SS]` stamp. Numbers pr
 | `S` | bot, run, step in run, s, a, r, s', a', terminal, explored, Q before, Q after the real step's update, target, epsilon x1000. First 30 steps of each run, one-step methods only |
 | `F` | bot, run, condition, complete (1) or cut short (0), training episodes, goals, falls, timeouts, evaluation episodes, goals, falls, timeouts, real steps, slips, seconds |
 | `Q` | bot, run, state, four values (action preferences for the two policy-gradient bots), visits. One line per visited state at the end of a run |
-| `P` | bot, run, episode, kind (0 TD(0) values, 1 Monte Carlo values, 2 visits), row, twelve values. Random-walk bot, at episodes 10, 30, 100 and at the end |
+| `P` | bot, run, episode, kind (0 TD(0) values with step 0.1, 1 Monte Carlo values, 2 visits, 3 TD(0) values with step 0.5), row, twelve values. Random-walk bot, at episodes 10, 30, 100 and at the end (200) |
 | `V` | bot, run, sweep, largest change in that sweep. Planner |
 | `L` | seconds, server load now, average, peak, episodes, real steps, estimated log bytes. Once a minute |
 | `X` | reason (1 all bots done, 2 log budget, 3 time limit), seconds, episodes, real steps, estimated log bytes, server load now, average, peak. Last line of a block |

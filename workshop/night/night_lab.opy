@@ -202,6 +202,7 @@ playervar mKnown = []
 playervar mSeen = []
 playervar Vtd = []
 playervar Vmc = []
+playervar Vtd2 = []
 playervar Nv = []
 playervar epS = []
 playervar epR = []
@@ -606,6 +607,8 @@ def learnStep():
         # Prediction (Lecture 4): the policy is fixed (uniform random); TD(0) learns its value every step.
         eventPlayer.tgt = eventPlayer.reward + (0 if eventPlayer.terminal else gamma * eventPlayer.Vtd[eventPlayer.nextS])
         eventPlayer.Vtd[eventPlayer.curS] += eventPlayer.alpha * (eventPlayer.tgt - eventPlayer.Vtd[eventPlayer.curS])
+        # A second TD(0) table with a five times larger step, to show what the step size does.
+        eventPlayer.Vtd2[eventPlayer.curS] += 0.5 * (eventPlayer.reward + (0 if eventPlayer.terminal else gamma * eventPlayer.Vtd2[eventPlayer.nextS]) - eventPlayer.Vtd2[eventPlayer.curS])
         eventPlayer.epS.append(eventPlayer.curS)
         eventPlayer.epR.append(eventPlayer.reward)
     eventPlayer.Nsa[eventPlayer.idx] += 1
@@ -701,6 +704,8 @@ def startRun():
     eventPlayer.Vtd[NCELLS - 1] = 0
     eventPlayer.Vmc = []
     eventPlayer.Vmc[NCELLS - 1] = 0
+    eventPlayer.Vtd2 = []
+    eventPlayer.Vtd2[NCELLS - 1] = 0
     eventPlayer.Nv = []
     eventPlayer.Nv[NCELLS - 1] = 0
     for eventPlayer.k in range(NCELLS):
@@ -729,12 +734,13 @@ def startRun():
 def logTables():
     @Name "Log: the bot's tables (Q or preferences per visited state; value tables for the prediction bot)"
     if eventPlayer.algo == Alg.RANDOM:
-        # P: bot, run, episode, kind (0 TD(0), 1 Monte Carlo, 2 visits), row, then the 12 values of that row
+        # P: bot, run, episode, kind (0 TD(0) step 0.1, 1 Monte Carlo, 2 visits, 3 TD(0) step 0.5), row, then the 12 values of that row
         for eventPlayer.k in range(NROWS):
             LOG("NS,P,{},{},{},0,{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount, eventPlayer.k, eventPlayer.Vtd[eventPlayer.k * NCOLS], eventPlayer.Vtd[eventPlayer.k * NCOLS + 1], eventPlayer.Vtd[eventPlayer.k * NCOLS + 2], eventPlayer.Vtd[eventPlayer.k * NCOLS + 3], eventPlayer.Vtd[eventPlayer.k * NCOLS + 4], eventPlayer.Vtd[eventPlayer.k * NCOLS + 5], eventPlayer.Vtd[eventPlayer.k * NCOLS + 6], eventPlayer.Vtd[eventPlayer.k * NCOLS + 7], eventPlayer.Vtd[eventPlayer.k * NCOLS + 8], eventPlayer.Vtd[eventPlayer.k * NCOLS + 9], eventPlayer.Vtd[eventPlayer.k * NCOLS + 10], eventPlayer.Vtd[eventPlayer.k * NCOLS + 11]))
             LOG("NS,P,{},{},{},1,{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount, eventPlayer.k, eventPlayer.Vmc[eventPlayer.k * NCOLS], eventPlayer.Vmc[eventPlayer.k * NCOLS + 1], eventPlayer.Vmc[eventPlayer.k * NCOLS + 2], eventPlayer.Vmc[eventPlayer.k * NCOLS + 3], eventPlayer.Vmc[eventPlayer.k * NCOLS + 4], eventPlayer.Vmc[eventPlayer.k * NCOLS + 5], eventPlayer.Vmc[eventPlayer.k * NCOLS + 6], eventPlayer.Vmc[eventPlayer.k * NCOLS + 7], eventPlayer.Vmc[eventPlayer.k * NCOLS + 8], eventPlayer.Vmc[eventPlayer.k * NCOLS + 9], eventPlayer.Vmc[eventPlayer.k * NCOLS + 10], eventPlayer.Vmc[eventPlayer.k * NCOLS + 11]))
             LOG("NS,P,{},{},{},2,{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount, eventPlayer.k, eventPlayer.Nv[eventPlayer.k * NCOLS], eventPlayer.Nv[eventPlayer.k * NCOLS + 1], eventPlayer.Nv[eventPlayer.k * NCOLS + 2], eventPlayer.Nv[eventPlayer.k * NCOLS + 3], eventPlayer.Nv[eventPlayer.k * NCOLS + 4], eventPlayer.Nv[eventPlayer.k * NCOLS + 5], eventPlayer.Nv[eventPlayer.k * NCOLS + 6], eventPlayer.Nv[eventPlayer.k * NCOLS + 7], eventPlayer.Nv[eventPlayer.k * NCOLS + 8], eventPlayer.Nv[eventPlayer.k * NCOLS + 9], eventPlayer.Nv[eventPlayer.k * NCOLS + 10], eventPlayer.Nv[eventPlayer.k * NCOLS + 11]))
-            logBytes += 300
+            LOG("NS,P,{},{},{},3,{},{},{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount, eventPlayer.k, eventPlayer.Vtd2[eventPlayer.k * NCOLS], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 1], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 2], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 3], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 4], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 5], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 6], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 7], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 8], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 9], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 10], eventPlayer.Vtd2[eventPlayer.k * NCOLS + 11]))
+            logBytes += 400
             wait()
         return
     # Q: bot, run, cell, the four values (action preferences for the policy-gradient bot), visits to the cell

@@ -169,7 +169,7 @@ def summarise(matches, n_last=40):
     for (fname, bot, run, ep, kind), rowsv in pred.items():
         if "rmse" in rowsv:
             by_ep.setdefault((ep, kind), []).append(rowsv["rmse"])
-    S["prediction"] = {f"{'td' if k == 0 else 'mc'}_{ep}": {"rmse": mean(v), "runs": len(v)} for (ep, k), v in sorted(by_ep.items())}
+    S["prediction"] = {f"{ {0: 'td', 1: 'mc', 3: 'tdf'}[k] }_{ep}": {"rmse": mean(v), "runs": len(v)} for (ep, k), v in sorted(by_ep.items()) if k in (0, 1, 3)}
     S["exact_random_start_value"] = exact[ns.START]
     S["exact_random_inland_value"] = exact[3 * ns.NCOLS]
     rnd = [e for m in std for e in m.episodes if m.runs.get((e["bot"], e["run"]), {}).get("algo") == ns.RANDOM]
@@ -279,7 +279,7 @@ def figures(S, rows, out: Path):
     eps = sorted({int(k.split("_")[1]) for k in pr})
     if eps:
         fig, ax = plt.subplots(figsize=(7.2, 4), dpi=160)
-        for kind, col, lab in (("td", COLORS[0], "TD(0): learn after every step"), ("mc", COLORS[1], "Monte Carlo: learn at the end of the episode")):
+        for kind, col, lab in (("td", COLORS[0], "TD, small steps (0.1)"), ("tdf", COLORS[3], "TD, big steps (0.5)"), ("mc", COLORS[1], "Monte Carlo: average at the end of each episode")):
             xs = [e for e in eps if f"{kind}_{e}" in pr]
             ax.plot(xs, [pr[f"{kind}_{e}"]["rmse"] for e in xs], marker="o", color=col, lw=2, label=lab)
         ax.set_xscale("log")

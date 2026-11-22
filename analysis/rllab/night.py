@@ -172,6 +172,7 @@ def learn(algo: int, episodes, alpha: float, eps: float = 0.1, lam: float = 0.0,
     Q = [q_init] * (NCELLS * NA)
     theta = [0.0] * (NCELLS * NA)
     Vtd, Vmc, Nv = [0.0] * NCELLS, [0.0] * NCELLS, [0] * NCELLS
+    Vtd2 = [0.0] * NCELLS
     visits = [0] * (NCELLS * NA)
     for ep in episodes:
         E = [0.0] * (NCELLS * NA)
@@ -200,6 +201,7 @@ def learn(algo: int, episodes, alpha: float, eps: float = 0.1, lam: float = 0.0,
             elif algo == RANDOM:
                 tgt = r + (0 if terminal else gamma * Vtd[s2])
                 Vtd[s] += alpha * (tgt - Vtd[s])
+                Vtd2[s] += 0.5 * (r + (0 if terminal else gamma * Vtd2[s2]) - Vtd2[s])
                 buf_s.append(s)
                 buf_r.append(r)
             elif algo == AC:
@@ -236,7 +238,7 @@ def learn(algo: int, episodes, alpha: float, eps: float = 0.1, lam: float = 0.0,
                 for b in range(NA):
                     theta[s * NA + b] += alpha * delta * ((1 if b == a else 0) - p[b] / z)
                 Q[i] += 0.2 * (g - Q[i])
-    return {"Q": Q, "theta": theta, "Vtd": Vtd, "Vmc": Vmc, "Nv": Nv, "visits": visits}
+    return {"Q": Q, "theta": theta, "Vtd": Vtd, "Vmc": Vmc, "Nv": Nv, "Vtd2": Vtd2, "visits": visits}
 
 
 def value_iteration(rules: Rules = Rules(), max_sweeps: int = 60, tol: float = 0.001):

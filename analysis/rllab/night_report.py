@@ -104,7 +104,8 @@ def main(argv):
               f"{len(m.episodes)} episodes {steps} steps in {dur / 60:.1f} min ({steps / max(dur, 1):.1f} steps/s) | {m.nbytes / 1024:.0f} KB | "
               f"end {end.get('reason', 'CUT OFF')} | load peak {end.get('load_peak', max((l['load_peak'] for l in m.load), default='?'))} | "
               f"replay {checked - len(bad)}/{checked} | {'OK' if not problems else problems[:2]}{' | FAIL ' + str(m.fails) if m.fails else ''}")
-    rows = run_rows(matches)
+    # Runs and the condition table cover the standard build only (versions 2xx); test and golden builds are 9xxx.
+    rows = run_rows([m for m in matches if m.header.get("version", 0) < 1000])
     if show_runs:
         for r in rows:
             tr, ev = r["train"], r["eval"]

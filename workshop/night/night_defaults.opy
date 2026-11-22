@@ -1,5 +1,5 @@
 # Defaults of the Night School build. A variant redefines the few it wants to change, then includes night.opy.
-#!define BUILD_VERSION 206
+#!define BUILD_VERSION 207
 #!define DEF_BOTS_PER_TEAM 5
 #!define DEF_MOVE_SPEED 200
 #!define DEF_EVAL_EPS 10
@@ -36,7 +36,8 @@
 #!define CONDITION_PLANS [0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #!define CONDITION_LAMBDAS [0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0, 0, 0]
 #!define CONDITION_BONUSES [0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0]
-#!define CONDITION_TRAIN_EPS [150, 150, 150, 150, 150, 150, 150, 150, 150, 300, 40, 150, 150, 150, 150, 150]
+# The random walk gets 200 episodes: 300 did not fit in the 18-minute run limit (it reached 257 in the first block).
+#!define CONDITION_TRAIN_EPS [150, 150, 150, 150, 150, 150, 150, 150, 150, 200, 40, 150, 150, 150, 150, 150]
 # What the bot is told about where it stands: 0 the exact cell, 1 row and quarter of the strip, 2 row only.
 #!define CONDITION_AGGS [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2]
 
