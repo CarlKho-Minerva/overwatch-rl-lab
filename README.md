@@ -28,7 +28,8 @@ repository; the pages are re-explanations with time stamps into the videos.
 **The games.** Each lecture also has its own Overwatch custom game that a person plays: the player is the agent, the
 opponent, the coach or the scout, and each game asks for a prediction before every reveal
 ([workshop/games/](workshop/games/README.md)). 11 of 11 have been run start to finish in the real game by a
-stand-in bot, with the game checking its own arithmetic.
+stand-in bot, with the game checking its own arithmetic, and 11 of 11 have been played to the end with real
+key presses and mouse buttons on the build a person plays. Neither check can say a game is clear or fun.
 
 **Lesson 11: partial observability.** One square on the runner's way is shut, a different one each episode, and she is
 not told which. Three Q-learning runners differ only in what they are given: her square; her square and a memory of
