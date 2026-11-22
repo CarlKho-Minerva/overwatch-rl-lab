@@ -365,6 +365,12 @@ def replay_steps(m: Match, tol: float = 0.011):
 
 
 BLOCK_COL = 6
+# Hidden-wall builds by version: (goal square, wall column, rows the wall may stand in)
+WALL_GEOMETRY = {1102: (11, 6, 2), 9402: (11, 6, 2), 1103: (5, 3, 4), 9403: (5, 3, 4)}
+
+
+def wall_geometry(m: Match):
+    return WALL_GEOMETRY.get(m.header.get("version"), (11, BLOCK_COL, 2))
 
 
 def wall_check(m: Match):
@@ -378,6 +384,7 @@ def wall_check(m: Match):
     Returns a dict: checked steps, bumps, slips, runs, and the list of mismatches (empty = the log is consistent).
     """
     out = {"checked": 0, "bumps": 0, "slips": 0, "runs": 0, "bad": []}
+    block_col = wall_geometry(m)[1]
     eps_by: dict = {}
     for e in m.episodes:
         eps_by.setdefault((e["bot"], e["run"]), []).append(e)
@@ -399,7 +406,7 @@ def wall_check(m: Match):
             if ep >= len(walls) or walls[ep] is None or walls[ep] < 0:
                 break       # the episode's closing line (which names the wall) was not logged
             wall_row = walls[ep]
-            wall_cell = wall_row * NCOLS + BLOCK_COL
+            wall_cell = wall_row * NCOLS + block_col
             cell, extra = r["s"] % NCELLS, r["s"] // NCELLS
             cell2, extra2 = r["s2"] % NCELLS, r["s2"] // NCELLS
             problems = []

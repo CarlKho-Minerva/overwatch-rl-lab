@@ -8,7 +8,11 @@ from rllab.night import Match, NCELLS, wall_check
 
 ROOT = Path(__file__).resolve().parents[2]
 PROBE_LOGS = sorted((ROOT / "data" / "logs" / "night").glob("*v9402*.txt"))
-POMDP_LOGS = sorted((ROOT / "data" / "logs" / "night").glob("*v1102*.txt"))
+PROBE4_LOGS = sorted((ROOT / "data" / "logs" / "night").glob("*v9403*.txt"))
+POMDP_LOGS = sorted((ROOT / "data" / "logs" / "night").glob("*v1102*.txt")) + sorted((ROOT / "data" / "logs" / "night").glob("*v1103*.txt"))
+# The short-strip check (night_pomdp4_probe.opy): wall forced to square 3, goal at square 5, ten steps.
+CELLS4 = [0, 1, 2, 2, 2, 14, 15, 16, 4, 4, 5]
+MEMS4 = [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
 
 # The scripted walk of night_pomdp_probe.opy, wall forced into the edge row (square 6):
 # five steps forward, two bumps, around through the second row, one bump from the far side, on to the goal.
@@ -85,3 +89,24 @@ def test_hidden_wall_logs_are_consistent(path):
     assert out["checked"] > 0 and out["bad"] == [], out["bad"][:5]
     checked, bad = night.replay_steps(m)
     assert checked > 0 and bad == []
+
+
+@pytest.mark.skipif(not PROBE4_LOGS, reason="no short-strip probe log in data/logs/night")
+@pytest.mark.parametrize("path", PROBE4_LOGS, ids=lambda p: p.name)
+def test_short_strip_probe_log_is_the_scripted_walk(path):
+    m = night.parse(path)
+    out = wall_check(m)
+    assert out["runs"] >= 3 and out["bad"] == [], out["bad"][:5]
+    checked, bad = night.replay_steps(m)
+    assert checked > 0 and bad == []
+    clean = [e for e in m.episodes if e["mode"] == 0 and e["steps"] == 10]
+    assert len(clean) >= 0.9 * len([e for e in m.episodes if e["mode"] == 0]), "most episodes should be the clean 10-step walk"
+    for e in clean:
+        assert e["outcome"] == 1 and abs(e["ret"] - 40) < 0.01 and e["slips"] == 3 and e["station"] == 0
+    for (bot, run), info in m.runs.items():
+        if info.get("agg") != 4:
+            continue
+        full = [ep for ep in night.episodes_from_steps(m, bot, run) if len(ep) == 10]
+        assert full
+        for ep in full:
+            assert [x[0] for x in ep] == [c + NCELLS * k for c, k in zip(CELLS4[:-1], MEMS4[:-1])]

@@ -472,6 +472,208 @@ def duel_summary(matches, out: Path, n_last=40):
     return D
 
 
+POMDP_NAMES = ["Runner blind", "Runner remembers bumps", "Runner sees the wall"]
+# Two designs: the long strip with a wall in one of two rows (a way round exists), and the short strip with a wall
+# in any of four rows (no way round). tag -> (version, figure suffix)
+POMDP_DESIGNS = {"pomdp": (1102, ""), "pomdp4": (1103, "4")}
+POMDP_COLORS = ["#ff8a5c", "#6fb3ff", "#7bd389"]
+POMDP_MARKERS = ["s", "o", "D"]
+
+
+def greedy_route(qrows, agg: int, wall_row: int, max_steps: int = 40, goal: int = 11, wall_col: int = 6):
+    """Follow a run's final table greedily from the start with the wall in wall_row, by the grid's rules.
+
+    Ties go to the first best move (the game breaks them at random), and a state the table never visited scores
+    its starting value 0. Returns (list of cells, outcome, bumps): outcome 1 goal, 2 fall, 3 ran out of steps.
+    """
+    wall_cell = wall_row * ns.NCOLS + wall_col
+    cell, mem, path, bumps = 0, 0, [0], 0
+    for _ in range(max_steps):
+        s = cell + ns.NCELLS * (mem if agg == 4 else (wall_row if agg == 3 else 0))
+        q = qrows.get(s, ([0, 0, 0, 0], 0))[0]
+        a = max(range(4), key=lambda i: q[i])
+        tgt, fell = ns.move(cell, a)
+        if fell:
+            return path, 2, bumps
+        if tgt == wall_cell and tgt != cell:
+            bumps += 1
+            mem = 1 + wall_row
+        else:
+            cell = tgt
+        path.append(cell)
+        if cell == goal:
+            return path, 1, bumps
+    return path, 3, bumps
+
+
+def pomdp_summary(matches, out: Path, n_last=40, version: int = 1102, suffix: str = ""):
+    """Hidden-wall build: the numbers and figures for the lesson on partial observability.
+
+    A run is counted if it completed its 20 test crossings. Measures per run (named before the first run, see
+    docs/night-school.md): the share of test crossings that reach the goal, and the mean steps per test crossing
+    with an unfinished crossing counted as the 40-step limit.
+    """
+    pm = [m for m in matches if m.header.get("version") == version]
+    if not pm:
+        return None
+    GOAL, WALL_COL, POMDP_ROWS = ns.WALL_GEOMETRY[version]
+    runs, started, checked, bumps_seen, bad, slips = [], 0, 0, 0, 0, 0
+    for m in pm:
+        w = ns.wall_check(m)
+        checked += w["checked"]; bumps_seen += w["bumps"]; bad += len(w["bad"]); slips += w["slips"]
+        limit = m.header.get("eval_max_steps", 40)
+        need = m.header.get("eval_eps", 20)
+        eps_by: dict = {}
+        for e in m.episodes:
+            eps_by.setdefault((e["bot"], e["run"]), []).append(e)
+        for key, info in sorted(m.runs.items()):
+            if "cond" not in info:
+                continue
+            started += 1
+            tr = [e for e in eps_by.get(key, []) if e["mode"] == 0]
+            ev = [e for e in eps_by.get(key, []) if e["mode"] == 1]
+            if len(ev) < need:
+                continue
+            ev = ev[:need]
+            r = {"cond": info["cond"], "agg": info.get("agg", 0), "train": tr, "eval": ev, "q": m.qrows.get(key, {}), "limit": limit,
+                 "train_done": len(tr) >= info.get("train_eps", 200)}
+            r["eval_goal"] = mean(1 if e["outcome"] == 1 else 0 for e in ev)
+            r["eval_steps"] = mean(e["steps"] if e["outcome"] == 1 else limit for e in ev)
+            r["eval_return"] = mean(e["ret"] for e in ev)
+            r["eval_bumps"] = mean(e["slips"] for e in ev)
+            for row in range(POMDP_ROWS):
+                sub = [e for e in ev if e.get("station") == row]
+                r[f"eval_goal_wall{row}"] = mean(1 if e["outcome"] == 1 else 0 for e in sub) if sub else float("nan")
+            goal_steps = [e["steps"] for e in ev if e["outcome"] == 1]
+            r["eval_goal_steps"] = mean(goal_steps) if goal_steps else float("nan")
+            r["train_n"] = len(tr)
+            r["train_last_return"] = mean(e["ret"] for e in tr[-n_last:])
+            r["train_falls_100"] = 100 * sum(e["outcome"] == 2 for e in tr) / max(1, len(tr))
+            r["train_timeouts_100"] = 100 * sum(e["outcome"] == 3 for e in tr) / max(1, len(tr))
+            r["train_bumps_first"] = mean(e["slips"] for e in tr[:n_last])
+            r["train_bumps_last"] = mean(e["slips"] for e in tr[-n_last:])
+            r["train_edge"] = mean(e["edge"] for e in tr[-n_last:])
+            r["routes"] = [greedy_route(r["q"], r["agg"], row, limit, GOAL, WALL_COL) for row in range(POMDP_ROWS)]
+            runs.append(r)
+    P = {"version": version, "goal": GOAL, "wall_col": WALL_COL, "wall_rows": POMDP_ROWS, "matches": len(pm), "runs_started": started, "runs": len(runs), "steps_checked": checked, "bumps_checked": bumps_seen,
+         "check_mismatches": bad, "slips_in_checked_steps": slips, "conditions": {}, "contrasts": {}}
+    if not runs:
+        return P
+    keys = ["eval_goal", "eval_steps", "eval_return", "eval_bumps"] + [f"eval_goal_wall{i}" for i in range(POMDP_ROWS)] + ["eval_goal_steps", "train_n",
+            "train_last_return", "train_falls_100", "train_timeouts_100", "train_bumps_first", "train_bumps_last", "train_edge"]
+    for c in range(3):
+        rs = [r for r in runs if r["cond"] == c]
+        if not rs:
+            continue
+        d = {"name": POMDP_NAMES[c], "runs": len(rs), "runs_all_training": sum(r["train_done"] for r in rs)}
+        for k in keys:
+            xs = [r[k] for r in rs if not (isinstance(r[k], float) and math.isnan(r[k]))]
+            d[k] = mean(xs) if xs else None
+            lo, hi = boot_ci(xs) if len(xs) > 1 else (float("nan"), float("nan"))
+            d[k + "_lo"], d[k + "_hi"] = lo, hi
+        d["runs_every_test_crossing"] = sum(1 for r in rs if r["eval_goal"] == 1)
+        d["runs_no_test_crossing"] = sum(1 for r in rs if r["eval_goal"] == 0)
+        # what the final table does when followed greedily, wall in each row: how many runs reach the goal, and how
+        routes = {}
+        for row in range(POMDP_ROWS):
+            outs = [r["routes"][row] for r in rs]
+            reach = [o for o in outs if o[1] == 1]
+            routes[f"wall{row}"] = {"reach": len(reach), "stuck": sum(1 for o in outs if o[1] == 3), "fall": sum(1 for o in outs if o[1] == 2),
+                                    "steps_when_reached": mean(len(o[0]) - 1 + o[2] for o in reach) if reach else None,
+                                    "bumps_when_reached": mean(o[2] for o in reach) if reach else None,
+                                    "via_third_row": sum(1 for o in reach if any(c // ns.NCOLS >= 2 for c in o[0]))}
+        d["greedy_routes"] = routes
+        d["same_route_for_every_wall"] = sum(1 for r in rs if all(r["routes"][i][0] == r["routes"][0][0] for i in range(POMDP_ROWS)))
+        d["walls_passed_by_greedy_route"] = mean(sum(1 for i in range(POMDP_ROWS) if r["routes"][i][1] == 1) for r in rs)
+        P["conditions"][c] = d
+
+    def contrast(a, b, key):
+        xa = [r[key] for r in runs if r["cond"] == a]
+        xb = [r[key] for r in runs if r["cond"] == b]
+        if len(xa) < 2 or len(xb) < 2:
+            return None
+        rng = random.Random(5)
+        diffs = sorted(mean([xa[rng.randrange(len(xa))] for _ in xa]) - mean([xb[rng.randrange(len(xb))] for _ in xb]) for _ in range(4000))
+        return {"a": POMDP_NAMES[a], "b": POMDP_NAMES[b], "key": key, "mean_a": mean(xa), "mean_b": mean(xb), "diff": mean(xa) - mean(xb),
+                "lo": diffs[100], "hi": diffs[3899], "p": perm_p(xa, xb), "n_a": len(xa), "n_b": len(xb)}
+    for name, a, b in (("remembers_vs_blind", 1, 0), ("sees_vs_remembers", 2, 1), ("sees_vs_blind", 2, 0)):
+        for key in ("eval_goal", "eval_steps"):
+            c = contrast(a, b, key)
+            if c:
+                c["planned"] = name != "sees_vs_blind"
+                P["contrasts"][f"{name}_{key}"] = c
+
+    plt = plt_style()
+    conds = [c for c in range(3) if c in P["conditions"]]
+    # Figure 1: the two measures, one dot per run, mean and interval beside them
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.5), dpi=160)
+    for ax, key, label, lim in ((axes[0], "eval_goal", "share of 20 test crossings\nthat reach the goal", (-0.05, 1.05)),
+                                (axes[1], "eval_steps", "steps per test crossing\n(unfinished = 40)", (3 if GOAL < 11 else 8, 42))):
+        rng = random.Random(3)
+        for i, c in enumerate(conds):
+            xs = [r[key] for r in runs if r["cond"] == c]
+            ax.scatter([i - 0.16 + rng.uniform(-0.07, 0.07) for _ in xs], xs, s=26, color=POMDP_COLORS[c], marker=POMDP_MARKERS[c], alpha=0.75, linewidths=0)
+            d = P["conditions"][c]
+            if not math.isnan(d[key + "_lo"]):
+                ax.plot([i + 0.2, i + 0.2], [d[key + "_lo"], d[key + "_hi"]], color=INK, lw=1.6)
+            ax.scatter([i + 0.2], [d[key]], s=52, color=INK, zorder=3)
+        ax.set_xticks(range(len(conds)))
+        ax.set_xticklabels([POMDP_NAMES[c].replace("Runner ", "").replace(" the wall", "\nthe wall").replace("remembers bumps", "remembers\nbumps") for c in conds], fontsize=9)
+        ax.set_xlim(-0.6, len(conds) - 0.4)
+        ax.set_ylim(*lim)
+        ax.set_ylabel(label, fontsize=9)
+        ax.grid(True, axis="y", lw=0.6)
+    fig.tight_layout()
+    fig.savefig(out / f"fig_pomdp{suffix}_eval.png"); plt.close(fig)
+    # Figure 2: the route each run's final table takes, wall in the edge row (top) and in the second row (bottom)
+    fig, axes = plt.subplots(POMDP_ROWS, len(conds), figsize=(3.6 * len(conds), 1.65 * POMDP_ROWS), dpi=160, squeeze=False)
+    for j, c in enumerate(conds):
+        rs = [r for r in runs if r["cond"] == c]
+        for row in range(POMDP_ROWS):
+            ax = axes[row][j]
+            for x in range(ns.NCOLS + 1):
+                ax.plot([x, x], [0, ns.NROWS], color=GRID, lw=0.6)
+            for y in range(ns.NROWS + 1):
+                ax.plot([0, ns.NCOLS], [y, y], color=GRID if y else "#ff5a5f", lw=0.6 if y else 1.6)
+            ax.add_patch(plt.Rectangle((WALL_COL, row), 1, 1, color="#ff5a5f", alpha=0.85, lw=0))
+            ax.text(GOAL % ns.NCOLS + 0.5, GOAL // ns.NCOLS + 0.5, "G", ha="center", va="center", fontsize=8, color=INK)
+            rng = random.Random(9)
+            for r in rs:
+                path, outcome, _ = r["routes"][row]
+                jx, jy = rng.uniform(-0.16, 0.16), rng.uniform(-0.16, 0.16)
+                xs = [p % ns.NCOLS + 0.5 + jx for p in path]
+                ys = [p // ns.NCOLS + 0.5 + jy for p in path]
+                ax.plot(xs, ys, color=POMDP_COLORS[c] if outcome == 1 else "#8f877a", lw=1.2, alpha=0.7, ls="-" if outcome == 1 else ":")
+                if outcome != 1:
+                    ax.scatter([xs[-1]], [ys[-1]], marker="x", s=22, color="#8f877a", linewidths=1.2)
+            ax.set_xlim(0, ns.NCOLS); ax.set_ylim(-0.15, ns.NROWS); ax.set_xticks([]); ax.set_yticks([])
+            for sp in ax.spines.values():
+                sp.set_visible(False)
+            if row == 0:
+                ax.set_title(f"{POMDP_NAMES[c]} ({len(rs)} runs)", fontsize=10, color=INK, loc="left")
+            if j == 0:
+                ax.set_ylabel("wall in\n" + ["the edge row", "the second row", "the third row", "the inland row"][row], fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out / f"fig_pomdp{suffix}_routes.png"); plt.close(fig)
+    # Figure 3: training, return and bumps per episode
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.3), dpi=160)
+    for c in conds:
+        rs = [r for r in runs if r["cond"] == c]
+        n = min(len(r["train"]) for r in rs)
+        for ax, key in ((axes[0], "ret"), (axes[1], "slips")):
+            avg = [mean(r["train"][i][key] for r in rs) for i in range(n)]
+            sm = [mean(avg[max(0, i - 19): i + 1]) for i in range(n)]
+            ax.plot(range(1, n + 1), sm, color=POMDP_COLORS[c], lw=1.8, label=POMDP_NAMES[c].replace("Runner ", ""))
+    axes[0].set_ylabel("return per training episode", fontsize=9); axes[1].set_ylabel("bumps into the wall per episode", fontsize=9)
+    for ax in axes:
+        ax.set_xlabel("training episode", fontsize=9); ax.grid(True, axis="y", lw=0.6)
+    axes[1].legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out / f"fig_pomdp{suffix}_learning.png"); plt.close(fig)
+    P["figures"] = [f"fig_pomdp{suffix}_eval.png", f"fig_pomdp{suffix}_routes.png", f"fig_pomdp{suffix}_learning.png"]
+    return P
+
+
 def main(argv):
     logs, out = Path(argv[0]), Path(argv[1])
     out.mkdir(parents=True, exist_ok=True)
@@ -488,6 +690,11 @@ def main(argv):
     if D:
         S["duel"] = D
         S["figures"].append(D["figure"])
+    for tag, (version, suffix) in POMDP_DESIGNS.items():
+        P = pomdp_summary(matches, out, version=version, suffix=suffix)
+        if P:
+            S[tag] = P
+            S["figures"] += P.get("figures", [])
     (out / "summary.json").write_text(json.dumps(S, indent=1, default=str))
     print(f"{S['n_matches']} matches, {S['n_runs_complete']} complete runs of {S['n_runs']}, {S['n_episodes']} episodes, {S['n_steps']} real steps, "
           f"{S['game_hours']:.2f} h, {S['steps_per_sec']:.1f} steps/s; replay {S['replay_checked'] - S['replay_bad']}/{S['replay_checked']}; figures {len(S['figures'])}")

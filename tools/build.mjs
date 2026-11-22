@@ -28,6 +28,8 @@ const targets = [
     ["workshop/night/night_fill.opy", "workshop/compiled/night-school-fill.txt"],
     ["workshop/night/night_pomdp.opy", "workshop/compiled/night-school-pomdp.txt"],
     ["workshop/night/night_pomdp_probe.opy", "workshop/compiled/night-school-pomdp-probe.txt"],
+    ["workshop/night/night_pomdp4.opy", "workshop/compiled/night-school-pomdp4.txt"],
+    ["workshop/night/night_pomdp4_probe.opy", "workshop/compiled/night-school-pomdp4-probe.txt"],
     ["workshop/night/night_duel_test.opy", "workshop/compiled/night-school-duel-test.txt"],
 ];
 

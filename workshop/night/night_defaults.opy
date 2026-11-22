@@ -55,6 +55,8 @@
 #!define PIN_BLOCKER false
 # How many rows (counted from the edge) a random blocker may stand in (night_pomdp.opy).
 #!define POMDP_ROWS 4
+# The goal square (11 = the far end of the edge row; the short-strip build uses 5).
+#!define GOAL_CELL_N 11
 # Hidden-wall build: the blocked square is enforced by the script, one wall per bot, instead of an enemy body.
 #!define VWALL false
 # Scripted check only: the row every wall stands in (-1 = drawn at random).

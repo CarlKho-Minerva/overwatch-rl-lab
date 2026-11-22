@@ -1,0 +1,34 @@
+{
+ "models": {
+  "gemma4:12b": {
+   "model": "gemma4:12b",
+   "episodes": 3,
+   "conditions": {
+    "last": {
+     "name": "Latest message only",
+     "cases": 3,
+     "right": 0,
+     "wrong": 0,
+     "no_final": 3,
+     "premature": 0,
+     "right_but_premature": 0,
+     "turns_mean": 8.0,
+     "fewest_mean": 2.3333333333333335,
+     "extra_turns_mean": null,
+     "repeat_steps_mean": 6.0,
+     "belief_err_wish": 0.34375,
+     "belief_err_flex": 0.1875,
+     "belief_err_wish_after_lookup": 0.75,
+     "belief_err_flex_after_customer": 0.5,
+     "first_step": {
+      "ask_customer": 3
+     },
+     "right_cant_fly": 0,
+     "cases_cant_fly": 3,
+     "right_add_something": 0,
+     "cases_add_something": 0
+    }
+   }
+  }
+ }
+}

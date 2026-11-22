@@ -163,7 +163,7 @@ The runner's true situation is (her square, which square is shut). The three con
 
 The memory is the smallest belief state: it is built from what happened to her, not from being told.
 
-### Named before the first run (2026-11-22, 07:10 Pacific, before any block had finished)
+### Named before the first run (2026-11-22, committed 07:06 Pacific, before any block had finished)
 
 - A run is counted if it completed its 20 test crossings (learning and exploring off, a fresh random wall each).
 - Measures, per run: the share of the 20 test crossings that reach the goal, and the mean steps per test crossing
@@ -188,3 +188,32 @@ expected, and every table entry recomputed.
 The first version of the check (9401) failed once in 438 bumps: a bot arrived a little long on the square before the
 wall and drifted over the line into the shut square while standing at it. The script now puts a bot that ends a step
 inside the shut square back where the step began. `rllab.night.wall_check` runs on every hidden-wall log.
+
+### A simulation run while the first block was still playing (2026-11-22, 07:20 Pacific)
+
+`analysis/sim/hidden_wall_sim.js` plays the same experiment by the grid's rules alone (no game, no slips), 300 runs
+per condition. It was written after the measures above were committed and before any block had finished. For the
+long strip it predicts the opposite of what was expected above: after 200 training episodes BLIND reaches the goal
+in 91.9% of test crossings, REMEMBERS in 74.0%, SEES in 66.6%. The reason is in the routes: with a wall in only two
+of the four rows, a blind runner can always get through by the third row, and she has the fewest states to learn.
+The richer states cost episodes. By 400 episodes the three are level on reaching the goal (96 to 99%) and the
+order in steps is the expected one (REMEMBERS 15.0, SEES 15.7, BLIND 16.8). The long-strip runs in the game are
+reported as they come out, against the measures named above.
+
+### The short strip: a wall with no way round (named before its first run, 2026-11-22, 07:22 Pacific)
+
+`workshop/compiled/night-school-pomdp4.txt` (source `night_pomdp4.opy`, version 1103). Same three runners, same
+learning rule and rewards, two changes chosen from the simulation: the wall can stand in any of the four rows
+(column 3), and the goal is at column 5 so that 200 episodes are enough to learn the task. Now there is no row a
+runner can always get through. A runner told only her square needs two different moves on the same square,
+depending on something she is not given.
+
+- Same counting rule, same two measures, same two planned comparisons (REMEMBERS against BLIND, SEES against
+  REMEMBERS) as above. Three blocks planned: thirty runs, ten per condition.
+- Predicted by the simulation (300 runs each, 200 training episodes): test crossings reaching the goal BLIND 46.6%,
+  REMEMBERS 97.5%, SEES 99.8%; steps per test crossing 24.5, 7.2, 6.0. More training does not help BLIND in the
+  simulation (48.0% after 1,000 episodes).
+- The game differs from the simulation in having real movement (slips, about 0.2 per 1,000 steps on the first night)
+  and real time limits. If the game disagrees with the simulation by more than the intervals allow, that is reported.
+- Scripted check: `night-school-pomdp4-probe.txt` (version 9403), the same idea as 9402 on the short strip: a 10-step
+  walk with three bumps, wall forced into the edge row.
