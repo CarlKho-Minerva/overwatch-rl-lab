@@ -217,3 +217,16 @@ depending on something she is not given.
   and real time limits. If the game disagrees with the simulation by more than the intervals allow, that is reported.
 - Scripted check: `night-school-pomdp4-probe.txt` (version 9403), the same idea as 9402 on the short strip: a 10-step
   walk with three bumps, wall forced into the edge row.
+  In the game on 2026-11-22 at 07:37, before the first short-strip block: 2,230 steps, 669 bumps, 223 episodes, all as
+  expected (10 steps, return 40, three bumps), every table entry recomputed.
+
+## The same task on a language model
+
+`llm/hidden_order.py` moves the three runners onto a local model served by Ollama: a customer wants one of four things,
+the ticket is basic or flex, the first message fits two of the four wishes, and the agent can ask, look the booking up,
+or take a final step that cannot be undone. Four conditions change only what the model is shown each turn (the latest
+message; the latest message and its own notes; the whole transcript; the transcript and the hidden facts). The customer
+is scripted, so the exact belief after every message is known, and before each step a second call asks the model for
+its own. `python llm/hidden_order.py --selftest` checks the world's rules with scripted agents and no model.
+`llm/summarise.py` writes `data/llm/summary.json`; `llm/live.py` serves a page where a person plays the customer.
+Results and what they do not show: `course/lesson-11-partial-observability.md`.

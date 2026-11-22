@@ -18,6 +18,8 @@ says which comparisons were planned before the runs and which were not.
 
 5 of 10 lectures are written so far.
 
+The finale: [lesson 11, the wall she cannot see](lesson-11-partial-observability.md). Partial observability on the island, by simulation, and on a local language model.
+
 How to use it: read one page, answer its "Guess first" questions before opening them, then come back a day later and
 do the questions of an earlier lecture. Mixing lectures is harder than finishing one at a time and is remembered better.
 

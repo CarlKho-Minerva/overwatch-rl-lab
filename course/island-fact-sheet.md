@@ -75,27 +75,27 @@ Settings were fixed before any run and not tuned.
 
 | Comparison | Which | Mean A | Mean B | Difference | 95% interval | p | Runs A/B |
 |---|---|---|---|---|---|---|---|
-| sarsa_vs_q_falls | SARSA vs Q-learning | 16.35 | 26.48 | -10.14 | -14.18 to -5.83 | 0.0000 | 16/11 |
-| sarsa_vs_q_edge | SARSA vs Q-learning | 3.88 | 2.07 | 1.82 | 1.38 to 2.23 | 0.0000 | 16/11 |
+| sarsa_vs_q_falls | SARSA vs Q-learning | 16.35 | 26.48 | -10.14 | -14.18 to -5.83 | under 0.001 | 16/11 |
+| sarsa_vs_q_edge | SARSA vs Q-learning | 3.88 | 2.07 | 1.82 | 1.38 to 2.23 | under 0.001 | 16/11 |
 | sarsa_vs_q_return | SARSA vs Q-learning | 22.34 | 7.48 | 14.86 | 5.43 to 23.42 | 0.0035 | 16/11 |
 | dyna_vs_q_falls | Dyna-Q vs Q-learning | 24.37 | 26.48 | -2.11 | -9.06 to 4.49 | 0.5681 | 9/11 |
 | dyna_vs_q_return | Dyna-Q vs Q-learning | 15.07 | 7.48 | 7.59 | -3.19 to 18.58 | 0.2202 | 9/11 |
 | fading_vs_q_falls | Q + fading exploration vs Q-learning | 27.93 | 26.48 | 1.44 | -3.25 to 6.17 | 0.6111 | 9/11 |
-| optimism_vs_q_falls | Q + optimism vs Q-learning | 7.20 | 26.48 | -19.28 | -23.28 to -15.11 | 0.0000 | 10/11 |
-| bonus_vs_q_falls | Q + count bonus vs Q-learning | 7.09 | 26.48 | -19.40 | -23.37 to -15.22 | 0.0000 | 10/11 |
-| mc_vs_sarsa_return | Monte Carlo vs SARSA | -102.21 | 22.34 | -124.55 | -128.57 to -119.83 | 0.0000 | 10/16 |
-| pg_vs_q_return | Policy gradient vs Q-learning | -101.60 | 7.48 | -109.08 | -117.07 to -101.30 | 0.0000 | 15/11 |
-| lambda_vs_sarsa_falls | SARSA(lambda) vs SARSA | 11.84 | 16.35 | -4.51 | -6.21 to -2.78 | 0.0000 | 14/16 |
-| ac_vs_pg_return | Actor-critic vs Policy gradient | 34.75 | -101.60 | 136.35 | 135.66 to 137.17 | 0.0000 | 17/15 |
-| ac_vs_q_return | Actor-critic vs Q-learning | 34.75 | 7.48 | 27.27 | 18.72 to 34.83 | 0.0000 | 17/11 |
+| optimism_vs_q_falls | Q + optimism vs Q-learning | 7.20 | 26.48 | -19.28 | -23.28 to -15.11 | under 0.001 | 10/11 |
+| bonus_vs_q_falls | Q + count bonus vs Q-learning | 7.09 | 26.48 | -19.40 | -23.37 to -15.22 | under 0.001 | 10/11 |
+| mc_vs_sarsa_return | Monte Carlo vs SARSA | -102.21 | 22.34 | -124.55 | -128.57 to -119.83 | under 0.001 | 10/16 |
+| pg_vs_q_return | Policy gradient vs Q-learning | -101.60 | 7.48 | -109.08 | -117.07 to -101.30 | under 0.001 | 15/11 |
+| lambda_vs_sarsa_falls | SARSA(lambda) vs SARSA | 11.84 | 16.35 | -4.51 | -6.21 to -2.78 | under 0.001 | 14/16 |
+| ac_vs_pg_return | Actor-critic vs Policy gradient | 34.75 | -101.60 | 136.35 | 135.66 to 137.17 | under 0.001 | 17/15 |
+| ac_vs_q_return | Actor-critic vs Q-learning | 34.75 | 7.48 | 27.27 | 18.72 to 34.83 | under 0.001 | 17/11 |
 | mcopt_vs_mc_return | Monte Carlo + optimism vs Monte Carlo | -101.93 | -102.21 | 0.27 | -0.51 to 1.14 | 0.5671 | 9/10 |
 | coarse_vs_q_falls | Q, 16 coarse states vs Q-learning | 16.33 | 26.48 | -10.15 | -15.99 to -4.13 | 0.0074 | 10/11 |
-| rowonly_vs_q_falls | Q, row only vs Q-learning | 42.45 | 26.48 | 15.97 | 10.62 to 21.32 | 0.0000 | 10/11 |
-| rowonly_vs_q_return | Q, row only vs Q-learning | -76.00 | 7.48 | -83.48 | -107.47 to -60.97 | 0.0000 | 10/11 |
-| coarse_vs_rowonly_falls | Q, 16 coarse states vs Q, row only | 16.33 | 42.45 | -26.12 | -31.51 to -20.28 | 0.0000 | 10/10 |
+| rowonly_vs_q_falls | Q, row only vs Q-learning | 42.45 | 26.48 | 15.97 | 10.62 to 21.32 | under 0.001 | 10/11 |
+| rowonly_vs_q_return | Q, row only vs Q-learning | -76.00 | 7.48 | -83.48 | -107.47 to -60.97 | under 0.001 | 10/11 |
+| coarse_vs_rowonly_falls | Q, 16 coarse states vs Q, row only | 16.33 | 42.45 | -26.12 | -31.51 to -20.28 | under 0.001 | 10/10 |
 | dyna_vs_q_first | Dyna-Q vs Q-learning | -31.66 | -57.64 | 25.98 | 15.53 to 36.25 | 0.0007 | 9/11 |
 | dyna_vs_q_steps | Dyna-Q vs Q-learning | 1,942.33 | 2,793.82 | -851.48 | -1,019.15 to -673.20 | 0.0001 | 9/11 |
-| ac_vs_q_falls | Actor-critic vs Q-learning | 7.11 | 26.48 | -19.38 | -23.31 to -15.09 | 0.0000 | 17/11 |
+| ac_vs_q_falls | Actor-critic vs Q-learning | 7.11 | 26.48 | -19.38 | -23.31 to -15.09 | under 0.001 | 17/11 |
 | esarsa_vs_q_falls | Expected SARSA vs Q-learning | 13.19 | 26.48 | -13.30 | -17.50 to -8.96 | 0.0001 | 9/11 |
 
 Only SARSA against Q-learning (falls) was planned before the night. The rest are first looks, uncorrected for the number of comparisons.
