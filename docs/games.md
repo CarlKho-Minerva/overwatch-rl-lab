@@ -42,7 +42,7 @@ RLG,T,<game>,<name>,<expected>,<got>,<ok>
 RLG,Q,<game>,<question id>
 RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
 RLG,E,<game>,<event name>,<values...>
-RLG,L,<game>,<seconds sampled>,<server load, mean over the game>,<highest peak over the game>
+RLG,L,<game>,<seconds sampled>,<server load, mean>,<highest peak in play>,<highest peak in the first 10 seconds>
 RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
 ```
 
@@ -67,6 +67,11 @@ RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<s
   debrief, not the busy middle. The core now reads the average and the peak once a second for the whole game and
   writes one `RLG,L` line at the end. The overnight lab overloaded the server by formatting long strings inside HUD
   calls every frame; the games build their strings when something changes.
+- **A match's first seconds read over the load line whatever the script does.** Restarting a custom game reads
+  128 in the first ten seconds with a near-empty mode (game 0), and 128 to 165 with any of the course games. That
+  burst is the match starting. The core keeps it apart from the load during play (the fifth field of `RLG,L`) and
+  starts each game's own setup at 4 seconds, after it. The stand-in runs had missed the burst only because they
+  began sampling a second later than the human build.
 - **A button that is held when a question opens answers it.** The answer rules fire the moment their conditions are
   true, and a Tracer player holds fire out of habit. The core now waits for all three answer buttons to be let go
   before it shows a question.

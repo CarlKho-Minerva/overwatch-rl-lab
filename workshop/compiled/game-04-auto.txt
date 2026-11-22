@@ -57,43 +57,44 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: qTxtTop
-        28: qTxtLow
-        29: qShown
-        30: ringPos
-        31: ringName
-        32: vMc
-        33: vTd
-        34: rB
-        35: rO
-        36: tB
-        37: tO
-        38: legState
-        39: mud
-        40: legT
-        41: ret
-        42: counts
-        43: picks
-        44: walk
-        45: leg
-        46: nLegs
-        47: fullIdx
-        48: t0
-        49: tLeg
-        50: old
-        51: tgt
-        52: gSum
-        53: ii
-        54: histB
-        55: histO
-        56: swingIn
-        57: swingOut
-        58: swingB
-        59: swingO
-        60: board
-        61: status
-        62: deb
-        63: showDeb
+        27: loadPeakStart
+        28: qTxtTop
+        29: qTxtLow
+        30: qShown
+        31: ringPos
+        32: ringName
+        33: vMc
+        34: vTd
+        35: rB
+        36: rO
+        37: tB
+        38: tO
+        39: legState
+        40: mud
+        41: legT
+        42: ret
+        43: counts
+        44: picks
+        45: walk
+        46: leg
+        47: nLegs
+        48: fullIdx
+        49: t0
+        50: tLeg
+        51: old
+        52: tgt
+        53: gSum
+        54: ii
+        55: histB
+        56: histO
+        57: swingIn
+        58: swingOut
+        59: swingB
+        60: swingO
+        61: board
+        62: status
+        63: deb
+        64: showDeb
     player:
         0: fellCount
         1: fell
@@ -178,11 +179,15 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
-        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
-        If(And(Global.ready, Not(Global.gameOver)));
-            Modify Global Variable(loadSamples, Add, 1);
-            Modify Global Variable(loadSumRun, Add, Server Load Average);
-            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        "The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That\nburst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s)."
+        If(Not(Global.gameOver));
+            If(Compare(Total Time Elapsed, <, 10));
+                Modify Global Variable(loadPeakStart, Max, Server Load Peak);
+            Else If(Global.ready);
+                Modify Global Variable(loadSamples, Add, 1);
+                Modify Global Variable(loadSumRun, Add, Server Load Average);
+                Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+            End;
         End;
         Loop;
     }
@@ -224,7 +229,8 @@ rule ("Core: set up the learner") {
     actions {
         Disable Inspector Recording;
         Pause Match Time;
-        Wait(1.5, Ignore Condition);
+        "2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on\ntop of the engine's own start-of-match work and the server load read 125 to 139 for a moment."
+        Wait(4, Ignore Condition);
         Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
         "The automatic check: a bot plays the learner's part. The host stands aside, out of the way and unseen."
         Create Dummy Bot(Hero(Tracer), Team 1, -1, Vector(-14, 0, -14), Left);
@@ -401,7 +407,7 @@ rule ("Core: end the game and write the closing line") {
     actions {
         Set Global Variable(gameOver, True);
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,4,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,4,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,4,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

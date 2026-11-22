@@ -57,70 +57,71 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: qTxtTop
-        28: qTxtLow
-        29: qShown
-        30: odds
-        31: padPos
-        32: label
-        33: payTab
-        34: coinTab
-        35: lnTab
-        36: gI
-        37: gU
-        38: gV
-        39: setupDone
-        40: myN
-        41: myS
-        42: myT
-        43: myTot
-        44: myReg
-        45: myUb
-        46: wantOpen
-        47: canOpen
-        48: roundEnd
-        49: roundNo
-        50: autoBox
-        51: oBox
-        52: oK
-        53: oPay
-        54: sN
-        55: sS
-        56: sTot
-        57: sReg
-        58: sA
-        59: sPay
-        60: sK
-        61: sTn
-        62: sX
-        63: sV
-        64: armPick
-        65: rpK
-        66: rpR
-        67: rpT
-        68: rpA
-        69: rpN
-        70: rpS
-        71: rpV
-        72: rpX
-        73: rpI
-        74: rpC
-        75: rpSum
-        76: rpReg
-        77: replayDone
-        78: replayT0
-        79: beamsOn
-        80: beamEnd
-        81: padTxt
-        82: ubTxt
-        83: hudMine
-        84: hudStrat
-        85: hudReg
-        86: hudGreedy
-        87: hudRp
-        88: showRp
-        89: showEnd
-        90: endLine
+        27: loadPeakStart
+        28: qTxtTop
+        29: qTxtLow
+        30: qShown
+        31: odds
+        32: padPos
+        33: label
+        34: payTab
+        35: coinTab
+        36: lnTab
+        37: gI
+        38: gU
+        39: gV
+        40: setupDone
+        41: myN
+        42: myS
+        43: myT
+        44: myTot
+        45: myReg
+        46: myUb
+        47: wantOpen
+        48: canOpen
+        49: roundEnd
+        50: roundNo
+        51: autoBox
+        52: oBox
+        53: oK
+        54: oPay
+        55: sN
+        56: sS
+        57: sTot
+        58: sReg
+        59: sA
+        60: sPay
+        61: sK
+        62: sTn
+        63: sX
+        64: sV
+        65: armPick
+        66: rpK
+        67: rpR
+        68: rpT
+        69: rpA
+        70: rpN
+        71: rpS
+        72: rpV
+        73: rpX
+        74: rpI
+        75: rpC
+        76: rpSum
+        77: rpReg
+        78: replayDone
+        79: replayT0
+        80: beamsOn
+        81: beamEnd
+        82: padTxt
+        83: ubTxt
+        84: hudMine
+        85: hudStrat
+        86: hudReg
+        87: hudGreedy
+        88: hudRp
+        89: showRp
+        90: showEnd
+        91: endLine
     player:
         0: fellCount
         1: fell
@@ -221,11 +222,15 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
-        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
-        If(And(Global.ready, Not(Global.gameOver)));
-            Modify Global Variable(loadSamples, Add, 1);
-            Modify Global Variable(loadSumRun, Add, Server Load Average);
-            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        "The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That\nburst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s)."
+        If(Not(Global.gameOver));
+            If(Compare(Total Time Elapsed, <, 10));
+                Modify Global Variable(loadPeakStart, Max, Server Load Peak);
+            Else If(Global.ready);
+                Modify Global Variable(loadSamples, Add, 1);
+                Modify Global Variable(loadSumRun, Add, Server Load Average);
+                Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+            End;
         End;
         Loop;
     }
@@ -267,7 +272,8 @@ rule ("Core: set up the learner") {
     actions {
         Disable Inspector Recording;
         Pause Match Time;
-        Wait(1.5, Ignore Condition);
+        "2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on\ntop of the engine's own start-of-match work and the server load read 125 to 139 for a moment."
+        Wait(4, Ignore Condition);
         Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
         Set Global Variable(learner, Host Player);
         Teleport(Global.learner, Vector(0, 0, -8));
@@ -438,7 +444,7 @@ rule ("Core: end the game and write the closing line") {
     actions {
         Set Global Variable(gameOver, True);
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,9,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,9,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,9,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

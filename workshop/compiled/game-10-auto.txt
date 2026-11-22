@@ -57,66 +57,67 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: qTxtTop
-        28: qTxtLow
-        29: qShown
-        30: payTab
-        31: leftPos
-        32: rightPos
-        33: widowPos
-        34: widow
-        35: spawnTry
-        36: phase
-        37: peekN
-        38: phasePeeks
-        39: pick
-        40: pickOpen
-        41: pickTxt
-        42: autoPicks
-        43: nL
-        44: nN
-        45: aL
-        46: aA
-        47: herBR
-        48: herQ
-        49: drawU
-        50: aim
-        51: pay
-        52: score
-        53: ev
-        54: evSum
-        55: phasePay
-        56: dieRoll
-        57: dieSays
-        58: followed
-        59: tmo
-        60: beam
-        61: barHer
-        62: barHim
-        63: barHerTxt
-        64: barHimTxt
-        65: scoreTxt
-        66: infoTxt
-        67: mA
-        68: mB
-        69: mC
-        70: mD
-        71: mDen
-        72: gVal
-        73: gP
-        74: gQ
-        75: spT
-        76: spNL
-        77: spN
-        78: spML
-        79: spM
-        80: spTr
-        81: spWi
-        82: spLast
-        83: spFlips
-        84: spPay
-        85: spSnap
-        86: spI
+        27: loadPeakStart
+        28: qTxtTop
+        29: qTxtLow
+        30: qShown
+        31: payTab
+        32: leftPos
+        33: rightPos
+        34: widowPos
+        35: widow
+        36: spawnTry
+        37: phase
+        38: peekN
+        39: phasePeeks
+        40: pick
+        41: pickOpen
+        42: pickTxt
+        43: autoPicks
+        44: nL
+        45: nN
+        46: aL
+        47: aA
+        48: herBR
+        49: herQ
+        50: drawU
+        51: aim
+        52: pay
+        53: score
+        54: ev
+        55: evSum
+        56: phasePay
+        57: dieRoll
+        58: dieSays
+        59: followed
+        60: tmo
+        61: beam
+        62: barHer
+        63: barHim
+        64: barHerTxt
+        65: barHimTxt
+        66: scoreTxt
+        67: infoTxt
+        68: mA
+        69: mB
+        70: mC
+        71: mD
+        72: mDen
+        73: gVal
+        74: gP
+        75: gQ
+        76: spT
+        77: spNL
+        78: spN
+        79: spML
+        80: spM
+        81: spTr
+        82: spWi
+        83: spLast
+        84: spFlips
+        85: spPay
+        86: spSnap
+        87: spI
     player:
         0: fellCount
         1: fell
@@ -197,11 +198,15 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
-        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
-        If(And(Global.ready, Not(Global.gameOver)));
-            Modify Global Variable(loadSamples, Add, 1);
-            Modify Global Variable(loadSumRun, Add, Server Load Average);
-            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        "The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That\nburst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s)."
+        If(Not(Global.gameOver));
+            If(Compare(Total Time Elapsed, <, 10));
+                Modify Global Variable(loadPeakStart, Max, Server Load Peak);
+            Else If(Global.ready);
+                Modify Global Variable(loadSamples, Add, 1);
+                Modify Global Variable(loadSumRun, Add, Server Load Average);
+                Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+            End;
         End;
         Loop;
     }
@@ -243,7 +248,8 @@ rule ("Core: set up the learner") {
     actions {
         Disable Inspector Recording;
         Pause Match Time;
-        Wait(1.5, Ignore Condition);
+        "2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on\ntop of the engine's own start-of-match work and the server load read 125 to 139 for a moment."
+        Wait(4, Ignore Condition);
         Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
         "The automatic check: a bot plays the learner's part. The host stands aside, out of the way and unseen."
         Create Dummy Bot(Hero(Tracer), Team 1, -1, Vector(0, 0, -12), Left);
@@ -420,7 +426,7 @@ rule ("Core: end the game and write the closing line") {
     actions {
         Set Global Variable(gameOver, True);
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,10,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,10,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,10,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

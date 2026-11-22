@@ -57,76 +57,77 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: qTxtTop
-        28: qTxtLow
-        29: qShown
-        30: padPos
-        31: dirv
-        32: goal
-        33: pits
-        34: V
-        35: Vnew
-        36: Vsave
-        37: chg
-        38: newPos
-        39: lastCh
-        40: arrow
-        41: arrowOld
-        42: flip
-        43: qs
-        44: qBest
-        45: sweepN
-        46: nChg
-        47: maxChg
-        48: looks
-        49: looks0
-        50: keepOld
-        51: wrongN
-        52: showArrows
-        53: runId
-        54: nSweeps
-        55: dStart
-        56: dMax
-        57: vStart
-        58: walkSim
-        59: wantF
-        60: gotF
-        61: wantR
-        62: markPit
-        63: gotR
-        64: walking
-        65: walkRet
-        66: walkSteps
-        67: walkEnd
-        68: walkRestarts
-        69: walkT0
-        70: lastMove
-        71: curP
-        72: prevP
-        73: pitFrom
-        74: pitTo
-        75: pitOk
-        76: pitTries
-        77: ctrl
-        78: boardTxt
-        79: boardTxt2
-        80: padTxt
-        81: showDebrief
-        82: deb
-        83: npP
-        84: npA
-        85: npS
-        86: npR
-        87: npRow
-        88: npCol
-        89: lp
-        90: la
-        91: wp
-        92: mp
-        93: sp
-        94: dp
-        95: rp
-        96: wk
+        27: loadPeakStart
+        28: qTxtTop
+        29: qTxtLow
+        30: qShown
+        31: padPos
+        32: dirv
+        33: goal
+        34: pits
+        35: V
+        36: Vnew
+        37: Vsave
+        38: chg
+        39: newPos
+        40: lastCh
+        41: arrow
+        42: arrowOld
+        43: flip
+        44: qs
+        45: qBest
+        46: sweepN
+        47: nChg
+        48: maxChg
+        49: looks
+        50: looks0
+        51: keepOld
+        52: wrongN
+        53: showArrows
+        54: runId
+        55: nSweeps
+        56: dStart
+        57: dMax
+        58: vStart
+        59: walkSim
+        60: wantF
+        61: gotF
+        62: wantR
+        63: markPit
+        64: gotR
+        65: walking
+        66: walkRet
+        67: walkSteps
+        68: walkEnd
+        69: walkRestarts
+        70: walkT0
+        71: lastMove
+        72: curP
+        73: prevP
+        74: pitFrom
+        75: pitTo
+        76: pitOk
+        77: pitTries
+        78: ctrl
+        79: boardTxt
+        80: boardTxt2
+        81: padTxt
+        82: showDebrief
+        83: deb
+        84: npP
+        85: npA
+        86: npS
+        87: npR
+        88: npRow
+        89: npCol
+        90: lp
+        91: la
+        92: wp
+        93: mp
+        94: sp
+        95: dp
+        96: rp
+        97: wk
     player:
         0: fellCount
         1: fell
@@ -225,11 +226,15 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
-        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
-        If(And(Global.ready, Not(Global.gameOver)));
-            Modify Global Variable(loadSamples, Add, 1);
-            Modify Global Variable(loadSumRun, Add, Server Load Average);
-            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        "The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That\nburst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s)."
+        If(Not(Global.gameOver));
+            If(Compare(Total Time Elapsed, <, 10));
+                Modify Global Variable(loadPeakStart, Max, Server Load Peak);
+            Else If(Global.ready);
+                Modify Global Variable(loadSamples, Add, 1);
+                Modify Global Variable(loadSumRun, Add, Server Load Average);
+                Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+            End;
         End;
         Loop;
     }
@@ -271,7 +276,8 @@ rule ("Core: set up the learner") {
     actions {
         Disable Inspector Recording;
         Pause Match Time;
-        Wait(1.5, Ignore Condition);
+        "2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on\ntop of the engine's own start-of-match work and the server load read 125 to 139 for a moment."
+        Wait(4, Ignore Condition);
         Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
         Set Global Variable(learner, Host Player);
         Teleport(Global.learner, Vector(-6, 0, -14));
@@ -442,7 +448,7 @@ rule ("Core: end the game and write the closing line") {
     actions {
         Set Global Variable(gameOver, True);
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,3,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,3,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,3,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

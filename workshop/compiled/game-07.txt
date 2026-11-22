@@ -57,51 +57,52 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: qTxtTop
-        28: qTxtLow
-        29: qShown
-        30: heroName
-        31: botPos
-        32: youPos
-        33: autoPicks
-        34: botH
-        35: botP
-        36: smMax
-        37: smE
-        38: smS
-        39: base
-        40: alpha
-        41: adv
-        42: dPick
-        43: li
-        44: bPick
-        45: bR
-        46: drawK
-        47: drawU
-        48: youPick
-        49: habit
-        50: pickOpen
-        51: timedOut
-        52: rnd
-        53: phase
-        54: roundsLeft
-        55: pBefore
-        56: cntB
-        57: nB
-        58: youF
-        59: exYou
-        60: exBot
-        61: exF
-        62: winsYou
-        63: winsBot
-        64: draws
-        65: botFx
-        66: youFx
-        67: worldTxt
-        68: barTxt
-        69: info
-        70: nDummies
-        71: holdT
+        27: loadPeakStart
+        28: qTxtTop
+        29: qTxtLow
+        30: qShown
+        31: heroName
+        32: botPos
+        33: youPos
+        34: autoPicks
+        35: botH
+        36: botP
+        37: smMax
+        38: smE
+        39: smS
+        40: base
+        41: alpha
+        42: adv
+        43: dPick
+        44: li
+        45: bPick
+        46: bR
+        47: drawK
+        48: drawU
+        49: youPick
+        50: habit
+        51: pickOpen
+        52: timedOut
+        53: rnd
+        54: phase
+        55: roundsLeft
+        56: pBefore
+        57: cntB
+        58: nB
+        59: youF
+        60: exYou
+        61: exBot
+        62: exF
+        63: winsYou
+        64: winsBot
+        65: draws
+        66: botFx
+        67: youFx
+        68: worldTxt
+        69: barTxt
+        70: info
+        71: nDummies
+        72: holdT
     player:
         0: fellCount
         1: fell
@@ -186,11 +187,15 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
-        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
-        If(And(Global.ready, Not(Global.gameOver)));
-            Modify Global Variable(loadSamples, Add, 1);
-            Modify Global Variable(loadSumRun, Add, Server Load Average);
-            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        "The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That\nburst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s)."
+        If(Not(Global.gameOver));
+            If(Compare(Total Time Elapsed, <, 10));
+                Modify Global Variable(loadPeakStart, Max, Server Load Peak);
+            Else If(Global.ready);
+                Modify Global Variable(loadSamples, Add, 1);
+                Modify Global Variable(loadSumRun, Add, Server Load Average);
+                Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+            End;
         End;
         Loop;
     }
@@ -232,7 +237,8 @@ rule ("Core: set up the learner") {
     actions {
         Disable Inspector Recording;
         Pause Match Time;
-        Wait(1.5, Ignore Condition);
+        "2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on\ntop of the engine's own start-of-match work and the server load read 125 to 139 for a moment."
+        Wait(4, Ignore Condition);
         Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
         Set Global Variable(learner, Host Player);
         Teleport(Global.learner, Vector(0, 0, -8));
@@ -403,7 +409,7 @@ rule ("Core: end the game and write the closing line") {
     actions {
         Set Global Variable(gameOver, True);
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,7,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,7,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,7,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

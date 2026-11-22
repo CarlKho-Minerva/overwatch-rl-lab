@@ -57,71 +57,72 @@ variables {
         24: loadSamples
         25: loadSumRun
         26: loadPeakRun
-        27: qTxtTop
-        28: qTxtLow
-        29: qShown
-        30: evV
-        31: evLane
-        32: evEps
-        33: evStep
-        34: evGoal
-        35: evFall
-        36: evOut
-        37: evSweeps
-        38: evSweep
-        39: evK
-        40: evD
-        41: evDelta
-        42: evSum
-        43: evP
-        44: evPol
-        45: evR2
-        46: evC2
-        47: evS2
-        48: evX
-        49: vEdge0
-        50: vIn0
-        51: vEdge
-        52: vIn
-        53: fEdge
-        54: fIn
-        55: fQuick
-        56: crossing
-        57: lane
-        58: laneActive
-        59: laneChoice
-        60: laneHead
-        61: boopsOn
-        62: curCell
-        63: seenCell
-        64: newCell
-        65: roll
-        66: mv
-        67: r2
-        68: c2
-        69: stepR
-        70: ret
-        71: steps
-        72: boops
-        73: outcome
-        74: edgeSteps
-        75: tStart
-        76: tgtPos
-        77: realFall
-        78: lucio
-        79: autoLanes
-        80: dirName
-        81: laneName
-        82: outName
-        83: hudRun
-        84: hudRes
-        85: hudModel
-        86: hudModel2
-        87: db1
-        88: db2
-        89: db3
-        90: db4
-        91: fxI
+        27: loadPeakStart
+        28: qTxtTop
+        29: qTxtLow
+        30: qShown
+        31: evV
+        32: evLane
+        33: evEps
+        34: evStep
+        35: evGoal
+        36: evFall
+        37: evOut
+        38: evSweeps
+        39: evSweep
+        40: evK
+        41: evD
+        42: evDelta
+        43: evSum
+        44: evP
+        45: evPol
+        46: evR2
+        47: evC2
+        48: evS2
+        49: evX
+        50: vEdge0
+        51: vIn0
+        52: vEdge
+        53: vIn
+        54: fEdge
+        55: fIn
+        56: fQuick
+        57: crossing
+        58: lane
+        59: laneActive
+        60: laneChoice
+        61: laneHead
+        62: boopsOn
+        63: curCell
+        64: seenCell
+        65: newCell
+        66: roll
+        67: mv
+        68: r2
+        69: c2
+        70: stepR
+        71: ret
+        72: steps
+        73: boops
+        74: outcome
+        75: edgeSteps
+        76: tStart
+        77: tgtPos
+        78: realFall
+        79: lucio
+        80: autoLanes
+        81: dirName
+        82: laneName
+        83: outName
+        84: hudRun
+        85: hudRes
+        86: hudModel
+        87: hudModel2
+        88: db1
+        89: db2
+        90: db3
+        91: db4
+        92: fxI
     player:
         0: fellCount
         1: fell
@@ -200,11 +201,15 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
-        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
-        If(And(Global.ready, Not(Global.gameOver)));
-            Modify Global Variable(loadSamples, Add, 1);
-            Modify Global Variable(loadSumRun, Add, Server Load Average);
-            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        "The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That\nburst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s)."
+        If(Not(Global.gameOver));
+            If(Compare(Total Time Elapsed, <, 10));
+                Modify Global Variable(loadPeakStart, Max, Server Load Peak);
+            Else If(Global.ready);
+                Modify Global Variable(loadSamples, Add, 1);
+                Modify Global Variable(loadSumRun, Add, Server Load Average);
+                Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+            End;
         End;
         Loop;
     }
@@ -246,7 +251,8 @@ rule ("Core: set up the learner") {
     actions {
         Disable Inspector Recording;
         Pause Match Time;
-        Wait(1.5, Ignore Condition);
+        "2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on\ntop of the engine's own start-of-match work and the server load read 125 to 139 for a moment."
+        Wait(4, Ignore Condition);
         Wait Until(And(Has Spawned(Host Player), Is Alive(Host Player)), 60);
         Set Global Variable(learner, Host Player);
         Teleport(Global.learner, Vector(-11, 0, -18.5));
@@ -417,7 +423,7 @@ rule ("Core: end the game and write the closing line") {
     actions {
         Set Global Variable(gameOver, True);
         "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
-        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,5,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,5,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Custom String("{0},{1}", Round To Integer(Global.loadPeakRun, To Nearest), Round To Integer(Global.loadPeakStart, To Nearest))));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,5,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

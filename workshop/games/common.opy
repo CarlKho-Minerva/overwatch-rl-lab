@@ -30,7 +30,7 @@ Log lines (docs/games.md):
     RLG,Q,<game>,<question id>                                   (the question is on screen)
     RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>,<seconds he took>
     RLG,E,<game>,<event name>,<numbers...>          (each game's own events)
-    RLG,L,<game>,<seconds sampled>,<server load: mean over the whole game>,<highest peak over the whole game>
+    RLG,L,<game>,<seconds sampled>,<server load: mean>,<highest peak in play>,<highest peak in the first 10 seconds>
     RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
 */
 
@@ -68,6 +68,7 @@ globalvar selfBad = 0
 globalvar loadSamples = 0
 globalvar loadSumRun = 0
 globalvar loadPeakRun = 0
+globalvar loadPeakStart = 0
 globalvar qTxtTop = null
 globalvar qTxtLow = null
 globalvar qShown = 0
@@ -99,10 +100,15 @@ rule "Core: write the queued log lines in one frame, once a second":
         logQ = logQ.slice(flushN, 1000)
     # 2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and
     # kept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle).
-    if ready and not gameOver:
-        loadSamples += 1
-        loadSumRun += getAverageServerLoad()
-        loadPeakRun = max(loadPeakRun, getPeakServerLoad())
+    # The first seconds of a match are their own thing: the engine starts the map and every rule sets up at once. That
+    # burst is kept apart from the load during play (the peak reading looks back two seconds, and each game's own setup starts at about 5 s).
+    if not gameOver:
+        if NOW < 10:
+            loadPeakStart = max(loadPeakStart, getPeakServerLoad())
+        elif ready:
+            loadSamples += 1
+            loadSumRun += getAverageServerLoad()
+            loadPeakRun = max(loadPeakRun, getPeakServerLoad())
     loop()
 
 rule "Core: every human player gets the game's hero":
@@ -119,7 +125,9 @@ rule "Core: hide the match clock, which sits under the question line":
 rule "Core: set up the learner":
     disableInspector()
     pauseMatchTime()
-    wait(1.5)
+    # 2026-11-22: 4 seconds, not 1.5. Every game starts its own setup when `ready` turns true; at 1.5 s that landed on
+    # top of the engine's own start-of-match work and the server load read 125 to 139 for a moment.
+    wait(4)
     waitUntil(hostPlayer.hasSpawned() and hostPlayer.isAlive(), 60)
     if AUTOPLAY:
         # The automatic check: a bot plays the learner's part. The host stands aside, out of the way and unseen.
@@ -248,7 +256,7 @@ def finish():
     gameOver = true
     # Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds
     # sampled, the mean over the whole game, the highest peak. Written by both builds.
-    LOG("RLG,L,{},{},{},{}".format(GAME_ID, loadSamples, round(loadSumRun / max(loadSamples, 1)), round(loadPeakRun)))
+    LOG("RLG,L,{},{},{},{},{}".format(GAME_ID, loadSamples, round(loadSumRun / max(loadSamples, 1)), round(loadPeakRun), round(loadPeakStart)))
     LOG("RLG,X,{},{},{},{},{},{}".format(GAME_ID, NOW, predRight, predTotal, selfOk, selfBad))
 
 rule "Core: the screen":
