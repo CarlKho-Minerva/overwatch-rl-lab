@@ -2,29 +2,54 @@
  "models": {
   "gemma4:12b": {
    "model": "gemma4:12b",
-   "episodes": 3,
+   "episodes": 28,
    "conditions": {
     "last": {
      "name": "Latest message only",
-     "cases": 3,
-     "right": 0,
+     "cases": 24,
+     "right": 6,
      "wrong": 0,
-     "no_final": 3,
+     "no_final": 18,
      "premature": 0,
      "right_but_premature": 0,
-     "turns_mean": 8.0,
-     "fewest_mean": 2.3333333333333335,
-     "extra_turns_mean": null,
-     "repeat_steps_mean": 6.0,
-     "belief_err_wish": 0.34375,
-     "belief_err_flex": 0.1875,
-     "belief_err_wish_after_lookup": 0.75,
+     "turns_mean": 6.5,
+     "fewest_mean": 2.25,
+     "extra_turns_mean": 0.0,
+     "repeat_steps_mean": 4.5,
+     "belief_err_wish": 0.32371794871794873,
+     "belief_err_flex": 0.17307692307692307,
+     "belief_err_wish_after_lookup": 0.7327586206896551,
      "belief_err_flex_after_customer": 0.5,
      "first_step": {
-      "ask_customer": 3
+      "ask_customer": 20,
+      "lookup_booking": 4
      },
      "right_cant_fly": 0,
-     "cases_cant_fly": 3,
+     "cases_cant_fly": 12,
+     "right_add_something": 6,
+     "cases_add_something": 12
+    },
+    "notes": {
+     "name": "Latest message and its own notes",
+     "cases": 4,
+     "right": 3,
+     "wrong": 1,
+     "no_final": 0,
+     "premature": 2,
+     "right_but_premature": 1,
+     "turns_mean": 2.0,
+     "fewest_mean": 2.5,
+     "extra_turns_mean": -0.3333333333333333,
+     "repeat_steps_mean": 0.0,
+     "belief_err_wish": 0.3,
+     "belief_err_flex": 0.0,
+     "belief_err_wish_after_lookup": 0.5,
+     "belief_err_flex_after_customer": null,
+     "first_step": {
+      "lookup_booking": 4
+     },
+     "right_cant_fly": 3,
+     "cases_cant_fly": 4,
      "right_add_something": 0,
      "cases_add_something": 0
     }

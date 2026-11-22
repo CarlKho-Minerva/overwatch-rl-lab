@@ -14,6 +14,8 @@ game, driven by an official Workshop script. Python is used only to read the gam
 *A real screenshot (Overwatch 2.25.1.0, 2026-11-21). The red line is the island's edge. Arrows are
 the action Tracer currently rates best in each cell; dots are cells she has not learned about.*
 
+**The course.** David Silver's ten lectures, gone through in order and re-explained with these experiments: [course/](course/README.md). Episode outlines for a video series: [series/](series/).
+
 ## Run it in five minutes
 
 1. In Overwatch: Options > Gameplay > General, turn on **Enable Workshop Inspector** and
