@@ -71,6 +71,32 @@ exact p = 0.14). Logs: [`data/logs/`](data/logs). Full table:
 *Left: SARSA's arrows lead inland from the start and back out at the goal. Right: Q-learning's
 arrows run straight along the edge row.*
 
+## Night School: ten bots at once, the whole course
+
+The standard build runs one Tracer and one method, and a person switches between them. The Night School
+build runs ten bots on two strips at once, each with its own table and its own method, sixteen methods in
+all, and schedules everything itself: runs, greedy evaluation, logging, and a match restart when a block
+is done. It was written to be left running overnight. Import
+[`workshop/compiled/night-school.txt`](workshop/compiled/night-school.txt) the same way as the standard
+build; nothing needs to be pressed after Start.
+
+| Lecture of David Silver's course | Bot on the island |
+|---|---|
+| 1, 2 Introduction, MDPs | RANDOM WALK: no learning; its measured return is checked against the exact value |
+| 3 Planning | PLANNER: value iteration on the grid's rules, then walks the answer |
+| 4 Prediction | TD(0) and Monte Carlo value tables for the random walk, scored against the exact values |
+| 5 Control | SARSA, Q-LEARNING, EXPECTED SARSA, MONTE CARLO, SARSA LAMBDA |
+| 6 Approximation | Q-learning told only its row, or its row and quarter of the strip |
+| 7 Policy gradient | POLICY GRADIENT (REINFORCE with a baseline), ACTOR-CRITIC |
+| 8 Learning and planning | DYNA-Q: 20 replayed moves per real step |
+| 9 Exploration | fading epsilon, optimistic start, count bonus |
+| 10 Games | not built: a Widowmaker that learns |
+
+Every method's arithmetic was checked in the game: a scripted walk is run by the bots under each method
+and every table the game logs is recomputed outside it. Conditions, log format, the checks, and a logging
+trap worth knowing about (the Workshop Inspector silently stops recording, and the log file with it):
+[`docs/night-school.md`](docs/night-school.md).
+
 ## Labs
 
 | Lab | Question |
@@ -114,7 +140,7 @@ python -m venv .venv
 ## Repository
 
 ```
-workshop/      OverPy source (main.opy, environment/, agents/, ui/), test variants, compiled Workshop text
+workshop/      OverPy source (main.opy, environment/, agents/, ui/, night/), test variants, compiled Workshop text
 analysis/      rllab (log parser, reference maths, replay check, plots), tests, notebook, figures
 data/logs/     Log files written by Overwatch during the verification sessions
 labs/          Five guided labs
