@@ -60,16 +60,19 @@ One row per file, run, algorithm and mode. `fall_rate` and `goal_rate` are share
 1.5 m from the edge, row 1 at 3.5 m)."""),
     ("code", """runs = pd.DataFrame(log.run)
 runs["experiment_name"] = runs["experiment"].map(EXPERIMENTS)
-learning = episodes.merge(runs[["file", "run", "experiment_name"]], on=["file", "run"])
+learning = episodes.merge(runs[["file", "run", "experiment_name", "closed_loop", "use_blink"]], on=["file", "run"])
 summary_table(learning).round(2)"""),
     ("md", """## 4. Learning curves (training episodes, cliff walk only)
 
 Top: return per episode. Middle: share of episodes that ended in a fall. Bottom: mean distance
-from the edge. Each line is one run, smoothed over 20 episodes; the legend gives n.
+from the edge. Each line is one run, smoothed over 20 episodes; the legend gives n. Only runs on
+the standard arena are drawn (closed-loop moves, four actions).
 
 One run per algorithm is a single sample, and the Workshop cannot seed its random numbers.
 Treat a gap between the lines as a lead to repeat, not as a result."""),
-    ("code", """cliff = learning[(learning["experiment_name"] == "cliff walk") & (learning["mode_name"] == "training")]
+    ("code", """# Standard arena only: closed-loop moves, four actions. Blink and fixed-duration runs are a different environment.
+standard = (learning["closed_loop"] == True) & (learning["use_blink"] == False)
+cliff = learning[(learning["experiment_name"] == "cliff walk") & (learning["mode_name"] == "training") & standard]
 if len(cliff):
     figure = learning_curves(cliff, window=20)
     figure.savefig(ROOT / "analysis" / "figures" / "learning_curves.png", dpi=160)

@@ -710,9 +710,11 @@ rule ("Experiment: main loop") {
                     Set Global Variable(pendingAlgoSwitch, False);
                     Set Global Variable(algo, Subtract(1, Global.algo));
                 End;
+                "A new run starts in training: evaluating an empty table teaches nothing."
+                Set Global Variable(wantTraining, True);
                 Call Subroutine(resetLearning);
                 Call Subroutine(logRunHeader);
-                Small Message(All Players(All Teams), Custom String("New run: Q-table cleared"));
+                Small Message(All Players(All Teams), Custom String("New run: Q-table cleared, training"));
             End;
             If(Global.paused);
                 Wait Until(Or(Not(Global.paused), Global.pendingReset), 99999);

@@ -21,6 +21,7 @@ the action Tracer currently rates best in each cell; dots are cells she has not 
 2. Copy all of [`workshop/compiled/overwatch-rl-lab.txt`](workshop/compiled/overwatch-rl-lab.txt).
 3. Play > More > Custom Games > Create. Set the lobby to **Invite Only**.
 4. Settings > the orange paste button in the Summary panel > Confirm.
+   (Parameters live in the Workshop Settings tile that appears on the same screen.)
 5. Esc > Start. Pick any hero.
 
 Six seconds later Tracer starts her first episode. Full steps, controls and troubleshooting:
@@ -28,7 +29,7 @@ Six seconds later Tracer starts her first episode. Full steps, controls and trou
 
 ## What you can change
 
-In the lobby under Settings > Workshop Settings: algorithm (SARSA or Q-learning), learning rate
+In the lobby under Settings > Workshop Settings (the orange hammer tile): algorithm (SARSA or Q-learning), learning rate
 alpha, discount gamma, exploration epsilon, every reward, the step limit, cell size, Tracer's
 speed, closed-loop or fixed-duration moves, Widowmaker's shot interval, range and damage, whether
 Tracer can see her own health, Blink as a fifth action, and what gets logged.
@@ -45,7 +46,30 @@ Both explore the same way and both learn from every step, falls included. They d
 of the script: SARSA scores a move by the action Tracer will really take next, Q-learning by the
 best action available next. [`labs/lab02.md`](labs/lab02.md) walks through it.
 
-RESULTS_PLACEHOLDER
+### First run of it (2026-11-21, one run per algorithm)
+
+![Learning curves from the two recorded runs](analysis/figures/learning_curves.png)
+
+| Last 40 training episodes | SARSA | Q-learning |
+|---|---|---|
+| Mean return | +18.2 | -1.3 |
+| Episodes ending in a fall | 4 of 40 | 10 of 40 |
+| Mean distance from the edge | 3.88 m | 2.40 m |
+
+While both were still exploring, the SARSA Tracer kept about a cell and a half further from the
+drop and fell less than half as often. With exploration switched off afterwards, the Q-learning
+table gave 12 clean crossings out of 12 in 13 steps; the SARSA table sent her pacing between two
+cells until the step limit. Each algorithm was run once and the Workshop has no random seed, so
+this is a lead to repeat, not a finding (a 4-against-10 gap in 40 can come from chance: Fisher
+exact p = 0.14). Logs: [`data/logs/`](data/logs). Full table:
+[`docs/verification.md`](docs/verification.md).
+
+| SARSA after 62 episodes | Q-learning after 118 episodes |
+|---|---|
+| ![SARSA policy](docs/img/2026-11-21_sarsa_learned_policy_episode62.jpg) | ![Q-learning policy](docs/img/2026-11-21_qlearning_learned_policy_episode118.jpg) |
+
+*Left: SARSA's arrows lead inland from the start and back out at the goal. Right: Q-learning's
+arrows run straight along the edge row.*
 
 ## Labs
 

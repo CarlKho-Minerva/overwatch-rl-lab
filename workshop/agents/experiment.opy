@@ -87,9 +87,11 @@ rule "Experiment: main loop":
             if pendingAlgoSwitch:
                 pendingAlgoSwitch = false
                 algo = 1 - algo
+            # A new run starts in training: evaluating an empty table teaches nothing.
+            wantTraining = true
             resetLearning()
             logRunHeader()
-            smallMessage(getAllPlayers(), "New run: Q-table cleared")
+            smallMessage(getAllPlayers(), "New run: Q-table cleared, training")
         if paused:
             waitUntil(not paused or pendingReset, 99999)
         else:

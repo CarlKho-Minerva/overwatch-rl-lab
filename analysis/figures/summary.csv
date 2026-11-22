@@ -1,3 +1,7 @@
 file,run,algo_name,mode_name,episodes,mean_return,goal_rate,fall_rate,mean_steps,mean_edge_dist,epsilon,alpha,gamma
 2026-11-21_cliffwalk_sarsa.txt,1,SARSA,training,115,-3.1652173913043478,0.808695652173913,0.19130434782608696,24.469565217391306,3.912434782608696,0.1,0.5,1.0
 2026-11-21_cliffwalk_sarsa.txt,1,SARSA,evaluation,3,-150.0,0.0,0.0,100.0,3.4333333333333336,0.1,0.5,1.0
+2026-11-21_cliffwalk_qlearning_then_controls.txt,1,Q-learning,training,119,-15.756302521008404,0.7142857142857143,0.2773109243697479,23.319327731092436,3.063697478991596,0.1,0.5,1.0
+2026-11-21_cliffwalk_qlearning_then_controls.txt,1,Q-learning,evaluation,12,37.0,1.0,0.0,13.0,2.39,0.1,0.5,1.0
+2026-11-21_cliffwalk_qlearning_then_controls.txt,2,SARSA,evaluation,3,-132.0,0.0,1.0,32.0,3.42,0.1,0.5,1.0
+2026-11-21_cliffwalk_qlearning_then_controls.txt,3,SARSA,evaluation,1,-101.0,0.0,1.0,1.0,0.0,0.1,0.5,1.0
