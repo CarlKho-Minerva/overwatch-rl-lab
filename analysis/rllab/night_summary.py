@@ -267,7 +267,7 @@ def figures(S, rows, out: Path):
         ax.set_yticklabels([f"{S['conditions'][c]['name']} ({S['conditions'][c]['runs']})" for c in conds])
         ax.set_xlim(0, 108)
         ax.invert_yaxis()
-        ax.set_xlabel("training episodes that ended in a fall, per 100 (each small mark is one run; white dot and bar: mean and 95% interval)")
+        ax.set_xlabel("falls per 100 training episodes")
         ax.grid(True, axis="x", lw=0.6)
         fig.tight_layout()
         fig.savefig(out / "fig_falls_by_method.png")
@@ -349,7 +349,7 @@ def policy_figure(matches, conds, out: Path, name: str, title: str):
         ax.set_yticks([])
         for sp in ax.spines.values():
             sp.set_visible(False)
-        ax.set_title(f"{ns.CONDITION_NAMES[c]}  ({len(runs)} runs)", loc="left", fontsize=11, color=INK)
+        ax.set_title(f"{ns.CONDITION_NAMES[c]}  ({len(runs)} run{'' if len(runs) == 1 else 's'})", loc="left", fontsize=11, color=INK)
     fig.suptitle(title, x=0.01, ha="left", fontsize=11, color=MUTED)
     fig.tight_layout()
     fig.savefig(out / name)
