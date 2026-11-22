@@ -25,17 +25,35 @@ def layoutArena():
 
 rule "Arena: spawn Tracer and Widowmaker, then measure Tracer's run speed":
     @Condition calStage == 1
+    # Spawn each bot, then look it up by team and hero instead of trusting "last created entity".
+    # Up to five tries each, a second apart: on 2026-11-21 Tracer failed to appear in two matches in a row
+    # (Widowmaker did appear) and then spawned first time in the next seven. The cause was not found; game
+    # speed, cell size and a restart after slow motion were each ruled out in the game.
+    spawnCalls = 0
+    for spawnTry in range(5):
+        tracer = getPlayersOnHero(Hero.TRACER, Team.1).filter(lambda p: p.isDummy())[0]
+        if not entityExists(tracer):
+            createDummy(Hero.TRACER, Team.1, -1, startPos, vect(1, 0, 0))
+            spawnCalls += 1
+            wait(1)
+    for spawnTry in range(5):
+        widow = getPlayersOnHero(Hero.WIDOWMAKER, Team.2).filter(lambda p: p.isDummy())[0]
+        if not entityExists(widow):
+            createDummy(Hero.WIDOWMAKER, Team.2, -1, widowPos, vect(0, 0, -1))
+            spawnCalls += 10
+            wait(1)
+    tracer = getPlayersOnHero(Hero.TRACER, Team.1).filter(lambda p: p.isDummy())[0]
+    widow = getPlayersOnHero(Hero.WIDOWMAKER, Team.2).filter(lambda p: p.isDummy())[0]
+    if not entityExists(tracer) or not entityExists(widow):
+        calStage = -1
+        calMsg = "the bots did not spawn. Leave a free slot on Team 1 and Team 2, then Esc > Show Lobby > Restart Match"
+        logToInspector("RLLAB,FAIL,spawn,{},{},{},{},{},{}".format(len(getPlayers(Team.1)), len(getPlayers(Team.2)), len(getPlayersOnHero(Hero.TRACER, Team.1)), len(getPlayersOnHero(Hero.WIDOWMAKER, Team.2)), startPos, widowPos))
+        return
+    # spawnCalls = Tracer creations + 10 x Widowmaker creations; 11 means each bot appeared on the first try.
+    logToInspector("RLLAB,SPAWN,{}".format(spawnCalls))
     if cfgSlowMo < 100:
         setSlowMotion(cfgSlowMo)
-    createDummy(Hero.TRACER, Team.1, -1, startPos, vect(1, 0, 0))
-    tracer = getLastCreatedEntity()
-    createDummy(Hero.WIDOWMAKER, Team.2, -1, widowPos, vect(0, 0, -1))
-    widow = getLastCreatedEntity()
-    wait(1.5)
-    if not entityExists(tracer) or not entityExists(widow) or tracer == widow:
-        calStage = -1
-        calMsg = "the dummy bots did not spawn: leave a free slot on Team 1 and on Team 2"
-        return
+        wait(0.25)
     tracer.setMoveSpeed(cfgMoveSpeed)
     widow.setDamageDealt(cfgWidowDamage if cfgExperiment == Exp.WIDOW else 0)
     widow.startFacing(directionTowards(widow.getEyePosition(), tracer.getPosition() + vect(0, 1, 0)), 720, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
@@ -46,6 +64,8 @@ rule "Arena: spawn Tracer and Widowmaker, then measure Tracer's run speed":
     wait(0.25)
     tracer.stopForcingPosition()
     tracer.setFacing(vect(1, 0, 0), Relativity.TO_WORLD)
+    if DBG_ROOT_TRACER:
+        tracer.setStatusEffect(null, Status.ROOTED, 5)
     wait(0.4)
     tracer.startThrottleInDirection(vect(1, 0, 0), 1, Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.NONE)
     wait(0.4)
@@ -60,6 +80,7 @@ rule "Arena: spawn Tracer and Widowmaker, then measure Tracer's run speed":
     if runSpeed < 1:
         calStage = -1
         calMsg = "Tracer did not move under throttle control"
+        logToInspector("RLLAB,FAIL,throttle,{},{},{}".format(runSpeed, calP0, calP1))
         return
     actDuration = cell / runSpeed * cfgDurationScale / 100
     actTimeout = 2.5 * cell / runSpeed + 0.25

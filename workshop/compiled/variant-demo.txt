@@ -91,62 +91,64 @@ variables {
         63: widow
         64: tracerDied
         65: tracerDiedEnv
-        66: curS
-        67: curA
-        68: curCell
-        69: nextS
-        70: nextA
-        71: nextCell
-        72: reward
-        73: terminal
-        74: outcome
-        75: stepCol
-        76: stepRow
-        77: tgtCol
-        78: tgtRow
-        79: tgtPos
-        80: actDir
-        81: obsP
-        82: obsCell
-        83: obsS
-        84: useHealthBit
-        85: useBlink
-        86: nAct
-        87: epSteps
-        88: epReturn
-        89: epEdgeSum
-        90: epHits
-        91: stepHits0
-        92: Q
-        93: polGlyph
-        94: selS
-        95: selA
-        96: selExplore
-        97: rowQ
-        98: rowMax
-        99: glyphS
-        100: tdTarget
-        101: qOld
-        102: isTraining
-        103: curExplore
-        104: nextExplore
-        105: demoPlan
-        106: nextShotT
-        107: shotsFired
-        108: episodeActive
-        109: runId
-        110: epCount
-        111: cnt
-        112: recentRet
-        113: recentSum
-        114: histReturn
-        115: histOutcome
-        116: lastReturn
-        117: lastOutcome
-        118: lastSteps
-        119: lastTraining
-        120: pendingReset
-        121: pendingAlgoSwitch
+        66: spawnTry
+        67: spawnCalls
+        68: curS
+        69: curA
+        70: curCell
+        71: nextS
+        72: nextA
+        73: nextCell
+        74: reward
+        75: terminal
+        76: outcome
+        77: stepCol
+        78: stepRow
+        79: tgtCol
+        80: tgtRow
+        81: tgtPos
+        82: actDir
+        83: obsP
+        84: obsCell
+        85: obsS
+        86: useHealthBit
+        87: useBlink
+        88: nAct
+        89: epSteps
+        90: epReturn
+        91: epEdgeSum
+        92: epHits
+        93: stepHits0
+        94: Q
+        95: polGlyph
+        96: selS
+        97: selA
+        98: selExplore
+        99: rowQ
+        100: rowMax
+        101: glyphS
+        102: tdTarget
+        103: qOld
+        104: isTraining
+        105: curExplore
+        106: nextExplore
+        107: demoPlan
+        108: nextShotT
+        109: shotsFired
+        110: episodeActive
+        111: runId
+        112: epCount
+        113: cnt
+        114: recentRet
+        115: recentSum
+        116: histReturn
+        117: histOutcome
+        118: lastReturn
+        119: lastOutcome
+        120: lastSteps
+        121: lastTraining
+        122: pendingReset
+        123: pendingAlgoSwitch
 }
 
 subroutines {
@@ -163,6 +165,7 @@ subroutines {
     10: logEpisode
     11: logStep
     12: logQTable
+    13: botLost
 }
 
 rule ("Initialize global variables") {
@@ -277,6 +280,7 @@ rule ("Calibration: measure the island") {
         If(Or(Or(Compare(Subtract(Global.edgeXMax, Global.edgeXMin), <, 22), Compare(Subtract(Global.edgeZMax, Global.edgeZMin), <, 14)), Compare(Subtract(Global.edgeXMax, Global.edgeXMin), >, 500)));
             Set Global Variable(calStage, -1);
             Set Global Variable(calMsg, Custom String("island measurement looks wrong (see calibration HUD). Is the map Workshop Island?"));
+            Log To Inspector(Custom String("RLLAB,FAIL,island,{0},{1},{2}", Global.edgeXMin, Global.edgeXMax, Custom String("{0},{1},{2}", Global.edgeZMin, Global.edgeZMax, Global.floorY)));
             Abort;
         End;
         Call Subroutine(layoutArena);
@@ -314,18 +318,37 @@ rule ("Arena: spawn Tracer and Widowmaker, then measure Tracer's run speed") {
         Global.calStage == 1;
     }
     actions {
+        "(Widowmaker did appear) and then spawned first time in the next seven. The cause was not found; game\nspeed, cell size and a restart after slow motion were each ruled out in the game."
+        Set Global Variable(spawnCalls, 0);
+        For Global Variable(spawnTry, 0, 5, 1);
+            Set Global Variable(tracer, First Of(Filtered Array(Players On Hero(Hero(Tracer), Team 1), Is Dummy Bot(Current Array Element))));
+            If(Not(Entity Exists(Global.tracer)));
+                Create Dummy Bot(Hero(Tracer), Team 1, -1, Global.startPos, Left);
+                Modify Global Variable(spawnCalls, Add, 1);
+                Wait(1, Ignore Condition);
+            End;
+        End;
+        For Global Variable(spawnTry, 0, 5, 1);
+            Set Global Variable(widow, First Of(Filtered Array(Players On Hero(Hero(Widowmaker), Team 2), Is Dummy Bot(Current Array Element))));
+            If(Not(Entity Exists(Global.widow)));
+                Create Dummy Bot(Hero(Widowmaker), Team 2, -1, Global.widowPos, Backward);
+                Modify Global Variable(spawnCalls, Add, 10);
+                Wait(1, Ignore Condition);
+            End;
+        End;
+        Set Global Variable(tracer, First Of(Filtered Array(Players On Hero(Hero(Tracer), Team 1), Is Dummy Bot(Current Array Element))));
+        Set Global Variable(widow, First Of(Filtered Array(Players On Hero(Hero(Widowmaker), Team 2), Is Dummy Bot(Current Array Element))));
+        If(Not(And(Entity Exists(Global.tracer), Entity Exists(Global.widow))));
+            Set Global Variable(calStage, -1);
+            Set Global Variable(calMsg, Custom String("the bots did not spawn. Leave a free slot on Team 1 and Team 2, then Esc > Show Lobby > Restart Match"));
+            Log To Inspector(Custom String("RLLAB,FAIL,spawn,{0},{1},{2}", Number Of Players(Team 1), Number Of Players(Team 2), Custom String("{0},{1},{2}", Number Of Heroes(Hero(Tracer), Team 1), Number Of Heroes(Hero(Widowmaker), Team 2), Custom String("{0},{1}", Global.startPos, Global.widowPos))));
+            Abort;
+        End;
+        "spawnCalls = Tracer creations + 10 x Widowmaker creations; 11 means each bot appeared on the first try."
+        Log To Inspector(Custom String("RLLAB,SPAWN,{0}", Global.spawnCalls));
         If(Compare(Global.cfgSlowMo, <, 100));
             Set Slow Motion(Global.cfgSlowMo);
-        End;
-        Create Dummy Bot(Hero(Tracer), Team 1, -1, Global.startPos, Left);
-        Set Global Variable(tracer, Last Created Entity);
-        Create Dummy Bot(Hero(Widowmaker), Team 2, -1, Global.widowPos, Backward);
-        Set Global Variable(widow, Last Created Entity);
-        Wait(1.5, Ignore Condition);
-        If(Or(Not(And(Entity Exists(Global.tracer), Entity Exists(Global.widow))), Compare(Global.tracer, ==, Global.widow)));
-            Set Global Variable(calStage, -1);
-            Set Global Variable(calMsg, Custom String("the dummy bots did not spawn: leave a free slot on Team 1 and on Team 2"));
-            Abort;
+            Wait(0.25, Ignore Condition);
         End;
         Set Move Speed(Global.tracer, Global.cfgMoveSpeed);
         Set Damage Dealt(Global.widow, If-Then-Else(Compare(Global.cfgExperiment, ==, 1), Global.cfgWidowDamage, 0));
@@ -350,6 +373,7 @@ rule ("Arena: spawn Tracer and Widowmaker, then measure Tracer's run speed") {
         If(Compare(Global.runSpeed, <, 1));
             Set Global Variable(calStage, -1);
             Set Global Variable(calMsg, Custom String("Tracer did not move under throttle control"));
+            Log To Inspector(Custom String("RLLAB,FAIL,throttle,{0},{1},{2}", Global.runSpeed, Global.calP0, Global.calP1));
             Abort;
         End;
         Set Global Variable(actDuration, Divide(Multiply(Divide(Global.cell, Global.runSpeed), Global.cfgDurationScale), 100));
@@ -590,7 +614,7 @@ rule ("Widowmaker: scripted fire") {
     }
     actions {
         Start Holding Button(Global.widow, Button(Secondary Fire));
-        While(True);
+        While(Compare(Global.calStage, ==, 2));
             Wait(0.048, Ignore Condition);
             If(And(And(Global.episodeActive, Not(Global.paused)), Compare(Total Time Elapsed, >=, Global.nextShotT)));
                 Set Global Variable(nextShotT, Add(Total Time Elapsed, Global.cfgWidowInterval));
@@ -604,12 +628,31 @@ rule ("Widowmaker: scripted fire") {
     }
 }
 
+rule ("Experiment: a bot has left the match - stop and say so") {
+    event {
+        Subroutine;
+        botLost;
+    }
+    actions {
+        "Bot slots look empty in the lobby, so a player moved onto one removes the bot. Seen 2026-11-21:\nthe lab kept logging episodes for a Tracer that no longer existed. Never run on a missing bot."
+        Set Global Variable(episodeActive, False);
+        Set Global Variable(calStage, -1);
+        Set Global Variable(calMsg, Custom String("a bot left the match (was a player moved onto its slot?). Esc > Show Lobby > Restart Match"));
+        Log To Inspector(Custom String("RLLAB,FAIL,botlost,{0},{1},{2}", Global.runId, Add(Global.epCount, 1), Custom String("{0},{1}", Entity Exists(Global.tracer), Entity Exists(Global.widow))));
+        Big Message(All Players(All Teams), Custom String("RL Lab stopped: a bot left the match"));
+    }
+}
+
 rule ("Experiment: one episode") {
     event {
         Subroutine;
         runEpisode;
     }
     actions {
+        If(Not(And(Entity Exists(Global.tracer), Entity Exists(Global.widow))));
+            Call Subroutine(botLost);
+            Abort;
+        End;
         Set Global Variable(isTraining, And(Global.wantTraining, Compare(Global.cfgExperiment, !=, 2)));
         If(Compare(Global.isTraining, !=, Global.lastTraining));
             Set Global Variable(recentRet, Empty Array);
@@ -633,6 +676,11 @@ rule ("Experiment: one episode") {
         Set Global Variable(episodeActive, True);
         While(Not(Global.terminal));
             Call Subroutine(stepEnv);
+            If(Not(And(Entity Exists(Global.tracer), Entity Exists(Global.widow))));
+                "The step just taken cannot be trusted. Drop the episode: no update, no EP line."
+                Call Subroutine(botLost);
+                Abort;
+            End;
             Modify Global Variable(epSteps, Add, 1);
             Modify Global Variable(epReturn, Add, Global.reward);
             If(Global.terminal);
@@ -703,7 +751,7 @@ rule ("Experiment: main loop") {
     actions {
         Call Subroutine(resetLearning);
         Call Subroutine(logRunHeader);
-        While(True);
+        While(Compare(Global.calStage, ==, 2));
             If(Global.pendingReset);
                 Set Global Variable(pendingReset, False);
                 If(Global.pendingAlgoSwitch);

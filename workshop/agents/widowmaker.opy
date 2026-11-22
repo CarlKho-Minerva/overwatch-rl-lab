@@ -11,7 +11,7 @@ rule "Widowmaker: scripted fire":
     @Condition calStage == 2
     @Condition cfgExperiment == Exp.WIDOW
     widow.startForcingButton(Button.SECONDARY_FIRE)
-    while true:
+    while calStage == 2:
         wait(0.048)
         if episodeActive and not paused and getTotalTimeElapsed() >= nextShotT:
             nextShotT = getTotalTimeElapsed() + cfgWidowInterval

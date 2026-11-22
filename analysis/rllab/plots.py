@@ -46,12 +46,26 @@ def learning_curves(frame, window: int = 20):
         ("fell", "Share of episodes\nending in a fall"),
         ("mean_edge_dist", "Mean distance from\nthe island edge (m)"),
     ]
+    # One thin line per run. Where an algorithm has several runs, a thick line is their mean,
+    # drawn only over the episodes that every one of those runs reached.
+    smoothed: dict[str, list] = {}
     for (file, run, algo), group in training.groupby(["file", "run", "algo_name"], sort=False):
-        group = group.sort_values("episode")
-        label = f"{algo} (run {run}, n = {len(group)})"
+        group = group.sort_values("episode").reset_index(drop=True)
+        curves = {column: group[column].astype(float).rolling(window, min_periods=1).mean() for column, _ in panels}
+        smoothed.setdefault(algo, []).append(curves)
+    for algo, runs in smoothed.items():
+        colour = COLOURS.get(algo, "0.3")
+        several = len(runs) > 1
+        shared = min(len(curves["ret"]) for curves in runs)
         for axis, (column, _) in zip(axes, panels):
-            series = group[column].astype(float).rolling(window, min_periods=1).mean()
-            axis.plot(group["episode"], series, color=COLOURS.get(algo, "0.3"), label=label, linewidth=1.8)
+            for curves in runs:
+                axis.plot(range(1, len(curves[column]) + 1), curves[column], color=colour,
+                          linewidth=0.9 if several else 1.8, alpha=0.45 if several else 1.0,
+                          label=None if several else f"{algo} (1 run)")
+            if several:
+                mean = sum(curves[column].iloc[:shared].to_numpy() for curves in runs) / len(runs)
+                axis.plot(range(1, shared + 1), mean, color=colour, linewidth=2.2,
+                          label=f"{algo}: mean of {len(runs)} runs (thin lines: each run)")
     for axis, (_, title) in zip(axes, panels):
         axis.set_ylabel(title)
         axis.grid(alpha=0.3)
@@ -60,7 +74,7 @@ def learning_curves(frame, window: int = 20):
     axes[-1].set_xlabel("Training episode")
     figure.suptitle(
         "Tracer on the Workshop Island edge: training episodes logged by the game\n"
-        f"(each line is a rolling mean over {window} episodes)",
+        f"(every line is a rolling mean over {window} episodes)",
         fontsize=11,
     )
     figure.tight_layout()

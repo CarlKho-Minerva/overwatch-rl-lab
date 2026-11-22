@@ -27,6 +27,8 @@ COLUMNS = {
         "run", "episode", "step", "s", "a", "r", "s2", "a2", "terminal", "explore", "q_old", "q_new", "target",
     ],
     "Q": ["run", "episode", "s", "q0", "q1", "q2", "q3", "q4"],
+    "SPAWN": ["spawn_calls"],
+    "WARM": ["run", "table_size"],
 }
 
 OUTCOMES = {0: "running", 1: "goal", 2: "fell", 3: "timeout", 4: "killed"}
@@ -56,10 +58,13 @@ class LabLog:
     ep: list[dict] = field(default_factory=list)
     step: list[dict] = field(default_factory=list)
     q: list[dict] = field(default_factory=list)
+    spawn: list[dict] = field(default_factory=list)
+    warm: list[dict] = field(default_factory=list)
+    fail: list[dict] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
 
     def table(self, kind: str) -> list[dict]:
-        return {"CAL": self.cal, "RUN": self.run, "EP": self.ep, "STEP": self.step, "Q": self.q}[kind]
+        return {"CAL": self.cal, "RUN": self.run, "EP": self.ep, "STEP": self.step, "Q": self.q, "SPAWN": self.spawn, "WARM": self.warm}[kind]
 
 
 def parse_log(*paths: str | Path) -> LabLog:
@@ -79,6 +84,10 @@ def parse_log(*paths: str | Path) -> LabLog:
                         log.skipped.append(raw.rstrip("\n"))
                     continue
                 hours, minutes, seconds, kind, rest = match.groups()
+                if kind == "FAIL":
+                    # Free-form: the script stopped during setup. First field names the stage.
+                    log.fail.append({"file": path.name, "stage": rest.split(",")[0], "detail": rest})
+                    continue
                 names = COLUMNS.get(kind)
                 values = rest.split(",")
                 if names is None or len(values) != len(names):

@@ -1,0 +1,277 @@
+variables
+{
+	global:
+		1: paused
+		2: cfgMaxSteps
+		3: cfgSlowMo
+		4: camOn
+		6: alpha
+		7: gamma
+		8: epsilon
+		9: wantTraining
+		11: rStep
+		12: rGoal
+		13: rFall
+		14: rTimeout
+		15: rKilled
+		17: cfgCell
+		18: cfgMargin
+		19: cfgClosedLoop
+		20: cfgDurationScale
+		21: cfgMoveSpeed
+		22: cfgWidowInterval
+		23: cfgWidowRange
+		24: cfgWidowDamage
+		25: cfgWidowStandoff
+		26: cfgObserveHealth
+		27: cfgBlink
+		28: cfgLogSteps
+		29: cfgLogQEvery
+		30: cfgShowCal
+		31: i
+		32: j
+		33: calStage
+		34: calMsg
+		36: isleCenter
+		37: edgeXMin
+		38: edgeXMax
+		39: edgeZMin
+		40: edgeZMax
+		41: probeDir
+		42: probeLo
+		43: probeHi
+		44: probeMid
+		45: runSpeed
+		46: coastDist
+		47: calP0
+		48: calP1
+		49: calT0
+		50: cell
+		51: gridOrigin
+		52: cellPos
+		53: startPos
+		54: goalPos
+		55: stripCenter
+		56: widowPos
+		57: hostPos
+		58: camEye
+		59: camLook
+		60: actDuration
+		61: actTimeout
+		62: tracer
+		63: widow
+		64: tracerDied
+		65: tracerDiedEnv
+		66: spawnTry
+		67: spawnCalls
+		68: curS
+		69: curA
+		70: curCell
+		71: nextS
+		72: nextA
+		73: nextCell
+		74: reward
+		75: terminal
+		77: stepCol
+		78: stepRow
+		79: tgtCol
+		80: tgtRow
+		81: tgtPos
+		82: actDir
+		83: obsP
+		84: obsCell
+		85: obsS
+		86: useHealthBit
+		87: useBlink
+		88: nAct
+		89: epSteps
+		90: epReturn
+		91: epEdgeSum
+		94: Q
+		95: polGlyph
+		96: selS
+		97: selA
+		98: selExplore
+		99: rowQ
+		101: glyphS
+		102: tdTarget
+		104: isTraining
+		105: curExplore
+		106: nextExplore
+		107: demoPlan
+		108: nextShotT
+		110: episodeActive
+		111: runId
+		112: epCount
+		113: cnt
+		114: recentRet
+		115: recentSum
+		116: histReturn
+		117: histOutcome
+		118: lastReturn
+		119: lastOutcome
+		120: lastSteps
+		121: lastTraining
+		122: pendingReset
+		123: pendingAlgoSwitch
+}
+
+actions
+{
+	Global.paused = False;
+	Global.cfgMaxSteps = 100;
+	Global.cfgSlowMo = 100;
+	Global.camOn = True;
+	Global.alpha = 0.500;
+	Global.gamma = 1;
+	Global.epsilon = 0.100;
+	Global.wantTraining = True;
+	Global.rStep = -1;
+	Global.rGoal = 50;
+	Global.rFall = -100;
+	Global.rTimeout = -50;
+	Global.rKilled = -100;
+	Global.cfgCell = 2;
+	Global.cfgMargin = 0.500;
+	Global.cfgClosedLoop = True;
+	Global.cfgDurationScale = 100;
+	Global.cfgMoveSpeed = 100;
+	Global.cfgWidowInterval = 2;
+	Global.cfgWidowRange = 11;
+	Global.cfgWidowDamage = 100;
+	Global.cfgWidowStandoff = 6;
+	Global.cfgObserveHealth = True;
+	Global.cfgBlink = False;
+	Global.cfgLogSteps = True;
+	Global.cfgLogQEvery = 50;
+	Global.cfgShowCal = True;
+	Global.i = 48;
+	Global.j = 48;
+	Global.calStage = 2;
+	Global.calMsg = Custom String("ready");
+	Global.isleCenter = Vector(-15.189, 0, 1.125);
+	Global.edgeXMin = -20;
+	Global.edgeXMax = 20;
+	Global.edgeZMin = -20;
+	Global.edgeZMax = 20;
+	Global.probeDir = Vector(0, 0, -1);
+	Global.probeLo = 21.125;
+	Global.probeHi = 21.125;
+	Global.probeMid = 21.125;
+	Global.runSpeed = 5.981;
+	Global.coastDist = 0.250;
+	Global.calP0 = Vector(-8.660, 0, -14.500);
+	Global.calP1 = Vector(-3.875, 0, -14.500);
+	Global.calT0 = 28.127;
+	Global.cell = 2;
+	Global.gridOrigin = Vector(-12, 0, -19.500);
+	Global.cellPos = Array(Vector(-11, 0, -18.500), Vector(-9, 0, -18.500), Vector(-7, 0, -18.500), Vector(-5, 0, -18.500), Vector(-3,
+		0, -18.500), Vector(-1, 0, -18.500), Vector(1, 0, -18.500), Vector(3, 0, -18.500), Vector(5, 0, -18.500), Vector(7, 0,
+		-18.500), Vector(9, 0, -18.500), Vector(11, 0, -18.500), Vector(-11, 0, -16.500), Vector(-9, 0, -16.500), Vector(-7, 0,
+		-16.500), Vector(-5, 0, -16.500), Vector(-3, 0, -16.500), Vector(-1, 0, -16.500), Vector(1, 0, -16.500), Vector(3, 0, -16.500),
+		Vector(5, 0, -16.500), Vector(7, 0, -16.500), Vector(9, 0, -16.500), Vector(11, 0, -16.500), Vector(-11, 0, -14.500), Vector(
+		-9, 0, -14.500), Vector(-7, 0, -14.500), Vector(-5, 0, -14.500), Vector(-3, 0, -14.500), Vector(-1, 0, -14.500), Vector(1, 0,
+		-14.500), Vector(3, 0, -14.500), Vector(5, 0, -14.500), Vector(7, 0, -14.500), Vector(9, 0, -14.500), Vector(11, 0, -14.500),
+		Vector(-11, 0, -12.500), Vector(-9, 0, -12.500), Vector(-7, 0, -12.500), Vector(-5, 0, -12.500), Vector(-3, 0, -12.500),
+		Vector(-1, 0, -12.500), Vector(1, 0, -12.500), Vector(3, 0, -12.500), Vector(5, 0, -12.500), Vector(7, 0, -12.500), Vector(9,
+		0, -12.500), Vector(11, 0, -12.500));
+	Global.startPos = Vector(-11, 0, -18.500);
+	Global.goalPos = Vector(11, 0, -18.500);
+	Global.stripCenter = Vector(0, 0, -15.500);
+	Global.widowPos = Vector(0, 0, -5.500);
+	Global.hostPos = Vector(3, 0, -2.500);
+	Global.camEye = Vector(0, 21, -0.500);
+	Global.camLook = Vector(0, 0, -14);
+	Global.actDuration = 0.334;
+	Global.actTimeout = 1.086;
+	Global.tracer = Null;
+	Global.widow = Null;
+	Global.tracerDied = False;
+	Global.tracerDiedEnv = False;
+	Global.spawnTry = 5;
+	Global.spawnCalls = 11;
+	Global.curS = 30;
+	Global.curA = 2;
+	Global.curCell = 30;
+	Global.nextS = 30;
+	Global.nextA = 2;
+	Global.nextCell = 30;
+	Global.reward = -1;
+	Global.terminal = False;
+	Global.stepCol = 6;
+	Global.stepRow = 2;
+	Global.tgtCol = 6;
+	Global.tgtRow = 3;
+	Global.tgtPos = Vector(1, 0, -12.500);
+	Global.actDir = Vector(0, 0, 1);
+	Global.obsP = Vector(0.708, 0, -14.889);
+	Global.obsCell = 30;
+	Global.obsS = 30;
+	Global.useHealthBit = False;
+	Global.useBlink = False;
+	Global.nAct = 4;
+	Global.epSteps = 60;
+	Global.epReturn = -60;
+	Global.epEdgeSum = 350.430;
+	Global.Q = Array(-1.750, -1.750, -1.813, -50.500, 0, -26, -1.813, -1.563, -50.500, 0, -0.500, -0.500, -0.750, -75.750, 0, 0,
+		-0.500, 0, -50.500, 0, 0, 0, 0, 0, 0, 0, 0, 0, -50.500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, -1.375, -1.875, -1.625, -1.375, 0, -1.188, -1.250, -1, -1.500, 0, -0.750, -1.125, -1, -0.750, 0, -0.500,
+		-0.750, -1, -0.500, 0, 0, -0.500, -0.500, 0, 0, -0.500, 0, 0, -0.500, 0, 0, -0.500, -0.500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1.250, -1.500, -1.500, -1, 0, -1, -1, -1.125, -1, 0, -0.750, -1, -0.500, -1, 0,
+		-0.750, -0.500, -1, -1, 0, -0.500, -0.750, -0.750, -0.500, 0, -0.500, 0, 0, -0.500, 0, -0.500, 0, 0, -0.500, 0, 0, -0.500,
+		-0.500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1.250, -1, -1.250, -1.250, 0, -1.125, -1, -1,
+		-1.125, 0, -0.750, -0.875, -1, -1, 0, -1, -0.750, -1, -1, 0, -0.750, -0.750, -0.750, -0.500, 0, -0.500, -0.500, -0.500, -0.500,
+		0, -0.500, -0.500, 0, 0, 0, -0.500, -0.500, -0.750, -0.500, 0, 0, -0.500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0);
+	Global.polGlyph = Array(Custom String("→"), Custom String("↓"), Custom String("→"), Custom String("→"), Custom String("·"),
+		Custom String("→"), Custom String("·"), Custom String("·"), Custom String("·"), Custom String("·"), Custom String("·"),
+		Custom String("G"), Custom String("→"), Custom String("↓"), Custom String("→"), Custom String("→"), Custom String("→"),
+		Custom String("←"), Custom String("→"), Custom String("·"), Custom String("·"), Custom String("·"), Custom String("·"),
+		Custom String("·"), Custom String("↑"), Custom String("→"), Custom String("↓"), Custom String("←"), Custom String("→"),
+		Custom String("←"), Custom String("←"), Custom String("→"), Custom String("·"), Custom String("·"), Custom String("·"),
+		Custom String("·"), Custom String("←"), Custom String("←"), Custom String("→"), Custom String("←"), Custom String("↑"),
+		Custom String("·"), Custom String("↓"), Custom String("→"), Custom String("→"), Custom String("·"), Custom String("·"),
+		Custom String("·"));
+	Global.selS = 30;
+	Global.selA = 2;
+	Global.selExplore = False;
+	Global.rowQ = Array(0, -0.500, -0.500, 0);
+	Global.glyphS = 31;
+	Global.tdTarget = -1;
+	Global.isTraining = True;
+	Global.curExplore = False;
+	Global.nextExplore = False;
+	Global.demoPlan = Array(2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3);
+	Global.nextShotT = 83.055;
+	Global.episodeActive = True;
+	Global.runId = 1;
+	Global.epCount = 6;
+	Global.cnt = Array(0, 0, 6, 0, 0, 0, 0, 0, 0, 0);
+	Global.recentRet = Array(-107, -130, -106, -123, -141, -103);
+	Global.recentSum = -710;
+	Global.histReturn = Array(-107, -130, -106, -123, -141, -103);
+	Global.histOutcome = Array(2, 2, 2, 2, 2, 2);
+	Global.lastReturn = -103;
+	Global.lastOutcome = 2;
+	Global.lastSteps = 3;
+	Global.lastTraining = True;
+	Global.pendingReset = False;
+	Global.pendingAlgoSwitch = False;
+}

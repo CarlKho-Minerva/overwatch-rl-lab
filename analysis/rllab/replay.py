@@ -45,6 +45,14 @@ def replay(log: LabLog, tolerance: float = TOLERANCE) -> ReplayReport:
     headers = {(r["file"], r["run"]): r for r in log.run}
     episodes = {(e["file"], e["run"], e["episode"]): e for e in log.ep}
     tables: dict[tuple, dict[tuple[int, int], float]] = {}
+    # A warm-started run begins from a carried-over table. The game logs that table (Q lines at
+    # episode 0) right after the WARM line, rounded to 0.01, so those runs get a wider tolerance.
+    warm_runs = {(w["file"], w["run"]) for w in log.warm}
+    for row in log.q:
+        key = (row["file"], row["run"])
+        if key in warm_runs and row["episode"] == 0:
+            for action in range(5):
+                tables.setdefault(key, {})[(row["s"], action)] = float(row[f"q{action}"])
     returns: dict[tuple, float] = defaultdict(float)
     counts: dict[tuple, int] = defaultdict(int)
 
@@ -76,17 +84,18 @@ def replay(log: LabLog, tolerance: float = TOLERANCE) -> ReplayReport:
         training = episode["mode"] == 0
         s, a, r, s2, a2 = step["s"], step["a"], float(step["r"]), step["s2"], step["a2"]
         terminal = bool(step["terminal"])
+        tol = tolerance * 2 if run_key in warm_runs else tolerance
 
         report.steps_checked += 1
         returns[ep_key] += r
         counts[ep_key] += 1
 
-        if abs(q(s, a) - float(step["q_old"])) > tolerance:
+        if abs(q(s, a) - float(step["q_old"])) > tol:
             bad(f"{where}: Q(s,a) before the update is {step['q_old']} in the game, {q(s, a):.4f} in the replay")
 
         next_row = [q(s2, action) for action in range(n_actions)]
         target = reference.td_target(episode["algo"], r, gamma, next_row, a2, terminal, n_actions)
-        if abs(target - float(step["target"])) > tolerance:
+        if abs(target - float(step["target"])) > tol:
             bad(f"{where}: target is {step['target']} in the game, {target:.4f} in the replay ({ALGOS[episode['algo']]})")
 
         if training:
@@ -98,7 +107,7 @@ def replay(log: LabLog, tolerance: float = TOLERANCE) -> ReplayReport:
             report.by_algo[ALGOS[episode["algo"]]] += 1
         else:
             new_value = q(s, a)
-        if abs(new_value - float(step["q_new"])) > tolerance:
+        if abs(new_value - float(step["q_new"])) > tol:
             bad(f"{where}: Q(s,a) after the update is {step['q_new']} in the game, {new_value:.4f} in the replay")
 
     for ep_key, total in returns.items():

@@ -4,8 +4,21 @@
 
 macro RECENT_N = 20
 
+def botLost():
+    @Name "Experiment: a bot has left the match - stop and say so"
+    # Bot slots look empty in the lobby, so a player moved onto one removes the bot. Seen 2026-11-21:
+    # the lab kept logging episodes for a Tracer that no longer existed. Never run on a missing bot.
+    episodeActive = false
+    calStage = -1
+    calMsg = "a bot left the match (was a player moved onto its slot?). Esc > Show Lobby > Restart Match"
+    logToInspector("RLLAB,FAIL,botlost,{},{},{},{}".format(runId, epCount + 1, entityExists(tracer), entityExists(widow)))
+    bigMessage(getAllPlayers(), "RL Lab stopped: a bot left the match")
+
 def runEpisode():
     @Name "Experiment: one episode"
+    if not entityExists(tracer) or not entityExists(widow):
+        botLost()
+        return
     isTraining = wantTraining and cfgExperiment != Exp.DEMO
     if isTraining != lastTraining:
         recentRet = []
@@ -28,6 +41,10 @@ def runEpisode():
     episodeActive = true
     while not terminal:
         stepEnv()
+        if not entityExists(tracer) or not entityExists(widow):
+            # The step just taken cannot be trusted. Drop the episode: no update, no EP line.
+            botLost()
+            return
         epSteps += 1
         epReturn += reward
         if terminal:
@@ -81,7 +98,15 @@ rule "Experiment: main loop":
     @Condition calStage == 2
     resetLearning()
     logRunHeader()
-    while true:
+    if WARM_START:
+        # Carry over a Q-table exported from the Workshop Inspector in an earlier match.
+        Q = WARM_Q
+        for glyphS in range(NCELLS):
+            if glyphS != GOAL_CELL:
+                updateGlyph()
+        logToInspector("RLLAB,WARM,{},{}".format(runId, len(Q)))
+        logQTable()
+    while calStage == 2:
         if pendingReset:
             pendingReset = false
             if pendingAlgoSwitch:

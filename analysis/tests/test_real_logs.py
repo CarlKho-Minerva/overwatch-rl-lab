@@ -31,7 +31,7 @@ def test_parser_handles_a_literal_line(tmp_path):
 
 
 def test_every_record_kind_has_a_column_list():
-    assert set(COLUMNS) == {"CAL", "RUN", "EP", "STEP", "Q"}
+    assert set(COLUMNS) == {"CAL", "RUN", "EP", "STEP", "Q", "SPAWN", "WARM"}
 
 
 @pytest.mark.skipif(not LOGS, reason="no real logs in data/logs yet")

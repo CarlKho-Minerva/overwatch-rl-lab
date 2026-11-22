@@ -39,6 +39,8 @@ globalvar tracer
 globalvar widow
 globalvar tracerDied = false
 globalvar tracerDiedEnv = false
+globalvar spawnTry
+globalvar spawnCalls
 
 # environment/cliffwalk.opy
 globalvar curS

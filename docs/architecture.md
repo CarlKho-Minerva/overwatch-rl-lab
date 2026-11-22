@@ -16,7 +16,8 @@ workshop/main.opy  ->  OverPy compiler  ->  workshop/compiled/overwatch-rl-lab.t
 | File | What it holds |
 |---|---|
 | `workshop/main.opy` | Entry point with the standard defaults |
-| `workshop/variants/*.opy` | Test builds: same code, different defaults (demo patrol, per-step logging, Q-learning, Widowmaker) |
+| `workshop/defaults.opy` | The default value of every Workshop Setting, one line each |
+| `workshop/variants/*.opy` | Test builds: the same code with a few defaults changed. `demo`, `verify_sarsa`, `verify_qlearning`, `widow`, `blink_openloop` exercise each feature; `nondefault_cliff` and `nondefault_widow` move every setting off its default; `fail_*` trigger each setup failure on purpose; `warm_start` is written by `tools/warm_start.py` |
 | `workshop/lab.opy` | Lobby settings (Skirmish on Workshop Island) and the include list |
 | `environment/config.opy` | Constants and every Workshop Setting |
 | `environment/state.opy` | Every global variable |
@@ -81,6 +82,32 @@ every "seconds between shots" (default 2), but only while Tracer is within "firi
 behind the grid's inland side, so with the default range the inland rows near the middle are
 inside the ring and the edge row is outside it: staying safe from the drop means walking into her
 sights, and the other way round.
+
+## What the script refuses to do
+
+It stops, with the reason in red on the HUD and a `FAIL` line in the log, rather than run on a
+broken setup:
+
+- the map does not measure like Workshop Island;
+- a bot has not appeared after five tries;
+- Tracer does not move when throttled;
+- a bot leaves the match mid-run (checked before every episode and after every step; the step in
+  progress is thrown away, with no update and no episode line).
+
+The last one was added after a real incident in which the script logged plausible episodes for a
+Tracer that no longer existed (`docs/limitations.md`). `analysis/rllab/sanity.py` checks old logs
+for the same thing by timing.
+
+## Tools around the script
+
+| File | What it does |
+|---|---|
+| `tools/build.mjs` | Compiles every build, fails on any compiler warning |
+| `tools/warm_start.py` | Turns the Workshop Inspector's variable export into a build that starts from that Q-table |
+| `tools/make_notebook.py` | Writes and runs the analysis notebook from the logs in `data/logs` |
+| `analysis/rllab/replay.py` | Re-computes every logged update with the reference maths |
+| `analysis/rllab/sanity.py` | Flags episodes too fast to be real play, and a match that is in the data twice |
+| `analysis/rllab/plots.py` | Learning curves and the per-run summary table |
 
 ## Why no external controller
 

@@ -16,11 +16,22 @@ const targets = [
     ["workshop/variants/verify_qlearning.opy", "workshop/compiled/variant-verify-qlearning.txt"],
     ["workshop/variants/widow.opy", "workshop/compiled/variant-widow.txt"],
     ["workshop/variants/blink_openloop.opy", "workshop/compiled/variant-blink-openloop.txt"],
+    ["workshop/variants/nondefault_cliff.opy", "workshop/compiled/variant-nondefault-cliff.txt"],
+    ["workshop/variants/nondefault_widow.opy", "workshop/compiled/variant-nondefault-widow.txt"],
+    ["workshop/variants/fail_wrong_map.opy", "workshop/compiled/variant-fail-wrong-map.txt"],
+    ["workshop/variants/fail_rooted_tracer.opy", "workshop/compiled/variant-fail-rooted-tracer.txt"],
+    ["workshop/variants/fail_no_floor_at_origin.opy", "workshop/compiled/variant-fail-no-floor-at-origin.txt"],
 ];
+
+// With an argument, build only that source file (used by tools/warm_start.py).
+const only = process.argv[2];
+const list = only
+    ? [[only.replace(/\\/g, "/"), "workshop/compiled/variant-" + basename(only, ".opy").replace(/_/g, "-") + ".txt"]]
+    : targets;
 
 await overpy.readyPromise;
 let failed = false;
-for (const [src, out] of targets) {
+for (const [src, out] of list) {
     const srcPath = resolve(root, src);
     try {
         const res = await overpy.compile(readFileSync(srcPath, "utf8"), "en-US", dirname(srcPath) + "/", basename(srcPath));

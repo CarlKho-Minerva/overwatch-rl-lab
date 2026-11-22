@@ -32,7 +32,7 @@ rule "Calibration: measure the island":
     # Skirmish has a 30 minute match clock. Freeze it so a long run is not cut off.
     pauseMatchTime()
     wait(1)
-    isleCenter = raycast(vect(0, 60, 0), vect(0, -60, 0), null, null, false).getHitPosition()
+    isleCenter = raycast(vect(DBG_ORIGIN_X, 60, 0), vect(DBG_ORIGIN_X, -60, 0), null, null, false).getHitPosition()
     if isleCenter.y < -59:
         calMsg = "no floor under the map origin: stand on the island (host)"
         waitUntil(hostPlayer.hasSpawned() and hostPlayer.isOnGround(), 99999)
@@ -54,6 +54,7 @@ rule "Calibration: measure the island":
     if edgeXMax - edgeXMin < 22 or edgeZMax - edgeZMin < 14 or edgeXMax - edgeXMin > 500:
         calStage = -1
         calMsg = "island measurement looks wrong (see calibration HUD). Is the map Workshop Island?"
+        logToInspector("RLLAB,FAIL,island,{},{},{},{},{}".format(edgeXMin, edgeXMax, edgeZMin, edgeZMax, floorY))
         return
     layoutArena()
     calStage = 1

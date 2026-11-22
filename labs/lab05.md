@@ -3,8 +3,9 @@
 **Time:** about 60 minutes in game. **Build:** `workshop/compiled/variant-widow.txt`, or the main
 build with **1 Experiment > Experiment** set to "Cliff walk + Widowmaker".
 
-**Status:** read `docs/verification.md` first. It says how much of the Widowmaker experiment has
-been run in the game and what has not.
+**Status:** the mechanics of this lab were run in the game (shots, the half-health bit, kills,
+the health switch Off, a penalty per hit: see `docs/verification.md`), each for a couple of
+minutes. Nobody has run the full 150-episode comparison yet. Yours will be the first.
 
 ## The setup
 

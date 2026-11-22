@@ -6,7 +6,7 @@ settings {
     "gamemodes": {
         "skirmish": {
             "enabledMaps": [
-                "workshopIsland"
+                DEF_MAP
             ]
         },
         "general": {

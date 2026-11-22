@@ -62,41 +62,63 @@ One row per file, run, algorithm and mode. `fall_rate` and `goal_rate` are share
 runs["experiment_name"] = runs["experiment"].map(EXPERIMENTS)
 learning = episodes.merge(runs[["file", "run", "experiment_name", "closed_loop", "use_blink"]], on=["file", "run"])
 summary_table(learning).round(2)"""),
-    ("md", """## 4. Learning curves (training episodes, cliff walk only)
+    ("md", """## 4. Learning curves (training episodes, standard cliff walk only)
 
 Top: return per episode. Middle: share of episodes that ended in a fall. Bottom: mean distance
-from the edge. Each line is one run, smoothed over 20 episodes; the legend gives n. Only runs on
-the standard arena are drawn (closed-loop moves, four actions).
+from the edge. Every line is smoothed over 20 episodes. A thin line is one run; where an algorithm
+has several runs, the thick line is their mean.
 
-One run per algorithm is a single sample, and the Workshop cannot seed its random numbers.
-Treat a gap between the lines as a lead to repeat, not as a result."""),
-    ("code", """# Standard arena only: closed-loop moves, four actions. Blink and fixed-duration runs are a different environment.
-standard = (learning["closed_loop"] == True) & (learning["use_blink"] == False)
-cliff = learning[(learning["experiment_name"] == "cliff walk") & (learning["mode_name"] == "training") & standard]
+Only runs made under the standard settings are drawn (cold start, closed-loop moves, four actions,
+default rewards, epsilon 0.1, alpha 0.5, gamma 1). Runs with other settings are a different
+experiment and would not be comparable."""),
+    ("code", """from rllab.compare import standard_runs, late_training_table, by_algorithm
+from rllab.sanity import too_fast_episodes, duplicate_matches
+
+assert not too_fast_episodes(log), "some episodes are too fast to be real play"
+assert not duplicate_matches(log), "a match is in data/logs twice"
+
+keep = pd.DataFrame(standard_runs(log), columns=["file", "run"])
+cliff = learning.merge(keep, on=["file", "run"])
+cliff = cliff[cliff["mode_name"] == "training"]
 if len(cliff):
     figure = learning_curves(cliff, window=20)
     figure.savefig(ROOT / "analysis" / "figures" / "learning_curves.png", dpi=160)
     display(figure)
 else:
-    print("No cliff-walk training episodes in data/logs yet.")"""),
-    ("md", """## 5. SARSA against Q-learning, late training
+    print("No standard cliff-walk training episodes in data/logs yet.")"""),
+    ("md", """## 5. SARSA against Q-learning, run by run
 
-The last 40 training episodes of each cliff-walk run. This is the comparison Lab 02 asks about:
-return, fall rate and distance from the edge while both are still exploring."""),
-    ("code", """late = cliff.sort_values("episode").groupby(["file", "run", "algo_name"]).tail(40)
-table = late.groupby(["algo_name", "file", "run"]).agg(
-    episodes=("ret", "size"), mean_return=("ret", "mean"), fall_rate=("fell", "mean"),
-    goal_rate=("goal", "mean"), mean_steps=("steps", "mean"), mean_edge_dist=("mean_edge_dist", "mean"),
-).round(2)
-table"""),
-    ("md", """## 6. Greedy evaluation
+One row per full run (at least 100 training episodes). The `late_` columns cover the last 40
+training episodes, when both agents are still exploring. This is the comparison Lab 02 asks about.
+The `eval_` columns are the greedy episodes run straight afterwards, with exploration off."""),
+    ("code", """rows = late_training_table(log)
+runs_table = pd.DataFrame(rows)
+runs_table[["algo", "file", "run", "training_episodes", "minutes", "first_goal_episode", "late_mean_return",
+            "late_falls", "late_fall_rate", "late_mean_edge_dist", "late_median_goal_steps",
+            "eval_n", "eval_goals", "eval_timeouts", "eval_falls", "eval_median_goal_steps"]].sort_values(["algo", "file", "run"]).round(2)"""),
+    ("md", """## 6. The two algorithms compared at the level of runs
 
-Episodes run with exploration off and learning frozen (Reload in game). If there are none yet,
-this table is empty."""),
-    ("code", """evaluation = learning[learning["mode_name"] == "evaluation"]
-evaluation.groupby(["experiment_name", "algo_name", "file", "run"]).agg(
+Each run is one sample, so the test below works on run means, not on episodes. It is an exact
+permutation test: of all the ways to deal these runs into two groups, the share that gives a gap
+at least as large as the one seen. With three runs against three, the smallest value it can ever
+return is 0.10, so read it as "as separated as three runs each can show", not as proof."""),
+    ("code", """summary = by_algorithm(rows)
+for algo, stats in sorted(summary["algorithms"].items()):
+    print(f"{algo}: {stats['runs']} runs, falls in late training {stats['pooled_late_falls']} of {stats['pooled_late_n']} episodes")
+    for name in ("late_mean_return", "late_fall_rate", "late_mean_edge_dist"):
+        values = stats[name]
+        print(f"    {name[5:]:<15} runs: {[round(v, 2) for v in values['values']]}   mean {values['mean']:.2f}")
+for name, p in summary["tests"].items():
+    print(f"exact permutation test on run means, {name[5:]}: p = {p:.2f}")"""),
+    ("md", """## 7. Everything else that was recorded
+
+Runs under other settings (Widowmaker, Blink, non-default values, the scripted patrol), by mode.
+These are checks that the features work, not experiments."""),
+    ("code", """other = learning.merge(keep.assign(standard=True), on=["file", "run"], how="left")
+other = other[other["standard"].isna()]
+other.groupby(["experiment_name", "algo_name", "mode_name", "file", "run"]).agg(
     episodes=("ret", "size"), mean_return=("ret", "mean"), goal_rate=("goal", "mean"),
-    fall_rate=("fell", "mean"), mean_steps=("steps", "mean"), mean_edge_dist=("mean_edge_dist", "mean"),
+    fall_rate=("fell", "mean"), mean_steps=("steps", "mean"), hits=("hits", "sum"),
 ).round(2)"""),
 ]
 
