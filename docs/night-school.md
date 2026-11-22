@@ -45,6 +45,28 @@ All use reward -1 per step, +50 goal, -100 fall, -50 timeout at 100 steps, disco
 
 Lecture numbers are David Silver's 2015 UCL course. Settings were fixed before any run and not tuned.
 
+## The lecture 10 build: a runner against a blocker
+
+`workshop/compiled/night-school-duel.txt` (source `workshop/night/night_duel.opy`) puts one Q-learning runner
+on each strip and a bot from the other team in its way. Before each episode the blocker picks one of the four
+rows and stands in it at column 6. The game is zero-sum: the blocker's score for an episode is the runner's
+return with the sign flipped. Four conditions rotate: the blocker always in the edge row, or learning its row
+as a four-armed bandit (step 0.1, one random pick in ten); the runner told only its own cell, or also the
+blocker's row (192 states). Runs are 120 training episodes with a 40-step limit, then 10 evaluation episodes
+with both sides frozen.
+
+Two things found in the game while building it:
+
+- A bot held by "Start Forcing Player Position" has no collision. A planner told to walk the edge row went
+  straight through a pinned enemy bot, eleven steps to the goal, every time. A bot that is teleported and left
+  standing blocks completely: the same planner bumped 34 times and ran out of steps. The blocker is therefore
+  teleported, never pinned.
+- A second "Start Forcing Player Position" on a bot that is already pinned does not move it.
+
+Extra log fields in this build: the last field of an `E` line is the row the blocker stood in, and a `B` line
+at the end of each run gives the blocker's four scores and how many training episodes it stood in each row.
+On `E` lines "slips" then counts bumps into the blocker (a step that did not reach the cell it aimed for).
+
 ## Speed
 
 The Workshop cannot run faster than real time. Three things raise throughput: the bots run at 200% move

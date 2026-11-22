@@ -90,7 +90,7 @@ build; nothing needs to be pressed after Start.
 | 7 Policy gradient | POLICY GRADIENT (REINFORCE with a baseline), ACTOR-CRITIC |
 | 8 Learning and planning | DYNA-Q: 20 replayed moves per real step |
 | 9 Exploration | fading epsilon, optimistic start, count bonus |
-| 10 Games | not built: a Widowmaker that learns |
+| 10 Games | a separate build (`night-school-duel.txt`): a blocker from the other team learns which row to stand in against a runner; zero-sum, exploratory |
 
 Every method's arithmetic was checked in the game: a scripted walk is run by the bots under each method
 and every table the game logs is recomputed outside it. Conditions, log format, the checks, and a logging

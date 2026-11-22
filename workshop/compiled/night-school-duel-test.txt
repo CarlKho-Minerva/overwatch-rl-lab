@@ -969,7 +969,6 @@ rule ("Run: one episode") {
             "A second \"start forcing position\" on a bot that is already pinned does nothing (seen in the game, 2026-11-22:\nthe blockers stayed where the setup had parked them). Release, move, pin again."
             Stop Forcing Player Position((Event Player).partner);
             Teleport((Event Player).partner, Value In Array(Global.cellPos, Add(Add(Multiply((Event Player).side, 48), Multiply(((Event Player).partner).station, 12)), 6)));
-            Start Forcing Player Position((Event Player).partner, Value In Array(Global.cellPos, Add(Add(Multiply((Event Player).side, 48), Multiply(((Event Player).partner).station, 12)), 6)), False);
             Set Player Variable(Event Player, seenRow, If-Then-Else(Compare((Event Player).agg, ==, 3), ((Event Player).partner).station, 0));
         End;
         Call Subroutine(resetBot);
@@ -1151,7 +1150,8 @@ rule ("Host: force a hero so the match needs no click") {
         Is Dummy Bot(Event Player) == False;
     }
     actions {
-        Start Forcing Player To Be Hero(Event Player, Hero(Mercy));
+        "Soldier: 76 has no ability that puts a prompt on team-mates (Mercy's did, over the bots)."
+        Start Forcing Player To Be Hero(Event Player, Hero(Soldier: 76));
     }
 }
 

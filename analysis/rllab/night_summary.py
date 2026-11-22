@@ -54,6 +54,8 @@ def per_run(r, n_last=40):
         "falls": sum(e["outcome"] == 2 for e in tr), "timeouts": sum(e["outcome"] == 3 for e in tr), "goals": sum(e["outcome"] == 1 for e in tr),
         "n": len(tr), "falls_per_100": 100 * sum(e["outcome"] == 2 for e in tr) / max(1, len(tr)),
         "last_return": mean(e["ret"] for e in tr[-n_last:]), "last_edge": mean(e["edge"] for e in tr[-n_last:]),
+        "first_return": mean(e["ret"] for e in tr[:n_last]), "timeouts_per_100": 100 * sum(e["outcome"] == 3 for e in tr) / max(1, len(tr)),
+        "steps_per_episode": sum(e["steps"] for e in tr) / max(1, len(tr)),
         "last_falls": sum(e["outcome"] == 2 for e in tr[-n_last:]),
         "first_goal": first_goal(tr), "train_steps": sum(e["steps"] for e in tr),
         "eval_goals": sum(e["outcome"] == 1 for e in ev), "eval_n": len(ev),
@@ -92,7 +94,7 @@ def summarise(matches, n_last=40):
     for cond in sorted({r["cond"] for r in full}):
         rs = [per_run(r, n_last) for r in full if r["cond"] == cond]
         d = {"name": ns.CONDITION_NAMES[cond], "runs": len(rs)}
-        for key in ("falls_per_100", "last_return", "last_edge", "falls", "timeouts", "train_steps", "sec_per_step"):
+        for key in ("falls_per_100", "last_return", "last_edge", "falls", "timeouts", "train_steps", "sec_per_step", "first_return", "timeouts_per_100", "steps_per_episode"):
             vals = [x[key] for x in rs if x[key] is not None]
             d[key] = mean(vals)
             lo, hi = boot_ci(vals)
@@ -135,7 +137,9 @@ def summarise(matches, n_last=40):
         "ac_vs_pg_return": contrast(12, 11, "last_return"), "ac_vs_q_return": contrast(12, 1, "last_return"),
         "mcopt_vs_mc_return": contrast(13, 6, "last_return"),
         "coarse_vs_q_falls": contrast(14, 1, "falls_per_100"), "rowonly_vs_q_falls": contrast(15, 1, "falls_per_100"),
-        "rowonly_vs_q_return": contrast(15, 1, "last_return"),
+        "rowonly_vs_q_return": contrast(15, 1, "last_return"), "coarse_vs_rowonly_falls": contrast(14, 15, "falls_per_100"),
+        "dyna_vs_q_first": contrast(5, 1, "first_return"), "dyna_vs_q_steps": contrast(5, 1, "train_steps"),
+        "ac_vs_q_falls": contrast(12, 1, "falls_per_100"), "esarsa_vs_q_falls": contrast(2, 1, "falls_per_100"),
     }
 
     # Prediction (the random-walk bot): error of the TD(0) and Monte Carlo value tables against the exact answer.
