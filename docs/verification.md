@@ -1,7 +1,7 @@
 # Verification record
 
 What has been checked, how, and what has not. Session: 2026-11-21, Overwatch 2.25.1.0 (Steam,
-Windows), OverPy 9.7.21. Five matches in one private lobby, about 57 minutes of match time in total.
+Windows), OverPy 9.7.21. Six matches in private lobbies, about 58 minutes of match time in total.
 Their log files are in `data/logs/`, and the screenshots in `docs/img/` are from the same session.
 
 A compile proves the text is well-formed Workshop code. It says nothing about behaviour in the
@@ -11,17 +11,19 @@ game. Every line under "Run in Overwatch" was seen in the game or read from a lo
 
 | Claim | Evidence |
 |---|---|
-| The compiled text imports | The five test builds (`workshop/compiled/variant-*.txt`) were each pasted with the Settings paste button; mode name and Workshop Island appeared in the Summary each time. The standard build was not pasted: see the next section |
+| The compiled text imports | All six builds in `workshop/compiled/` were pasted with the Settings paste button; mode name and Workshop Island appeared in the Summary each time |
+| The standard build runs as shipped | `2026-11-21_standard_build_smoke.txt`: pasted into a fresh lobby and started with no setting touched. Menu showed Experiment = Cliff walk and Algorithm = SARSA; HUD read `CLIFF WALK / SARSA`, `TRAINING`, `READY`; episodes ran; no per-step lines were logged, as its default says |
+| A new run always starts in training | Same log: Reload (evaluation), then hold Ultimate: `RUN` 2 follows and its episodes are training episodes |
 | Skirmish on Workshop Island starts and the rules run | Every match reached `STATUS: READY` in about 6 s |
-| The island is measured by ray casts | `CAL` line identical in all five logs: x -20 to 20, z -20 to 20, floor 0 |
+| The island is measured by ray casts | `CAL` line identical in all six logs: x -20 to 20, z -20 to 20, floor 0 |
 | Tracer and Widowmaker spawn as bots | Visible in every match; scoreboard shows both |
-| Tracer moves under throttle control, at a measured speed | 5.98 m/s, coast 0.25 m, in all five logs |
+| Tracer moves under throttle control, at a measured speed | 5.98 m/s, coast 0.25 m, in all six logs |
 | Scripted patrol (Milestone 1) | `2026-11-21_demo_patrol.txt`: 20 laps, each 17 steps along the planned cells, each ending on the goal, return 33 |
-| Episode reset puts Tracer back on the start cell | 313 completed episodes across the logs; every one starts in state 0 |
-| A step off the edge is a real fall and is scored | 78 episodes ended `FELL`; first one at match time 0:08 of the SARSA run |
-| The step limit ends an episode | 1 training timeout (Q-learning, episode 5), 3 evaluation timeouts (SARSA) |
+| Episode reset puts Tracer back on the start cell | 323 completed episodes across the six logs; in the five logs with per-step lines, every episode's first step starts in state 0 |
+| A step off the edge is a real fall and is scored | 87 episodes ended `FELL`; first one at match time 0:08 of the SARSA run |
+| The step limit ends an episode | 1 training timeout (Q-learning, episode 5), 4 evaluation timeouts (3 in the SARSA run, 1 in the standard-build run) |
 | The match clock stays frozen | Hero select showed 30:00 after a restart; HUD showed 29:59 for 26 minutes |
-| The learning updates are computed correctly | Replay of 6,978 logged steps: all 6,085 updates (3,117 SARSA, 2,968 Q-learning) match the reference within the log's 0.01 rounding; all 313 episode returns re-add |
+| The learning updates are computed correctly | Replay of 6,978 logged steps: all 6,085 updates (3,117 SARSA, 2,968 Q-learning) match the reference within the log's 0.01 rounding; the returns of all 313 episodes in those five logs re-add |
 | Exploration happens at the set rate | 611 exploratory draws in 6,085 training steps: 10.0 % at epsilon 0.1 |
 | The policy arrows, HUD and counters display | `docs/img/` screenshots |
 | The Q-table is logged every 50 episodes | 94 `Q` lines in each long run (episodes 50 and 100) |
@@ -56,13 +58,8 @@ the runs before believing the size of it.
 
 ## Compiled and unit-tested only
 
-- **The standard build, `workshop/compiled/overwatch-rl-lab.txt`, was never pasted into the game.**
-  It is the same source as the five builds that were, with three differences: per-step logging
-  defaults to Off, and the Experiment and Algorithm choices are menu entries instead of being fixed.
-  Those two menu entries are the same kind of setting as "Start mode", which was seen working. The
-  desktop was in use before this last check could be run.
-- The last code change of the session (a new run always starts in training) was imported with the
-  Widowmaker and Blink builds, but no new run was started in those matches, so that line never ran.
+- Changing the Experiment or Algorithm from the menu. Both entries were seen with the right
+  defaults; the other choices were exercised only through the test builds, which fix them in code.
 - The epsilon controls on Crouch + Primary / Secondary Fire. The rules compile; no key combination
   was sent in the game.
 - "Start paused", "Initial Q-value" other than 0, "Game speed percent" below 100, Tracer move speed
