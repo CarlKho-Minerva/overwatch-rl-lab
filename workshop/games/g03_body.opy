@@ -7,7 +7,7 @@ A step off the board leaves you where you were (and still costs 1). Every pad sh
 Each Interact (F) runs ONE synchronous sweep of value iteration:
     new number of a pad = best over its 4 moves of (step reward + old number of the pad that move lands on)
 When a sweep changes nothing, lines appear on the pads (the plan) and the player walks it himself.
-Then he moves the right-hand pit to a pad of his choice and the board is planned again.
+Then he moves one pit (the board marks which) to a pad of his choice and the board is planned again.
 
 Pads: index p = row * 5 + column, row along +z, column along +x, centre (-14 + 4 column, 0, -14 + 4 row).
 Moves: 0 = +x, 1 = +z, 2 = -x, 3 = -z. A tie between moves goes to the lowest number.
@@ -41,6 +41,7 @@ settings {
 #!define GAME_TITLE "RL 3: THE WHITEBOARD"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-6, 0, -14)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 
@@ -84,6 +85,7 @@ globalvar walkSim = 0
 globalvar wantF = false
 globalvar gotF = false
 globalvar wantR = false
+globalvar markPit = false
 globalvar gotR = false
 globalvar walking = false
 globalvar walkRet = 0
@@ -234,7 +236,7 @@ def drawBoard():
     createEffect(getAllPlayers(), Effect.RING, Color.RED, padPos[pits[0]], 1.8, EffectReeval.NONE)
     createEffect(getAllPlayers(), Effect.RING, Color.RED, padPos[pits[1]], 1.8, EffectReeval.NONE)
     for dp in range(25):
-        createInWorldText(getAllPlayers(), "GOAL +10" if dp == goal else ("PIT -10" if dp in pits else "{}".format(round(V[dp]))), padPos[dp] + vect(0, 1, 0), 2.5, Clip.NONE, WorldTextReeval.NONE, Color.GREEN if dp == goal else (Color.LIGHT_RED if dp in pits else (Color.YELLOW if newPos[dp] else (Color.LIME_GREEN if V[dp] > 0 else Color.WHITE))))
+        createInWorldText(getAllPlayers(), "GOAL +10" if dp == goal else (("THIS PIT MOVES" if markPit and dp == pits[1] else "PIT -10") if dp in pits else "{}".format(round(V[dp]))), padPos[dp] + vect(0, 1, 0), 2.5, Clip.NONE, WorldTextReeval.NONE, Color.GREEN if dp == goal else (Color.LIGHT_RED if dp in pits else (Color.YELLOW if newPos[dp] else (Color.LIME_GREEN if V[dp] > 0 else Color.WHITE))))
         if showArrows and arrow[dp] >= 0:
             createBeam(getAllPlayers(), Beam.GRAPPLE, padPos[dp] + vect(0, 0.3, 0), padPos[dp] + dirv[arrow[dp]] * 2 + vect(0, 0.3, 0), Color.YELLOW if flip[dp] else Color.GREEN, EffectReeval.NONE)
         if dp % 5 == 4:
@@ -479,8 +481,12 @@ rule "Game 3: run":
     pitFrom = pits[1]
     pitOk = false
     pitTries = 0
-    ctrl = "WASD: go to any pad.   R: move the right-hand pit onto the pad you stand on."
-    coach = "The enemy moved. Stand on any pad and press R: the right-hand pit jumps there."
+    # 2026-11-22: this used to say "the right-hand pit", which was the left-hand one from the start pad and
+    # neither from where the walk ends. The board now labels the pit that moves.
+    markPit = true
+    drawBoard()
+    ctrl = "WASD: go to any pad.   R: move the pit marked THIS PIT MOVES onto the pad you stand on."
+    coach = "The enemy moved. Stand on any pad and press R: the pit marked THIS PIT MOVES jumps there."
     while not pitOk:
         gotR = false
         wantR = true
@@ -507,6 +513,7 @@ rule "Game 3: run":
             if not pitOk:
                 pits[1] = pitFrom
                 coach = "That would wall a pad in with no way to the goal. Pick another pad."
+    markPit = false
     keepOld = true
     makeArrows()
     # pit: the pad it left, the pad it moved to, old lines now wrong (answer key), presses of R

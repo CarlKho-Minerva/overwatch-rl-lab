@@ -43,6 +43,7 @@ settings {
 #!define GAME_TITLE "RL 5: SLIPPERY BOOTS"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-11, 0, -18.5)
+#!define HOME_FACING vect(1, 0, 0)
 
 #!include "common.opy"
 

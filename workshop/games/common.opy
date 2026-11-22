@@ -7,6 +7,7 @@ A game file defines, BEFORE including this file:
     #!define GAME_TITLE "RL 5: SLIPPERY BOOTS"
     #!define LEARNER_HERO Hero.TRACER        the hero the player is given
     #!define HOME_POS vect(-12, 0, -17)      where the player starts and is put back after a fall
+    #!define HOME_FACING vect(0, 0, 1)       the way he looks when he is put there: toward the game's board
 and AUTOPLAY (true or false) comes from the two-line wrapper files gNN.opy and gNN_auto.opy.
 
 What this file gives every game:
@@ -28,6 +29,7 @@ Log lines (docs/games.md):
     RLG,T,<game>,<name>,<expected>,<got>,<ok>
     RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>
     RLG,E,<game>,<event name>,<numbers...>          (each game's own events)
+    RLG,L,<game>,<seconds sampled>,<server load: mean over the whole game>,<highest peak over the whole game>
     RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
 */
 
@@ -62,6 +64,9 @@ globalvar chkExp = 0
 globalvar chkGot = 0
 globalvar selfOk = 0
 globalvar selfBad = 0
+globalvar loadSamples = 0
+globalvar loadSumRun = 0
+globalvar loadPeakRun = 0
 playervar fellCount = 0
 playervar fell = false
 
@@ -88,6 +93,12 @@ rule "Core: write the queued log lines in one frame, once a second":
             logToInspector(logQ[flushI])
         disableInspector()
         logQ = logQ.slice(flushN, 1000)
+    # 2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and
+    # kept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle).
+    if ready and not gameOver:
+        loadSamples += 1
+        loadSumRun += getAverageServerLoad()
+        loadPeakRun = max(loadPeakRun, getPeakServerLoad())
     loop()
 
 rule "Core: every human player gets the game's hero":
@@ -118,6 +129,8 @@ rule "Core: set up the learner":
         learner = hostPlayer
         learner.teleport(HOME_POS)
     wait(0.5)
+    # 2026-11-22: five games left a person looking wherever he spawned, sometimes away from the board.
+    learner.setFacing(HOME_FACING, Relativity.TO_WORLD)
     LOG("RLG,M,{},{},{}".format(GAME_ID, GAME_VERSION, 1 if AUTOPLAY else 0))
     ready = true
 
@@ -131,6 +144,7 @@ def putHome():
             waitUntil(learner.isAlive(), 4)
     learner.teleport(HOME_POS)
     wait(0.2)
+    learner.setFacing(HOME_FACING, Relativity.TO_WORLD)
     learner.fell = false
 
 rule "Core: the learner fell off the island":
@@ -160,6 +174,9 @@ def ask():
     learner.disallowButton(Button.PRIMARY_FIRE)
     learner.disallowButton(Button.SECONDARY_FIRE)
     learner.disallowButton(Button.MELEE)
+    # 2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment
+    # their conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question.
+    waitUntil(not (learner.isHoldingButton(Button.PRIMARY_FIRE) or learner.isHoldingButton(Button.SECONDARY_FIRE) or learner.isHoldingButton(Button.MELEE)), 8)
     wait(0.4)
     qActive = true
     if AUTOPLAY:
@@ -204,6 +221,9 @@ rule "Core: melee answers the third option":
 def finish():
     @Name "Core: end the game and write the closing line"
     gameOver = true
+    # Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds
+    # sampled, the mean over the whole game, the highest peak. Written by both builds.
+    LOG("RLG,L,{},{},{},{}".format(GAME_ID, loadSamples, round(loadSumRun / max(loadSamples, 1)), round(loadPeakRun)))
     LOG("RLG,X,{},{},{},{},{},{}".format(GAME_ID, NOW, predRight, predTotal, selfOk, selfBad))
 
 rule "Core: the screen":

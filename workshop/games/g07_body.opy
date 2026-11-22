@@ -38,6 +38,7 @@ settings {
 #!define GAME_TITLE "RL 7: COUNTER-PICK"
 #!define LEARNER_HERO Hero.SOLDIER
 #!define HOME_POS vect(0, 0, -8)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 
@@ -158,9 +159,11 @@ def getPick():
         waitUntil(youPick >= 0 or gameOver, 120)
     pickOpen = false
     if youPick < 0:
-        youPick = random.randint(0, 2)
+        # 2026-11-22: in the same-hero rounds a random pick had a 2 in 3 chance of not matching, and the round then
+        # asked again, two minutes at a time. A timed-out pick there is the hero already chosen.
+        youPick = habit if (phase == 0 and habit >= 0) else random.randint(0, 2)
         timedOut += 1
-        coach = "No pick in two minutes, so one was made for you at random."
+        coach = "No pick in two minutes, so one was made for you."
 
 def playRound():
     @Name "Game 7: one round: the bot locks in from its odds, the player picks, reveal, the bot learns"

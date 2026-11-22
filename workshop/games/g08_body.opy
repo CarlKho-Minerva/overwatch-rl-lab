@@ -42,6 +42,7 @@ settings {
 #!define GAME_TITLE "RL 8: RECALL"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-12, 0, 0)
+#!define HOME_FACING vect(1, 0, 0)
 
 #!include "common.opy"
 
@@ -386,9 +387,12 @@ def runRace():
     @Name "Game 8: run one race (raceNo, nRep, gap, showRace set by the caller) and wait for both bots"
     botP.done = false
     botD.done = false
+    # 2026-11-22: the controls line still said "Answer: ..." through a race, when there is nothing to press.
+    ctrl = "Watch the race. Nothing to press until it ends."
     raceGo = true
     waitUntil(botP.done and botD.done, 240)
     raceGo = false
+    ctrl = "Answer: left click, right click, melee."
     wait(0.1)
 
 def raceSummary():

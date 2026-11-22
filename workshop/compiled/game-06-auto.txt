@@ -54,69 +54,72 @@ variables {
         21: chkGot
         22: selfOk
         23: selfBad
-        24: truth
-        25: descE
-        26: descT
-        27: descW
-        28: descS
-        29: allPads
-        30: autoPads
-        31: padPos
-        32: padCnt
-        33: padLast
-        34: padTop
-        35: padLow
-        36: sPad
-        37: sVal
-        38: uPad
-        39: uVal
-        40: desc
-        41: fit
-        42: fitErr
-        43: fitSq
-        44: fitD
-        45: gSum
-        46: gCnt
-        47: fi
-        48: pi
-        49: estE
-        50: estT
-        51: estW
-        52: estS
-        53: missE
-        54: missT
-        55: missW
-        56: m6
-        57: m60
-        58: mInf
-        59: mS
-        60: bestMap
-        61: bestV
-        62: stageNo
-        63: callPad
-        64: callNoise
-        65: callVal
-        66: scoutOpen
-        67: scoutReq
-        68: scoutN
-        69: herePad
-        70: pickPad
-        71: ringMode
-        72: lowMode
-        73: topMode
-        74: kk
-        75: q5Pads
-        76: wrongMax
-        77: stepsLine
-        78: legendLine
-        79: missHead
-        80: rowE
-        81: rowT
-        82: rowW
-        83: rowS
-        84: deb1
-        85: deb2
-        86: deb3
+        24: loadSamples
+        25: loadSumRun
+        26: loadPeakRun
+        27: truth
+        28: descE
+        29: descT
+        30: descW
+        31: descS
+        32: allPads
+        33: autoPads
+        34: padPos
+        35: padCnt
+        36: padLast
+        37: padTop
+        38: padLow
+        39: sPad
+        40: sVal
+        41: uPad
+        42: uVal
+        43: desc
+        44: fit
+        45: fitErr
+        46: fitSq
+        47: fitD
+        48: gSum
+        49: gCnt
+        50: fi
+        51: pi
+        52: estE
+        53: estT
+        54: estW
+        55: estS
+        56: missE
+        57: missT
+        58: missW
+        59: m6
+        60: m60
+        61: mInf
+        62: mS
+        63: bestMap
+        64: bestV
+        65: stageNo
+        66: callPad
+        67: callNoise
+        68: callVal
+        69: scoutOpen
+        70: scoutReq
+        71: scoutN
+        72: herePad
+        73: pickPad
+        74: ringMode
+        75: lowMode
+        76: topMode
+        77: kk
+        78: q5Pads
+        79: wrongMax
+        80: stepsLine
+        81: legendLine
+        82: missHead
+        83: rowE
+        84: rowT
+        85: rowW
+        86: rowS
+        87: deb1
+        88: deb2
+        89: deb3
     player:
         0: fellCount
         1: fell
@@ -225,6 +228,12 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
+        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
+        If(And(Global.ready, Not(Global.gameOver)));
+            Modify Global Variable(loadSamples, Add, 1);
+            Modify Global Variable(loadSumRun, Add, Server Load Average);
+            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        End;
         Loop;
     }
 }
@@ -275,6 +284,8 @@ rule ("Core: set up the learner") {
         Set Invisible(Host Player, All);
         Teleport(Host Player, Vector(0, 0, 0));
         Wait(0.5, Ignore Condition);
+        "2026-11-22: five games left a person looking wherever he spawned, sometimes away from the board."
+        Set Facing(Global.learner, Forward, To World);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,6,1,1"));
         Set Global Variable(ready, True);
     }
@@ -296,6 +307,7 @@ rule ("Core: put the learner back at the start (after a fall, or between rounds)
         End;
         Teleport(Global.learner, Vector(0, 0, -5));
         Wait(0.2, Ignore Condition);
+        Set Facing(Global.learner, Forward, To World);
         Set Player Variable(Global.learner, fell, False);
     }
 }
@@ -348,6 +360,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
+        Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
         Wait(1.2, Ignore Condition);
@@ -423,6 +437,8 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,6,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,6,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }
@@ -733,6 +749,8 @@ rule ("Game 6: run") {
         While(Compare(Global.scoutN, <, 6));
             Set Global Variable(stepsLine, Custom String("Scouting steps left: {0} of 6", Subtract(6, Global.scoutN)));
             Set Global Variable(scoutReq, False);
+            "2026-11-22: F held past the end of one scout used to read the same pad a second time."
+            Wait Until(Not(Is Button Held(Global.learner, Button(Interact))), 3);
             Set Global Variable(scoutOpen, True);
             Teleport(Global.learner, Value In Array(Global.padPos, Value In Array(Global.autoPads, Global.scoutN)));
             Wait(0.5, Ignore Condition);
@@ -870,6 +888,8 @@ rule ("Game 6: run") {
         Set Global Variable(pickPad, -1);
         While(Compare(Global.pickPad, <, 0));
             Set Global Variable(scoutReq, False);
+            "2026-11-22: F held past the end of one scout used to read the same pad a second time."
+            Wait Until(Not(Is Button Held(Global.learner, Button(Interact))), 3);
             Set Global Variable(scoutOpen, True);
             Teleport(Global.learner, Value In Array(Global.padPos, 9));
             Wait(0.5, Ignore Condition);

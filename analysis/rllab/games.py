@@ -4,6 +4,7 @@
     RLG,T,<game>,<name>,<expected>,<got>,<ok>
     RLG,A,<game>,<question id>,<answer>,<correct answer>,<right>
     RLG,E,<game>,<event name>,<values...>
+    RLG,L,<game>,<seconds sampled>,<server load, mean over the game>,<highest peak over the game>
     RLG,X,<game>,<seconds>,<predictions right>,<predictions made>,<self-tests ok>,<self-tests failed>
 
 The game prints numbers to two decimals, and its chat filter can replace some digit runs with stars; a starred
@@ -35,7 +36,7 @@ def _val(x: str):
 
 def parse(path) -> dict:
     """All RLG lines of one log file: {"M": [...], "T": [...], "A": [...], "E": [...], "X": [...]}, each a list of dicts."""
-    out = {"M": [], "T": [], "A": [], "E": [], "X": [], "path": str(path)}
+    out = {"M": [], "T": [], "A": [], "E": [], "X": [], "L": [], "path": str(path)}
     for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
         m = LINE.match(line.strip())
         if not m:
@@ -53,6 +54,9 @@ def parse(path) -> dict:
             out["A"].append({"t": t, "game": f[0], "qid": f[1], "answer": f[2], "correct": f[3], "right": f[4]})
         elif kind == "E" and len(f) >= 2:
             out["E"].append({"t": t, "game": f[0], "name": f[1], "v": f[2:]})
+        elif kind == "L" and len(f) >= 4:
+            # server load over the whole game, read once a second: seconds sampled, mean of the averages, highest peak
+            out["L"].append({"t": t, "game": f[0], "samples": f[1], "load_avg": f[2], "load_peak": f[3]})
         elif kind == "X" and len(f) >= 6:
             out["X"].append({"t": t, "game": f[0], "seconds": f[1], "right": f[2], "asked": f[3], "self_ok": f[4], "self_bad": f[5]})
     return out

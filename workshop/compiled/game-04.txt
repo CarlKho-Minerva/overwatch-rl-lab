@@ -54,40 +54,43 @@ variables {
         21: chkGot
         22: selfOk
         23: selfBad
-        24: ringPos
-        25: ringName
-        26: vMc
-        27: vTd
-        28: rB
-        29: rO
-        30: tB
-        31: tO
-        32: legState
-        33: mud
-        34: legT
-        35: ret
-        36: counts
-        37: picks
-        38: walk
-        39: leg
-        40: nLegs
-        41: fullIdx
-        42: t0
-        43: tLeg
-        44: old
-        45: tgt
-        46: gSum
-        47: ii
-        48: histB
-        49: histO
-        50: swingIn
-        51: swingOut
-        52: swingB
-        53: swingO
-        54: board
-        55: status
-        56: deb
-        57: showDeb
+        24: loadSamples
+        25: loadSumRun
+        26: loadPeakRun
+        27: ringPos
+        28: ringName
+        29: vMc
+        30: vTd
+        31: rB
+        32: rO
+        33: tB
+        34: tO
+        35: legState
+        36: mud
+        37: legT
+        38: ret
+        39: counts
+        40: picks
+        41: walk
+        42: leg
+        43: nLegs
+        44: fullIdx
+        45: t0
+        46: tLeg
+        47: old
+        48: tgt
+        49: gSum
+        50: ii
+        51: histB
+        52: histO
+        53: swingIn
+        54: swingOut
+        55: swingB
+        56: swingO
+        57: board
+        58: status
+        59: deb
+        60: showDeb
     player:
         0: fellCount
         1: fell
@@ -172,6 +175,12 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
+        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
+        If(And(Global.ready, Not(Global.gameOver)));
+            Modify Global Variable(loadSamples, Add, 1);
+            Modify Global Variable(loadSumRun, Add, Server Load Average);
+            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        End;
         Loop;
     }
 }
@@ -217,6 +226,8 @@ rule ("Core: set up the learner") {
         Set Global Variable(learner, Host Player);
         Teleport(Global.learner, Vector(-14, 0, -14));
         Wait(0.5, Ignore Condition);
+        "2026-11-22: five games left a person looking wherever he spawned, sometimes away from the board."
+        Set Facing(Global.learner, Forward, To World);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,4,1,0"));
         Set Global Variable(ready, True);
     }
@@ -238,6 +249,7 @@ rule ("Core: put the learner back at the start (after a fall, or between rounds)
         End;
         Teleport(Global.learner, Vector(-14, 0, -14));
         Wait(0.2, Ignore Condition);
+        Set Facing(Global.learner, Forward, To World);
         Set Player Variable(Global.learner, fell, False);
     }
 }
@@ -290,6 +302,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
+        Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
@@ -364,6 +378,8 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,4,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,4,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

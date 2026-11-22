@@ -38,6 +38,7 @@ settings {
 #!define GAME_TITLE "RL 1: NO COACH"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -3)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 

@@ -40,6 +40,7 @@ settings {
 #!define GAME_TITLE "RL 4: BACK FROM SPAWN"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-14, 0, -14)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 

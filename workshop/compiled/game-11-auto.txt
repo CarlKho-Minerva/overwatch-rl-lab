@@ -54,55 +54,58 @@ variables {
         21: chkGot
         22: selfOk
         23: selfBad
-        24: padL
-        25: padR
-        26: Vt
-        27: gi
-        28: gsweep
-        29: gp
-        30: pl
-        31: nStar
-        32: pStar
-        33: planText
-        34: acc
-        35: belief
-        36: nLat
-        37: hidden
-        38: roundN
-        39: score
-        40: pingCount
-        41: nSaidL
-        42: nSaidR
-        43: lastSaid
-        44: pingReq
-        45: fArmed
-        46: deciding
-        47: roomsOpen
-        48: barShown
-        49: barText
-        50: hudRound
-        51: hudPings
-        52: hudKeys
-        53: enterNow
-        54: pingQ
-        55: pBefore
-        56: reading
-        57: firstReading
-        58: roundDone
-        59: room
-        60: roomEv
-        61: reward
-        62: autoStyle
-        63: autoRoom
-        64: onPad
-        65: fx
-        66: sombraFx
-        67: sombraTx
-        68: gain50
-        69: gain94
-        70: perfectV
-        71: nGood
-        72: debrief
+        24: loadSamples
+        25: loadSumRun
+        26: loadPeakRun
+        27: padL
+        28: padR
+        29: Vt
+        30: gi
+        31: gsweep
+        32: gp
+        33: pl
+        34: nStar
+        35: pStar
+        36: planText
+        37: acc
+        38: belief
+        39: nLat
+        40: hidden
+        41: roundN
+        42: score
+        43: pingCount
+        44: nSaidL
+        45: nSaidR
+        46: lastSaid
+        47: pingReq
+        48: fArmed
+        49: deciding
+        50: roomsOpen
+        51: barShown
+        52: barText
+        53: hudRound
+        54: hudPings
+        55: hudKeys
+        56: enterNow
+        57: pingQ
+        58: pBefore
+        59: reading
+        60: firstReading
+        61: roundDone
+        62: room
+        63: roomEv
+        64: reward
+        65: autoStyle
+        66: autoRoom
+        67: onPad
+        68: fx
+        69: sombraFx
+        70: sombraTx
+        71: gain50
+        72: gain94
+        73: perfectV
+        74: nGood
+        75: debrief
     player:
         0: fellCount
         1: fell
@@ -185,6 +188,12 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
+        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
+        If(And(Global.ready, Not(Global.gameOver)));
+            Modify Global Variable(loadSamples, Add, 1);
+            Modify Global Variable(loadSumRun, Add, Server Load Average);
+            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        End;
         Loop;
     }
 }
@@ -235,6 +244,8 @@ rule ("Core: set up the learner") {
         Set Invisible(Host Player, All);
         Teleport(Host Player, Vector(0, 0, 0));
         Wait(0.5, Ignore Condition);
+        "2026-11-22: five games left a person looking wherever he spawned, sometimes away from the board."
+        Set Facing(Global.learner, Forward, To World);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,11,1,1"));
         Set Global Variable(ready, True);
     }
@@ -256,6 +267,7 @@ rule ("Core: put the learner back at the start (after a fall, or between rounds)
         End;
         Teleport(Global.learner, Vector(0, 0, -10));
         Wait(0.2, Ignore Condition);
+        Set Facing(Global.learner, Forward, To World);
         Set Player Variable(Global.learner, fell, False);
     }
 }
@@ -308,6 +320,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
+        Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
         Wait(1.2, Ignore Condition);
@@ -383,6 +397,8 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,11,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,11,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }
@@ -645,6 +661,22 @@ rule ("Game 11: letting go of F arms the next ping") {
     }
     actions {
         Set Global Variable(fArmed, True);
+    }
+}
+
+rule ("Game 11: a locked room says so") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        "2026-11-22: in the two guided rounds a pad did nothing until the rooms opened, with no word on screen."
+        Global.ready != False;
+        Global.deciding != False;
+        Global.roomsOpen == False;
+        Or(Compare(Distance Between(Position Of(Global.learner), Global.padL), <, 2), Compare(Distance Between(Position Of(Global.learner), Global.padR), <, 2)) == True;
+    }
+    actions {
+        Set Global Variable(coach, Custom String("The rooms are locked for now. Ping with F first."));
     }
 }
 

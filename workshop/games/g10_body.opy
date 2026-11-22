@@ -40,6 +40,7 @@ settings {
 #!define GAME_TITLE "RL 10: THE PEEK"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -12)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 

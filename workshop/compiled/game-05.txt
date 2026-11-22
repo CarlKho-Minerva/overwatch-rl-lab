@@ -54,67 +54,70 @@ variables {
         21: chkGot
         22: selfOk
         23: selfBad
-        24: evV
-        25: evLane
-        26: evEps
-        27: evStep
-        28: evGoal
-        29: evFall
-        30: evOut
-        31: evSweeps
-        32: evSweep
-        33: evK
-        34: evD
-        35: evDelta
-        36: evSum
-        37: evP
-        38: evPol
-        39: evR2
-        40: evC2
-        41: evS2
-        42: evX
-        43: vEdge0
-        44: vIn0
-        45: vEdge
-        46: vIn
-        47: fEdge
-        48: fIn
-        49: fQuick
-        50: crossing
-        51: lane
-        52: laneActive
-        53: laneChoice
-        54: laneHead
-        55: boopsOn
-        56: curCell
-        57: seenCell
-        58: newCell
-        59: roll
-        60: mv
-        61: r2
-        62: c2
-        63: stepR
-        64: ret
-        65: steps
-        66: boops
-        67: outcome
-        68: edgeSteps
-        69: tStart
-        70: tgtPos
-        71: realFall
-        72: lucio
-        73: autoLanes
-        74: dirName
-        75: laneName
-        76: outName
-        77: hudRun
-        78: hudRes
-        79: hudModel
-        80: db1
-        81: db2
-        82: db3
-        83: db4
-        84: fxI
+        24: loadSamples
+        25: loadSumRun
+        26: loadPeakRun
+        27: evV
+        28: evLane
+        29: evEps
+        30: evStep
+        31: evGoal
+        32: evFall
+        33: evOut
+        34: evSweeps
+        35: evSweep
+        36: evK
+        37: evD
+        38: evDelta
+        39: evSum
+        40: evP
+        41: evPol
+        42: evR2
+        43: evC2
+        44: evS2
+        45: evX
+        46: vEdge0
+        47: vIn0
+        48: vEdge
+        49: vIn
+        50: fEdge
+        51: fIn
+        52: fQuick
+        53: crossing
+        54: lane
+        55: laneActive
+        56: laneChoice
+        57: laneHead
+        58: boopsOn
+        59: curCell
+        60: seenCell
+        61: newCell
+        62: roll
+        63: mv
+        64: r2
+        65: c2
+        66: stepR
+        67: ret
+        68: steps
+        69: boops
+        70: outcome
+        71: edgeSteps
+        72: tStart
+        73: tgtPos
+        74: realFall
+        75: lucio
+        76: autoLanes
+        77: dirName
+        78: laneName
+        79: outName
+        80: hudRun
+        81: hudRes
+        82: hudModel
+        83: db1
+        84: db2
+        85: db3
+        86: db4
+        87: fxI
     player:
         0: fellCount
         1: fell
@@ -192,6 +195,12 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
         End;
+        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
+        If(And(Global.ready, Not(Global.gameOver)));
+            Modify Global Variable(loadSamples, Add, 1);
+            Modify Global Variable(loadSumRun, Add, Server Load Average);
+            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
+        End;
         Loop;
     }
 }
@@ -237,6 +246,8 @@ rule ("Core: set up the learner") {
         Set Global Variable(learner, Host Player);
         Teleport(Global.learner, Vector(-11, 0, -18.5));
         Wait(0.5, Ignore Condition);
+        "2026-11-22: five games left a person looking wherever he spawned, sometimes away from the board."
+        Set Facing(Global.learner, Left, To World);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,5,1,0"));
         Set Global Variable(ready, True);
     }
@@ -258,6 +269,7 @@ rule ("Core: put the learner back at the start (after a fall, or between rounds)
         End;
         Teleport(Global.learner, Vector(-11, 0, -18.5));
         Wait(0.2, Ignore Condition);
+        Set Facing(Global.learner, Left, To World);
         Set Player Variable(Global.learner, fell, False);
     }
 }
@@ -310,6 +322,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
+        Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
         Wait Until(Or(Compare(Global.qAnswer, >=, 0), Global.gameOver), 90);
@@ -384,6 +398,8 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,5,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,5,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }

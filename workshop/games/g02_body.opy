@@ -37,6 +37,7 @@ settings {
 #!define GAME_TITLE "RL 2: MINI OR MEGA"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(-8, 0, -4)
+#!define HOME_FACING vect(1, 0, 0)
 
 #!include "common.opy"
 

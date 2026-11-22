@@ -38,6 +38,7 @@ settings {
 #!define GAME_TITLE "RL 11: SOMBRA'S ROOM"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -10)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 
@@ -309,6 +310,14 @@ rule "Game 11: letting go of F arms the next ping":
     @Condition eventPlayer == learner
     @Condition eventPlayer.isHoldingButton(Button.INTERACT) == false
     fArmed = true
+
+rule "Game 11: a locked room says so":
+    # 2026-11-22: in the two guided rounds a pad did nothing until the rooms opened, with no word on screen.
+    @Condition ready
+    @Condition deciding
+    @Condition roomsOpen == false
+    @Condition distance(learner.getPosition(), padL) < PAD_R or distance(learner.getPosition(), padR) < PAD_R
+    coach = "The rooms are locked for now. Ping with F first."
 
 rule "Game 11: a fall puts him back at home":
     @Condition ready

@@ -41,6 +41,7 @@ settings {
 #!define GAME_TITLE "RL 9: LOOT BOXES"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -8)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 

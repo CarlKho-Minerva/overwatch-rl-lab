@@ -54,70 +54,74 @@ variables {
         21: chkGot
         22: selfOk
         23: selfBad
-        24: padPos
-        25: dirv
-        26: goal
-        27: pits
-        28: V
-        29: Vnew
-        30: Vsave
-        31: chg
-        32: newPos
-        33: lastCh
-        34: arrow
-        35: arrowOld
-        36: flip
-        37: qs
-        38: qBest
-        39: sweepN
-        40: nChg
-        41: maxChg
-        42: looks
-        43: looks0
-        44: keepOld
-        45: wrongN
-        46: showArrows
-        47: runId
-        48: nSweeps
-        49: dStart
-        50: dMax
-        51: vStart
-        52: walkSim
-        53: wantF
-        54: gotF
-        55: wantR
-        56: gotR
-        57: walking
-        58: walkRet
-        59: walkSteps
-        60: walkEnd
-        61: walkRestarts
-        62: walkT0
-        63: lastMove
-        64: curP
-        65: prevP
-        66: pitFrom
-        67: pitTo
-        68: pitOk
-        69: pitTries
-        70: ctrl
-        71: boardTxt
-        72: showDebrief
-        73: deb
-        74: npP
-        75: npA
-        76: npS
-        77: npR
-        78: npRow
-        79: npCol
-        80: lp
-        81: la
-        82: wp
-        83: mp
-        84: sp
-        85: dp
-        86: rp
-        87: wk
+        24: loadSamples
+        25: loadSumRun
+        26: loadPeakRun
+        27: padPos
+        28: dirv
+        29: goal
+        30: pits
+        31: V
+        32: Vnew
+        33: Vsave
+        34: chg
+        35: newPos
+        36: lastCh
+        37: arrow
+        38: arrowOld
+        39: flip
+        40: qs
+        41: qBest
+        42: sweepN
+        43: nChg
+        44: maxChg
+        45: looks
+        46: looks0
+        47: keepOld
+        48: wrongN
+        49: showArrows
+        50: runId
+        51: nSweeps
+        52: dStart
+        53: dMax
+        54: vStart
+        55: walkSim
+        56: wantF
+        57: gotF
+        58: wantR
+        59: markPit
+        60: gotR
+        61: walking
+        62: walkRet
+        63: walkSteps
+        64: walkEnd
+        65: walkRestarts
+        66: walkT0
+        67: lastMove
+        68: curP
+        69: prevP
+        70: pitFrom
+        71: pitTo
+        72: pitOk
+        73: pitTries
+        74: ctrl
+        75: boardTxt
+        76: showDebrief
+        77: deb
+        78: npP
+        79: npA
+        80: npS
+        81: npR
+        82: npRow
+        83: npCol
+        84: lp
+        85: la
+        86: wp
+        87: mp
+        88: sp
+        89: dp
+        90: rp
+        91: wk
     player:
         0: fellCount
         1: fell
@@ -177,6 +181,7 @@ rule ("Initialize global variables") {
         Set Global Variable(wantF, False);
         Set Global Variable(gotF, False);
         Set Global Variable(wantR, False);
+        Set Global Variable(markPit, False);
         Set Global Variable(gotR, False);
         Set Global Variable(walking, False);
         Set Global Variable(pitOk, False);
@@ -212,6 +217,12 @@ rule ("Core: write the queued log lines in one frame, once a second") {
             End;
             Disable Inspector Recording;
             Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
+        End;
+        "2026-11-22: the game's own load readings only look back two seconds, so they are read here once a second and\nkept for the whole game (the closing reading alone showed the quiet debrief, not the busy middle)."
+        If(And(Global.ready, Not(Global.gameOver)));
+            Modify Global Variable(loadSamples, Add, 1);
+            Modify Global Variable(loadSumRun, Add, Server Load Average);
+            Modify Global Variable(loadPeakRun, Max, Server Load Peak);
         End;
         Loop;
     }
@@ -263,6 +274,8 @@ rule ("Core: set up the learner") {
         Set Invisible(Host Player, All);
         Teleport(Host Player, Vector(0, 0, 0));
         Wait(0.5, Ignore Condition);
+        "2026-11-22: five games left a person looking wherever he spawned, sometimes away from the board."
+        Set Facing(Global.learner, Forward, To World);
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,M,3,1,1"));
         Set Global Variable(ready, True);
     }
@@ -284,6 +297,7 @@ rule ("Core: put the learner back at the start (after a fall, or between rounds)
         End;
         Teleport(Global.learner, Vector(-6, 0, -14));
         Wait(0.2, Ignore Condition);
+        Set Facing(Global.learner, Forward, To World);
         Set Player Variable(Global.learner, fell, False);
     }
 }
@@ -336,6 +350,8 @@ rule ("Core: ask the learner to predict, wait for the answer, say why, log it") 
         Disallow Button(Global.learner, Button(Primary Fire));
         Disallow Button(Global.learner, Button(Secondary Fire));
         Disallow Button(Global.learner, Button(Melee));
+        "2026-11-22: a fire button still held when a question opened answered it at once (the answer rules fire the moment\ntheir conditions are true). Wait until all three are let go, for at most 8 seconds, before showing the question."
+        Wait Until(Not(Or(Or(Is Button Held(Global.learner, Button(Primary Fire)), Is Button Held(Global.learner, Button(Secondary Fire))), Is Button Held(Global.learner, Button(Melee)))), 8);
         Wait(0.4, Ignore Condition);
         Set Global Variable(qActive, True);
         Wait(1.2, Ignore Condition);
@@ -411,6 +427,8 @@ rule ("Core: end the game and write the closing line") {
     }
     actions {
         Set Global Variable(gameOver, True);
+        "Server load as the game itself reports it (a percentage; near 100 the game may shut the mode down): seconds\nsampled, the mean over the whole game, the highest peak. Written by both builds."
+        Modify Global Variable(logQ, Append To Array, Custom String("RLG,L,3,{0},{1},{2}", Global.loadSamples, Round To Integer(Divide(Global.loadSumRun, Max(Global.loadSamples, 1)), To Nearest), Round To Integer(Global.loadPeakRun, To Nearest)));
         Modify Global Variable(logQ, Append To Array, Custom String("RLG,X,3,{0},{1},{2}", Total Time Elapsed, Global.predRight, Custom String("{0},{1},{2}", Global.predTotal, Global.selfOk, Global.selfBad)));
     }
 }
@@ -593,7 +611,7 @@ rule ("Game 3: redraw the whiteboard: rings, one number per pad, and the plan's 
         Create Effect(All Players(All Teams), Ring, Color(Red), Value In Array(Global.padPos, First Of(Global.pits)), 1.8, None);
         Create Effect(All Players(All Teams), Ring, Color(Red), Value In Array(Global.padPos, Value In Array(Global.pits, 1)), 1.8, None);
         For Global Variable(dp, 0, 25, 1);
-            Create In-World Text(All Players(All Teams), If-Then-Else(Compare(Global.dp, ==, Global.goal), Custom String("GOAL +10"), If-Then-Else(Array Contains(Global.pits, Global.dp), Custom String("PIT -10"), Custom String("{0}", Round To Integer(Value In Array(Global.V, Global.dp), To Nearest)))), Add(Value In Array(Global.padPos, Global.dp), Up), 2.5, Do Not Clip, None, If-Then-Else(Compare(Global.dp, ==, Global.goal), Color(Green), If-Then-Else(Array Contains(Global.pits, Global.dp), Custom Color(255, 112, 122, 255), If-Then-Else(Value In Array(Global.newPos, Global.dp), Color(Yellow), If-Then-Else(Compare(Value In Array(Global.V, Global.dp), >, 0), Color(Lime Green), Color(White))))), Default Visibility);
+            Create In-World Text(All Players(All Teams), If-Then-Else(Compare(Global.dp, ==, Global.goal), Custom String("GOAL +10"), If-Then-Else(Array Contains(Global.pits, Global.dp), If-Then-Else(And(Global.markPit, Compare(Global.dp, ==, Value In Array(Global.pits, 1))), Custom String("THIS PIT MOVES"), Custom String("PIT -10")), Custom String("{0}", Round To Integer(Value In Array(Global.V, Global.dp), To Nearest)))), Add(Value In Array(Global.padPos, Global.dp), Up), 2.5, Do Not Clip, None, If-Then-Else(Compare(Global.dp, ==, Global.goal), Color(Green), If-Then-Else(Array Contains(Global.pits, Global.dp), Custom Color(255, 112, 122, 255), If-Then-Else(Value In Array(Global.newPos, Global.dp), Color(Yellow), If-Then-Else(Compare(Value In Array(Global.V, Global.dp), >, 0), Color(Lime Green), Color(White))))), Default Visibility);
             If(And(Global.showArrows, Compare(Value In Array(Global.arrow, Global.dp), >=, 0)));
                 Create Beam Effect(All Players(All Teams), Grapple Beam, Add(Value In Array(Global.padPos, Global.dp), Vector(0, 0.3, 0)), Add(Add(Value In Array(Global.padPos, Global.dp), Multiply(Value In Array(Global.dirv, Value In Array(Global.arrow, Global.dp)), 2)), Vector(0, 0.3, 0)), If-Then-Else(Value In Array(Global.flip, Global.dp), Color(Yellow), Color(Green)), None);
             End;
@@ -928,8 +946,11 @@ rule ("Game 3: run") {
         Set Global Variable(pitFrom, Value In Array(Global.pits, 1));
         Set Global Variable(pitOk, False);
         Set Global Variable(pitTries, 0);
-        Set Global Variable(ctrl, Custom String("WASD: go to any pad.   R: move the right-hand pit onto the pad you stand on."));
-        Set Global Variable(coach, Custom String("The enemy moved. Stand on any pad and press R: the right-hand pit jumps there."));
+        "2026-11-22: this used to say \"the right-hand pit\", which was the left-hand one from the start pad and\nneither from where the walk ends. The board now labels the pit that moves."
+        Set Global Variable(markPit, True);
+        Call Subroutine(drawBoard);
+        Set Global Variable(ctrl, Custom String("WASD: go to any pad.   R: move the pit marked THIS PIT MOVES onto the pad you stand on."));
+        Set Global Variable(coach, Custom String("The enemy moved. Stand on any pad and press R: the pit marked THIS PIT MOVES jumps there."));
         While(Not(Global.pitOk));
             Set Global Variable(gotR, False);
             Set Global Variable(wantR, True);
@@ -961,6 +982,7 @@ rule ("Game 3: run") {
                 End;
             End;
         End;
+        Set Global Variable(markPit, False);
         Set Global Variable(keepOld, True);
         Call Subroutine(makeArrows);
         "pit: the pad it left, the pad it moved to, old lines now wrong (answer key), presses of R"

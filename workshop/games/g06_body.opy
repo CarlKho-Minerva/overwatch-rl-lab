@@ -47,6 +47,7 @@ settings {
 #!define GAME_TITLE "RL 6: CALLOUTS"
 #!define LEARNER_HERO Hero.TRACER
 #!define HOME_POS vect(0, 0, -5)
+#!define HOME_FACING vect(0, 0, 1)
 
 #!include "common.opy"
 
@@ -316,6 +317,8 @@ rule "Game 6: run":
     while scoutN < BUDGET:
         stepsLine = "Scouting steps left: {} of {}".format(BUDGET - scoutN, BUDGET)
         scoutReq = false
+        # 2026-11-22: F held past the end of one scout used to read the same pad a second time.
+        waitUntil(not learner.isHoldingButton(Button.INTERACT), 3)
         scoutOpen = true
         if AUTOPLAY:
             learner.teleport(padPos[autoPads[scoutN]])
@@ -451,6 +454,8 @@ rule "Game 6: run":
     pickPad = -1
     while pickPad < 0:
         scoutReq = false
+        # 2026-11-22: F held past the end of one scout used to read the same pad a second time.
+        waitUntil(not learner.isHoldingButton(Button.INTERACT), 3)
         scoutOpen = true
         if AUTOPLAY:
             learner.teleport(padPos[9])

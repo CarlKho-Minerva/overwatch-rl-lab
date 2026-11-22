@@ -1,0 +1,34 @@
+[00:00:04] RLG,M,1,1,1
+[00:00:04] RLG,T,1,ring 0 is 13 m from the start,13,13,1
+[00:00:04] RLG,T,1,ring 3 is 13 m from the start,13,13,1
+[00:00:04] RLG,T,1,quick round: +50 in 3 s, no bill,47,47,1
+[00:00:04] RLG,T,1,slow round: +50 in 12 s, with the bill,18,18,1
+[00:00:04] RLG,T,1,no +50 in 120 s, no bill,-120,-120,1
+[00:00:04] RLG,T,1,gap between those two rounds,29,29,1
+[00:00:04] RLG,E,1,layout,1,0,3
+[00:00:06] RLG,A,1,1,1,1,1
+[00:00:09] RLG,E,1,touch,1,3,0,2
+[00:00:13] RLG,E,1,touch,1,1,0,6
+[00:00:16] RLG,E,1,touch,1,0,50,9
+[00:00:19] RLG,A,1,2,0,1,0
+[00:00:20] RLG,T,1,round 1 total adds up,21,21,1
+[00:00:20] RLG,E,1,round,1,1,9,1,21
+[00:00:22] RLG,A,1,3,1,1,1
+[00:00:25] RLG,E,1,touch,2,0,50,1
+[00:00:26] RLG,T,1,round 2 total adds up,49,49,1
+[00:00:26] RLG,E,1,round,2,1,1,0,49
+[00:00:26] RLG,E,1,gap,21,49,28
+[00:00:28] RLG,A,1,4,0,0,1
+[00:00:31] RLG,E,1,vanish,3
+[00:00:32] RLG,A,1,5,1,1,1
+[00:00:35] RLG,E,1,touch,3,0,50,1
+[00:00:36] RLG,T,1,round 3 total adds up,49,49,1
+[00:00:36] RLG,E,1,round,3,1,1,0,49
+[00:00:36] RLG,E,1,layout,4,4,3
+[00:00:38] RLG,A,1,6,1,1,1
+[00:00:41] RLG,E,1,touch,4,0,0,1
+[00:00:44] RLG,E,1,touch,4,4,50,5
+[00:00:45] RLG,T,1,round 4 total adds up,45,45,1
+[00:00:45] RLG,E,1,round,4,1,5,0,45
+[00:00:46] RLG,L,1,7,6,10
+[00:00:46] RLG,X,1,45.42,5,6,10,0
