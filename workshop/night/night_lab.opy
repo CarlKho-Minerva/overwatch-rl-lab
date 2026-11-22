@@ -60,6 +60,7 @@ enum Alg:
     RANDOM
     DP
     PG
+    AC
 
 enum Outcome:
     RUNNING = 0
@@ -104,7 +105,7 @@ globalvar rTimeout = createWorkshopSettingFloat("Rewards", "Reward for timeout",
 # ---------------------------------------------------------------------------
 # Global state
 # ---------------------------------------------------------------------------
-globalvar calStage = 0          # 0 measuring, 1 geometry known, 2 running, -1 failed (see calMsg)
+globalvar calStage = 0          # 0 measuring, 1 geometry known, 2 running, 3 block finished, -1 failed (see calMsg)
 globalvar calMsg = "measuring the island"
 globalvar floorY
 globalvar isleCenter
@@ -151,6 +152,13 @@ globalvar uiI
 globalvar uiJ
 globalvar glyphSet = [["→", "←", "↓", "↑"], ["→", "←", "↑", "↓"]]   # drawn for the overhead camera
 globalvar stopReason = 0
+globalvar hudHead = ""
+globalvar hudLine = []
+globalvar hudFeat = ["", ""]
+globalvar hudI
+globalvar logQ = []
+globalvar flushN
+globalvar flushI
 globalvar scriptPlan = SCRIPT_PLAN      # golden test only: every bot takes these actions in order instead of choosing
 
 # ---------------------------------------------------------------------------
@@ -260,13 +268,26 @@ subroutine logTables
 
 macro NOW = getTotalTimeElapsed()
 
-# The Workshop Inspector records every variable change as well as log lines, and stops recording when its
-# store is full. With ten bots changing arrays every step that took 80 seconds (test match, 2026-11-21),
-# and the log file stopped with it. So recording stays off, and is switched on only around each log line.
+# The Workshop Inspector records what the script does, not only log lines, and when its store is full it stops
+# recording and the log file stops with it, with no message. Measured on 2026-11-21 with ten bots:
+#   recording always on                      the log stopped after 80 seconds
+#   recording on only around each log line   the log stopped after 7 minutes 43 seconds
+# The second number shows that switching recording on for one line lets in more than that line. So log lines
+# are queued, and one rule writes the whole queue in a single frame once a second, with recording on only then.
 macro LOG(s):
-    enableInspector()
-    logToInspector(s)
-    disableInspector()
+    logQ.append(s)
+
+rule "Log: write the queued lines in one frame, once a second":
+    wait(1)
+    if len(logQ) > 0:
+        flushN = min(len(logQ), 150)
+        enableInspector()
+        for flushI in range(flushN):
+            logToInspector(logQ[flushI])
+        disableInspector()
+        logQ = logQ.slice(flushN, 1000)
+    loop()
+
 macro BELOW = (eventPlayer.getPosition().y < floorY - 1.2)
 macro onPlatform(p):
     abs(raycast(p + vect(0, 2, 0), p - vect(0, 2, 0), null, null, false).getHitPosition().y - floorY) < 0.3
@@ -481,7 +502,7 @@ def chooseAction():
         eventPlayer.selA = random.randint(0, NA - 1)
         eventPlayer.selExplore = true
         return
-    if eventPlayer.algo == Alg.PG:
+    if eventPlayer.algo == Alg.PG or eventPlayer.algo == Alg.AC:
         # Softmax policy over action preferences theta (Lecture 7). Sample in training, take the mode in evaluation.
         eventPlayer.rowQ = eventPlayer.theta.slice(eventPlayer.selS * NA, NA)
         eventPlayer.rowMax = sorted(eventPlayer.rowQ).last()
@@ -510,7 +531,7 @@ def updateGlyph():
     if eventPlayer.gS == GOAL_CELL:
         eventPlayer.glyph[eventPlayer.gS] = "G"
         return
-    eventPlayer.rowQ = (eventPlayer.theta if eventPlayer.algo == Alg.PG else eventPlayer.Q).slice(eventPlayer.gS * NA, NA)
+    eventPlayer.rowQ = (eventPlayer.theta if (eventPlayer.algo == Alg.PG or eventPlayer.algo == Alg.AC) else eventPlayer.Q).slice(eventPlayer.gS * NA, NA)
     eventPlayer.rowMax = sorted(eventPlayer.rowQ).last()
     if sorted(eventPlayer.rowQ)[0] == eventPlayer.rowMax:
         eventPlayer.glyph[eventPlayer.gS] = "·"
@@ -561,6 +582,17 @@ def learnStep():
         # Monte Carlo and REINFORCE wait for the episode to end: only remember the step.
         eventPlayer.epS.append(eventPlayer.idx)
         eventPlayer.epR.append(eventPlayer.reward)
+    elif eventPlayer.algo == Alg.AC:
+        # One-step actor-critic (Lecture 7): a critic (Vtd) predicts the return from each cell; the move just
+        # taken is made more likely if the prediction went up across it, less likely if it went down.
+        eventPlayer.delta = eventPlayer.reward + (0 if eventPlayer.terminal else gamma * eventPlayer.Vtd[eventPlayer.nextS]) - eventPlayer.Vtd[eventPlayer.curS]
+        eventPlayer.Vtd[eventPlayer.curS] += 0.2 * eventPlayer.delta
+        eventPlayer.rowQ = eventPlayer.theta.slice(eventPlayer.curS * NA, NA)
+        eventPlayer.rowMax = sorted(eventPlayer.rowQ).last()
+        eventPlayer.probs = eventPlayer.rowQ.map(lambda x: 2.718281828 ** (x - eventPlayer.rowMax))
+        eventPlayer.u = eventPlayer.probs[0] + eventPlayer.probs[1] + eventPlayer.probs[2] + eventPlayer.probs[3]
+        for eventPlayer.a in range(NA):
+            eventPlayer.theta[eventPlayer.curS * NA + eventPlayer.a] += eventPlayer.alpha * eventPlayer.delta * ((1 if eventPlayer.a == eventPlayer.curA else 0) - eventPlayer.probs[eventPlayer.a] / eventPlayer.u)
     elif eventPlayer.algo == Alg.RANDOM:
         # Prediction (Lecture 4): the policy is fixed (uniform random); TD(0) learns its value every step.
         eventPlayer.tgt = eventPlayer.reward + (0 if eventPlayer.terminal else gamma * eventPlayer.Vtd[eventPlayer.nextS])
@@ -699,7 +731,7 @@ def logTables():
     for eventPlayer.k in range(NCELLS):
         eventPlayer.u = eventPlayer.Nsa[eventPlayer.k * NA] + eventPlayer.Nsa[eventPlayer.k * NA + 1] + eventPlayer.Nsa[eventPlayer.k * NA + 2] + eventPlayer.Nsa[eventPlayer.k * NA + 3]
         if eventPlayer.u > 0 or (eventPlayer.algo == Alg.DP and eventPlayer.k != GOAL_CELL):
-            if eventPlayer.algo == Alg.PG:
+            if eventPlayer.algo == Alg.PG or eventPlayer.algo == Alg.AC:
                 LOG("NS,Q,{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.k, eventPlayer.theta[eventPlayer.k * NA], eventPlayer.theta[eventPlayer.k * NA + 1], eventPlayer.theta[eventPlayer.k * NA + 2], eventPlayer.theta[eventPlayer.k * NA + 3], eventPlayer.u))
             else:
                 LOG("NS,Q,{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.k, eventPlayer.Q[eventPlayer.k * NA], eventPlayer.Q[eventPlayer.k * NA + 1], eventPlayer.Q[eventPlayer.k * NA + 2], eventPlayer.Q[eventPlayer.k * NA + 3], eventPlayer.u))
@@ -824,7 +856,11 @@ rule "Block: end when every bot is done, the log file is nearly full, or the har
     # X: reason (1 all bots done, 2 log budget, 3 time limit), seconds, episodes, real steps, estimated log bytes, server load now / average / peak
     LOG("NS,X,{},{},{},{},{},{},{},{}".format(stopReason, NOW - matchT0, totalEpisodes, totalSteps, logBytes, getServerLoad(), getAverageServerLoad(), getPeakServerLoad()))
     calMsg = "block finished"
-    wait(3)
+    # Stage 3 stops the once-a-minute line, so if the restart below does not fire the log goes quiet and the
+    # watcher outside the game can tell.
+    calStage = 3
+    waitUntil(len(logQ) == 0, 20)
+    wait(2)
     if cfgAutoRestart:
         restartMatch()
 
@@ -873,17 +909,28 @@ rule "Host: Interact = end this block now":
 # ---------------------------------------------------------------------------
 rule "UI: dashboard":
     @Condition calStage == 2
+    # The HUD shows strings that a separate rule rebuilds once a second. Formatting them inside the HUD text
+    # itself re-ran every frame and was a large share of the server load (peaks over 100% in the first block).
     hudText(getAllPlayers(), "Overwatch RL Lab: Night School", null, null, HudPosition.LEFT, 0, Color.ORANGE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, null, "{} bots, each learning the same cliff walk its own way\nspeed {}%  |  block {} min  |  episodes {}  |  real steps {}\nserver load {}%  |  log {} KB of 256".format(nBots, cfgMoveSpeed, floor((NOW - matchT0) / 60), totalEpisodes, totalSteps, getServerLoad(), floor(logBytes / 1024)), HudPosition.LEFT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, null, hudHead, HudPosition.LEFT, 1, Color.WHITE, Color.WHITE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
     for uiI in range(nBots):
-        hudText(getAllPlayers(), null, null, "{} {}  ep {}/{}  goal {}  fell {}  last {}".format(cName[bots[evalOnce(uiI)].cond], "(top)" if bots[evalOnce(uiI)].side == 0 else "(bottom)", bots[evalOnce(uiI)].epCount + bots[evalOnce(uiI)].evalCount, bots[evalOnce(uiI)].trainEps, bots[evalOnce(uiI)].cntGoal, bots[evalOnce(uiI)].cntFell, bots[evalOnce(uiI)].lastReturn), HudPosition.LEFT, 2 + uiI, Color.WHITE, Color.WHITE, Color.SKY_BLUE if bots[evalOnce(uiI)].side == 0 else Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, "arrows on the top strip: {}".format(cName[feat[0].cond]), null, HudPosition.TOP, 0, Color.WHITE, Color.SKY_BLUE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
-    hudText(getAllPlayers(), null, "arrows on the bottom strip: {}".format(cName[feat[1].cond]), null, HudPosition.TOP, 1, Color.WHITE, Color.YELLOW, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+        hudText(getAllPlayers(), null, null, hudLine[evalOnce(uiI)], HudPosition.LEFT, 2 + uiI, Color.WHITE, Color.WHITE, Color.SKY_BLUE if bots[evalOnce(uiI)].side == 0 else Color.YELLOW, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, hudFeat[0], null, HudPosition.TOP, 0, Color.WHITE, Color.SKY_BLUE, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudText(getAllPlayers(), null, hudFeat[1], null, HudPosition.TOP, 1, Color.WHITE, Color.YELLOW, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+
+rule "UI: rebuild the dashboard text once a second":
+    @Condition calStage == 2
+    hudHead = "{} bots, each learning the same cliff walk its own way\nspeed {}%  |  block {} min  |  episodes {}  |  real steps {}\nserver load {}%  |  log {} KB of 256".format(nBots, cfgMoveSpeed, floor((NOW - matchT0) / 60), totalEpisodes, totalSteps, getServerLoad(), floor(logBytes / 1024))
+    for hudI in range(nBots):
+        hudLine[hudI] = "{} {}  ep {}/{}  goal {}  fell {}  last {}".format(cName[bots[hudI].cond], "(top)" if bots[hudI].side == 0 else "(bottom)", bots[hudI].epCount + bots[hudI].evalCount, bots[hudI].trainEps, bots[hudI].cntGoal, bots[hudI].cntFell, bots[hudI].lastReturn)
+    wait(1)
+    if ruleCondition:
+        loop()
 
 rule "UI: status while setting up, or when something failed":
     hudText(getAllPlayers(), null, null, "status: {}".format(calMsg), HudPosition.RIGHT, 0, Color.WHITE, Color.WHITE, Color.LIGHT_RED if calStage == -1 else Color.WHITE, HudReeval.VISIBILITY_SORT_ORDER_STRING_AND_COLOR)
 
-rule "UI: strips, start and goal, policy arrows":
+rule "UI: strips, start and goal":
     @Condition calStage == 2
     for uiJ in range(2):
         # The red line is the real island edge.
@@ -894,17 +941,20 @@ rule "UI: strips, start and goal, policy arrows":
         createEffect(getAllPlayers(), Effect.RING, Color.SKY_BLUE, startPos[uiJ], cell / 2, EffectReeval.NONE)
         createEffect(getAllPlayers(), Effect.RING, Color.GREEN, goalPos[uiJ], cell / 2, EffectReeval.NONE)
         createEffect(getAllPlayers(), Effect.LIGHT_SHAFT, Color.GREEN, goalPos[uiJ], cell / 2, EffectReeval.NONE)
-    wait()
-    for uiJ in range(2 * NCELLS):
-        createInWorldText(getAllPlayers(), feat[evalOnce(floor(uiJ / NCELLS))].glyph[evalOnce(uiJ % NCELLS)], cellPos[evalOnce(uiJ)] + vect(0, 0.4, 0), 2, Clip.NONE, WorldTextReeval.VISIBILITY_AND_STRING, Color.GREEN if uiJ % NCELLS == GOAL_CELL else Color.WHITE)
-        if uiJ % 12 == 11:
-            wait()
 
-rule "UI: show another bot's arrows every 20 seconds":
+rule "UI: policy arrows, redrawn as a snapshot of one bot per strip every 10 seconds":
     @Condition calStage == 2
-    wait(20)
+    # 96 floor texts that re-read a bot's table every frame cost more server time than the learning itself.
+    # A snapshot every 10 seconds shows the same thing: the plan of one bot, changing as it learns.
     featI += 1
     feat[0] = [b for b in bots if b.side == 0][featI % max(1, len([b for b in bots if b.side == 0]))]
     feat[1] = [b for b in bots if b.side == 1][featI % max(1, len([b for b in bots if b.side == 1]))]
+    hudFeat = ["arrows on the top strip: {}".format(cName[feat[0].cond]), "arrows on the bottom strip: {}".format(cName[feat[1].cond])]
+    destroyAllInWorldText()
+    for uiJ in range(2 * NCELLS):
+        createInWorldText(getAllPlayers(), feat[floor(uiJ / NCELLS)].glyph[uiJ % NCELLS], cellPos[uiJ] + vect(0, 0.4, 0), 2, Clip.NONE, WorldTextReeval.NONE, Color.GREEN if uiJ % NCELLS == GOAL_CELL else Color.WHITE)
+        if uiJ % 16 == 15:
+            wait()
+    wait(10)
     if ruleCondition:
         loop()

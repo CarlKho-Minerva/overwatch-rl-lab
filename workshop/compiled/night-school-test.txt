@@ -100,7 +100,11 @@ variables {
         67: uiJ
         68: glyphSet
         69: stopReason
-        70: scriptPlan
+        70: hudHead
+        71: hudLine
+        72: hudFeat
+        73: hudI
+        74: scriptPlan
     player:
         0: bid
         1: side
@@ -212,15 +216,15 @@ rule ("Initialize global variables") {
         Ongoing - Global;
     }
     actions {
-        Set Global Variable(cName, Array(Custom String("SARSA"), Custom String("Q-LEARNING"), Custom String("EXPECTED SARSA"), Custom String("Q + FADING EXPLORATION"), Custom String("Q + OPTIMISM"), Custom String("DYNA-Q"), Custom String("MONTE CARLO"), Custom String("SARSA LAMBDA"), Custom String("Q + COUNT BONUS"), Custom String("RANDOM WALK"), Custom String("PLANNER"), Custom String("POLICY GRADIENT")));
-        Set Global Variable(cAlgo, Array(0, 1, 2, 1, 1, 3, 4, 5, 1, 6, 7, 8));
-        Set Global Variable(cEps, Array(0.1, 0.1, 0.1, -1, 0, 0.1, 0.1, 0.1, 0, 1, 0, 0));
-        Set Global Variable(cAlpha, Array(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.3, 0.5, 0.1, 0, 0.02));
-        Set Global Variable(cQInit, Array(0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0));
-        Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0));
-        Set Global Variable(cTrain, Array(12, 12, 12, 12, 12, 12, 12, 12, 12, 30, 6, 12));
+        Set Global Variable(cName, Array(Custom String("SARSA"), Custom String("Q-LEARNING"), Custom String("EXPECTED SARSA"), Custom String("Q + FADING EXPLORATION"), Custom String("Q + OPTIMISM"), Custom String("DYNA-Q"), Custom String("MONTE CARLO"), Custom String("SARSA LAMBDA"), Custom String("Q + COUNT BONUS"), Custom String("RANDOM WALK"), Custom String("PLANNER"), Custom String("POLICY GRADIENT"), Custom String("ACTOR-CRITIC"), Custom String("MONTE CARLO + OPTIMISM")));
+        Set Global Variable(cAlgo, Array(0, 1, 2, 1, 1, 3, 4, 5, 1, 6, 7, 8, 9, 4));
+        Set Global Variable(cEps, Array(0.1, 0.1, 0.1, -1, 0, 0.1, 0.1, 0.1, 0, 1, 0, 0, 0, 0.1));
+        Set Global Variable(cAlpha, Array(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.3, 0.5, 0.1, 0, 0.02, 0.1, 0.2));
+        Set Global Variable(cQInit, Array(0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 40));
+        Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0));
+        Set Global Variable(cTrain, Array(12, 12, 12, 12, 12, 12, 12, 12, 12, 30, 6, 12, 12, 12));
         Set Global Variable(cfgBotsPerTeam, Workshop Setting Integer(Custom String("Night School"), Custom String("Bots per team"), 5, 1, 5, 0));
         Set Global Variable(cfgMoveSpeed, Workshop Setting Integer(Custom String("Night School"), Custom String("Bot move speed percent"), 200, 50, 300, 1));
         Set Global Variable(cfgEvalEps, Workshop Setting Integer(Custom String("Night School"), Custom String("Greedy evaluation episodes per run"), 3, 0, 100, 2));
@@ -245,6 +249,9 @@ rule ("Initialize global variables") {
         Set Global Variable(stopping, False);
         Set Global Variable(feat, Array(Null, Null));
         Set Global Variable(glyphSet, Array(Array(Custom String("→"), Custom String("←"), Custom String("↓"), Custom String("↑")), Array(Custom String("→"), Custom String("←"), Custom String("↑"), Custom String("↓"))));
+        Set Global Variable(hudHead, Custom String(""));
+        Set Global Variable(hudLine, Empty Array);
+        Set Global Variable(hudFeat, Array(Custom String(""), Custom String("")));
         Set Global Variable(scriptPlan, Array(0));
     }
 }
@@ -410,13 +417,13 @@ rule ("Init: spawn the bots, measure their run speed, start the block") {
             Abort;
         End;
         Set Global Variable(actTimeout, Add(Divide(Multiply(2.5, Global.cell), Global.runSpeed), 0.25));
-        Set Global Variable(condOffset, Random Integer(0, 11));
+        Set Global Variable(condOffset, Random Integer(0, 13));
         Set Global Variable(feat, Array(First Of(Global.bots), Last Of(Global.bots)));
         Set Global Variable(matchT0, Total Time Elapsed);
         "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
         Enable Inspector Recording;
         "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
-        Log To Inspector(Custom String("NS,M,9203,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},12", Global.condOffset, Global.spawnCalls)))))))));
+        Log To Inspector(Custom String("NS,M,9206,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},14", Global.condOffset, Global.spawnCalls)))))))));
         "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
         Disable Inspector Recording;
         Enable Inspector Recording;
@@ -557,7 +564,7 @@ rule ("Agent: action for state selS") {
             Set Player Variable(Event Player, selExplore, True);
             Abort;
         End;
-        If(Compare((Event Player).algo, ==, 8));
+        If(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)));
             "Softmax policy over action preferences theta (Lecture 7). Sample in training, take the mode in evaluation."
             Set Player Variable(Event Player, rowQ, Array Slice((Event Player).theta, Multiply((Event Player).selS, 4), 4));
             Set Player Variable(Event Player, rowMax, Last Of(Sorted Array((Event Player).rowQ, Current Array Element)));
@@ -597,7 +604,7 @@ rule ("Agent: refresh the policy arrow for cell gS") {
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("G"));
             Abort;
         End;
-        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Compare((Event Player).algo, ==, 8), (Event Player).theta, (Event Player).Q), Multiply((Event Player).gS, 4), 4));
+        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply((Event Player).gS, 4), 4));
         Set Player Variable(Event Player, rowMax, Last Of(Sorted Array((Event Player).rowQ, Current Array Element)));
         If(Compare(First Of(Sorted Array((Event Player).rowQ, Current Array Element)), ==, (Event Player).rowMax));
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("·"));
@@ -656,6 +663,17 @@ rule ("Agent: the update after one real step") {
         Else If(Or(Compare((Event Player).algo, ==, 4), Compare((Event Player).algo, ==, 8)));
             Modify Player Variable(Event Player, epS, Append To Array, (Event Player).idx);
             Modify Player Variable(Event Player, epR, Append To Array, (Event Player).reward);
+        Else If(Compare((Event Player).algo, ==, 9));
+            "One-step actor-critic (Lecture 7): a critic (Vtd) predicts the return from each cell; the move just\ntaken is made more likely if the prediction went up across it, less likely if it went down."
+            Set Player Variable(Event Player, delta, Subtract(Add((Event Player).reward, If-Then-Else((Event Player).terminal, 0, Multiply(Global.gamma, Value In Array((Event Player).Vtd, (Event Player).nextS)))), Value In Array((Event Player).Vtd, (Event Player).curS)));
+            Modify Player Variable At Index(Event Player, Vtd, (Event Player).curS, Add, Multiply(0.2, (Event Player).delta));
+            Set Player Variable(Event Player, rowQ, Array Slice((Event Player).theta, Multiply((Event Player).curS, 4), 4));
+            Set Player Variable(Event Player, rowMax, Last Of(Sorted Array((Event Player).rowQ, Current Array Element)));
+            Set Player Variable(Event Player, probs, Mapped Array((Event Player).rowQ, Raise To Power(2.718281828, Subtract(Current Array Element, (Event Player).rowMax))));
+            Set Player Variable(Event Player, u, Add(Add(Add(First Of((Event Player).probs), Value In Array((Event Player).probs, 1)), Value In Array((Event Player).probs, 2)), Value In Array((Event Player).probs, 3)));
+            For Player Variable(Event Player, a, 0, 4, 1);
+                Modify Player Variable At Index(Event Player, theta, Add(Multiply((Event Player).curS, 4), (Event Player).a), Add, Multiply(Multiply((Event Player).alpha, (Event Player).delta), Subtract(If-Then-Else(Compare((Event Player).a, ==, (Event Player).curA), 1, 0), Divide(Value In Array((Event Player).probs, (Event Player).a), (Event Player).u))));
+            End;
         Else If(Compare((Event Player).algo, ==, 6));
             "Prediction (Lecture 4): the policy is fixed (uniform random); TD(0) learns its value every step."
             Set Player Variable(Event Player, tgt, Add((Event Player).reward, If-Then-Else((Event Player).terminal, 0, Multiply(Global.gamma, Value In Array((Event Player).Vtd, (Event Player).nextS)))));
@@ -758,7 +776,7 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         startRun;
     }
     actions {
-        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 12));
+        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 14));
         Set Player Variable(Event Player, algo, Value In Array(Global.cAlgo, (Event Player).cond));
         Set Player Variable(Event Player, alpha, Value In Array(Global.cAlpha, (Event Player).cond));
         Set Player Variable(Event Player, eps0, Value In Array(Global.cEps, (Event Player).cond));
@@ -847,7 +865,7 @@ rule ("Log: the bot's tables (Q or preferences per visited state; value tables f
         For Player Variable(Event Player, k, 0, 48, 1);
             Set Player Variable(Event Player, u, Add(Add(Add(Value In Array((Event Player).Nsa, Multiply((Event Player).k, 4)), Value In Array((Event Player).Nsa, Add(Multiply((Event Player).k, 4), 1))), Value In Array((Event Player).Nsa, Add(Multiply((Event Player).k, 4), 2))), Value In Array((Event Player).Nsa, Add(Multiply((Event Player).k, 4), 3))));
             If(Or(Compare((Event Player).u, >, 0), And(Compare((Event Player).algo, ==, 7), Compare((Event Player).k, !=, 11))));
-                If(Compare((Event Player).algo, ==, 8));
+                If(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)));
                     Enable Inspector Recording;
                     Log To Inspector(Custom String("NS,Q,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).k, Value In Array((Event Player).theta, Multiply((Event Player).k, 4)), Custom String("{0},{1},{2}", Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 1)), Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 2)), Custom String("{0},{1}", Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 3)), (Event Player).u)))));
                     Disable Inspector Recording;
@@ -1033,6 +1051,8 @@ rule ("Block: end when every bot is done, the log file is nearly full, or the ha
         "X: reason (1 all bots done, 2 log budget, 3 time limit), seconds, episodes, real steps, estimated log bytes, server load now / average / peak"
         Disable Inspector Recording;
         Set Global Variable(calMsg, Custom String("block finished"));
+        "Stage 3 stops the once-a-minute line, so if the restart below does not fire the log goes quiet and the\nwatcher outside the game can tell."
+        Set Global Variable(calStage, 3);
         Wait(3, Ignore Condition);
         If(Global.cfgAutoRestart);
             Restart Match;
@@ -1122,13 +1142,31 @@ rule ("UI: dashboard") {
         Global.calStage == 2;
     }
     actions {
+        "The HUD shows strings that a separate rule rebuilds once a second. Formatting them inside the HUD text\nitself re-ran every frame and was a large share of the server load (peaks over 100% in the first block)."
         Create HUD Text(All Players(All Teams), Custom String("Overwatch RL Lab: Night School"), Null, Null, Left, 0, Color(Orange), Color(White), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0} bots, each learning the same cliff walk its own way\nspeed {1}%  |  block {2}", Global.nBots, Global.cfgMoveSpeed, Custom String("{0} min  |  episodes {1}  |  real steps {2}", Round To Integer(Divide(Subtract(Total Time Elapsed, Global.matchT0), 60), Down), Global.totalEpisodes, Custom String("{0}\nserver load {1}%  |  log {2} KB of 256", Global.totalSteps, Server Load, Round To Integer(Divide(Global.logBytes, 1024), Down)))), Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Global.hudHead, Left, 1, Color(White), Color(White), Color(White), Visible To and String, Default Visibility);
         For Global Variable(uiI, 0, Global.nBots, 1);
-            Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0} {1}  ep {2}", Value In Array(Global.cName, (Value In Array(Global.bots, Evaluate Once(Global.uiI))).cond), If-Then-Else(Compare((Value In Array(Global.bots, Evaluate Once(Global.uiI))).side, ==, 0), Custom String("(top)"), Custom String("(bottom)")), Custom String("{0}/{1}  goal {2}", Add((Value In Array(Global.bots, Evaluate Once(Global.uiI))).epCount, (Value In Array(Global.bots, Evaluate Once(Global.uiI))).evalCount), (Value In Array(Global.bots, Evaluate Once(Global.uiI))).trainEps, Custom String("{0}  fell {1}  last {2}", (Value In Array(Global.bots, Evaluate Once(Global.uiI))).cntGoal, (Value In Array(Global.bots, Evaluate Once(Global.uiI))).cntFell, (Value In Array(Global.bots, Evaluate Once(Global.uiI))).lastReturn))), Left, Add(2, Global.uiI), Color(White), Color(White), If-Then-Else(Compare((Value In Array(Global.bots, Evaluate Once(Global.uiI))).side, ==, 0), Color(Sky Blue), Color(Yellow)), Visible To and String, Default Visibility);
+            Create HUD Text(All Players(All Teams), Null, Null, Value In Array(Global.hudLine, Evaluate Once(Global.uiI)), Left, Add(2, Global.uiI), Color(White), Color(White), If-Then-Else(Compare((Value In Array(Global.bots, Evaluate Once(Global.uiI))).side, ==, 0), Color(Sky Blue), Color(Yellow)), Visible To and String, Default Visibility);
         End;
-        Create HUD Text(All Players(All Teams), Null, Custom String("arrows on the top strip: {0}", Value In Array(Global.cName, (First Of(Global.feat)).cond)), Null, Top, 0, Color(White), Color(Sky Blue), Color(White), Visible To and String, Default Visibility);
-        Create HUD Text(All Players(All Teams), Null, Custom String("arrows on the bottom strip: {0}", Value In Array(Global.cName, (Value In Array(Global.feat, 1)).cond)), Null, Top, 1, Color(White), Color(Yellow), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, First Of(Global.hudFeat), Null, Top, 0, Color(White), Color(Sky Blue), Color(White), Visible To and String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Value In Array(Global.hudFeat, 1), Null, Top, 1, Color(White), Color(Yellow), Color(White), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("UI: rebuild the dashboard text once a second") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.calStage == 2;
+    }
+    actions {
+        Set Global Variable(hudHead, Custom String("{0} bots, each learning the same cliff walk its own way\nspeed {1}%  |  block {2}", Global.nBots, Global.cfgMoveSpeed, Custom String("{0} min  |  episodes {1}  |  real steps {2}", Round To Integer(Divide(Subtract(Total Time Elapsed, Global.matchT0), 60), Down), Global.totalEpisodes, Custom String("{0}\nserver load {1}%  |  log {2} KB of 256", Global.totalSteps, Server Load, Round To Integer(Divide(Global.logBytes, 1024), Down)))));
+        For Global Variable(hudI, 0, Global.nBots, 1);
+            Set Global Variable At Index(hudLine, Global.hudI, Custom String("{0} {1}  ep {2}", Value In Array(Global.cName, (Value In Array(Global.bots, Global.hudI)).cond), If-Then-Else(Compare((Value In Array(Global.bots, Global.hudI)).side, ==, 0), Custom String("(top)"), Custom String("(bottom)")), Custom String("{0}/{1}  goal {2}", Add((Value In Array(Global.bots, Global.hudI)).epCount, (Value In Array(Global.bots, Global.hudI)).evalCount), (Value In Array(Global.bots, Global.hudI)).trainEps, Custom String("{0}  fell {1}  last {2}", (Value In Array(Global.bots, Global.hudI)).cntGoal, (Value In Array(Global.bots, Global.hudI)).cntFell, (Value In Array(Global.bots, Global.hudI)).lastReturn))));
+        End;
+        Wait(1, Ignore Condition);
+        Loop If Condition Is True;
     }
 }
 
@@ -1141,7 +1179,7 @@ rule ("UI: status while setting up, or when something failed") {
     }
 }
 
-rule ("UI: strips, start and goal, policy arrows") {
+rule ("UI: strips, start and goal") {
     event {
         Ongoing - Global;
     }
@@ -1159,17 +1197,10 @@ rule ("UI: strips, start and goal, policy arrows") {
             Create Effect(All Players(All Teams), Ring, Color(Green), Value In Array(Global.goalPos, Global.uiJ), Divide(Global.cell, 2), None);
             Create Effect(All Players(All Teams), Light Shaft, Color(Green), Value In Array(Global.goalPos, Global.uiJ), Divide(Global.cell, 2), None);
         End;
-        Wait(0.016, Ignore Condition);
-        For Global Variable(uiJ, 0, 96, 1);
-            Create In-World Text(All Players(All Teams), Value In Array((Value In Array(Global.feat, Evaluate Once(Round To Integer(Divide(Global.uiJ, 48), Down)))).glyph, Evaluate Once(Modulo(Global.uiJ, 48))), Add(Value In Array(Global.cellPos, Evaluate Once(Global.uiJ)), Vector(0, 0.4, 0)), 2, Do Not Clip, Visible To and String, If-Then-Else(Compare(Modulo(Global.uiJ, 48), ==, 11), Color(Green), Color(White)), Default Visibility);
-            If(Compare(Modulo(Global.uiJ, 12), ==, 11));
-                Wait(0.016, Ignore Condition);
-            End;
-        End;
     }
 }
 
-rule ("UI: show another bot's arrows every 20 seconds") {
+rule ("UI: policy arrows, redrawn as a snapshot of one bot per strip every 10 seconds") {
     event {
         Ongoing - Global;
     }
@@ -1177,10 +1208,19 @@ rule ("UI: show another bot's arrows every 20 seconds") {
         Global.calStage == 2;
     }
     actions {
-        Wait(20, Ignore Condition);
+        "96 floor texts that re-read a bot's table every frame cost more server time than the learning itself.\nA snapshot every 10 seconds shows the same thing: the plan of one bot, changing as it learns."
         Modify Global Variable(featI, Add, 1);
         Set Global Variable At Index(feat, 0, Value In Array(Filtered Array(Global.bots, Compare((Current Array Element).side, ==, 0)), Modulo(Global.featI, Max(1, Count Of(Filtered Array(Global.bots, Compare((Current Array Element).side, ==, 0)))))));
         Set Global Variable At Index(feat, 1, Value In Array(Filtered Array(Global.bots, Compare((Current Array Element).side, ==, 1)), Modulo(Global.featI, Max(1, Count Of(Filtered Array(Global.bots, Compare((Current Array Element).side, ==, 1)))))));
+        Set Global Variable(hudFeat, Array(Custom String("arrows on the top strip: {0}", Value In Array(Global.cName, (First Of(Global.feat)).cond)), Custom String("arrows on the bottom strip: {0}", Value In Array(Global.cName, (Value In Array(Global.feat, 1)).cond))));
+        Destroy All In-World Text;
+        For Global Variable(uiJ, 0, 96, 1);
+            Create In-World Text(All Players(All Teams), Value In Array((Value In Array(Global.feat, Round To Integer(Divide(Global.uiJ, 48), Down))).glyph, Modulo(Global.uiJ, 48)), Add(Value In Array(Global.cellPos, Global.uiJ), Vector(0, 0.4, 0)), 2, Do Not Clip, None, If-Then-Else(Compare(Modulo(Global.uiJ, 48), ==, 11), Color(Green), Color(White)), Default Visibility);
+            If(Compare(Modulo(Global.uiJ, 16), ==, 15));
+                Wait(0.016, Ignore Condition);
+            End;
+        End;
+        Wait(10, Ignore Condition);
         Loop If Condition Is True;
     }
 }

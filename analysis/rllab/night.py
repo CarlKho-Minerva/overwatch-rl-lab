@@ -13,10 +13,10 @@ from pathlib import Path
 
 NCOLS, NROWS, NCELLS, NA = 12, 4, 48, 4
 START, GOAL = 0, 11
-ALGO_NAMES = ["sarsa", "qlearning", "expected_sarsa", "dyna", "monte_carlo", "sarsa_lambda", "random", "planner", "policy_gradient"]
-SARSA, QL, ESARSA, DYNA, MC, LAMBDA, RANDOM, DP, PG = range(9)
+ALGO_NAMES = ["sarsa", "qlearning", "expected_sarsa", "dyna", "monte_carlo", "sarsa_lambda", "random", "planner", "policy_gradient", "actor_critic"]
+SARSA, QL, ESARSA, DYNA, MC, LAMBDA, RANDOM, DP, PG, AC = range(10)
 CONDITION_NAMES = ["SARSA", "Q-learning", "Expected SARSA", "Q + fading exploration", "Q + optimism", "Dyna-Q",
-                   "Monte Carlo", "SARSA(lambda)", "Q + count bonus", "Random walk", "Planner", "Policy gradient"]
+                   "Monte Carlo", "SARSA(lambda)", "Q + count bonus", "Random walk", "Planner", "Policy gradient", "Actor-critic", "Monte Carlo + optimism"]
 LINE = re.compile(r"^\[(\d+):(\d+):(\d+)\] NS,([A-Z]+),(.*)$")
 
 
@@ -187,6 +187,15 @@ def learn(algo: int, episodes, alpha: float, eps: float = 0.1, lam: float = 0.0,
                 Vtd[s] += alpha * (tgt - Vtd[s])
                 buf_s.append(s)
                 buf_r.append(r)
+            elif algo == AC:
+                delta = r + (0 if terminal else gamma * Vtd[s2]) - Vtd[s]
+                Vtd[s] += 0.2 * delta
+                row = theta[s * NA: s * NA + NA]
+                mx = max(row)
+                p = [math.e ** (x - mx) for x in row]
+                z = sum(p)
+                for b in range(NA):
+                    theta[s * NA + b] += alpha * delta * ((1 if b == a else 0) - p[b] / z)
             visits[i] += 1
         g = 0.0
         if algo == MC:
