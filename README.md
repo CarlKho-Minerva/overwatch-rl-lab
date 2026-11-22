@@ -38,7 +38,7 @@ The same three conditions on a local language model (`llm/hidden_order.py`, a sm
 belief after every message is known):
 
 - gemma4:12b, 24 cases per condition: right final step in 6 with only the latest message (18 never finished), 23 with its own notes, 24 with the whole transcript, 24 when told the hidden facts.
-- gemma4:31b: run in progress.
+- gemma4:31b, 24 cases per condition: right final step in 12 with only the latest message (12 never finished), 23 with its own notes, 23 with the whole transcript, 24 when told the hidden facts.
 
 The write-up, with what each result does and does not show: [course/lesson-11-partial-observability.md](course/lesson-11-partial-observability.md).
 <!-- day2:end -->

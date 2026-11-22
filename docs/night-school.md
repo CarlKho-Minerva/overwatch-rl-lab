@@ -247,3 +247,7 @@ The first model was gemma4:12b (96 cases: 6 of 24 right with the latest message 
 looking: shown only the latest message, the larger model still fails most "cannot fly as booked" cases, because the
 two facts it needs are never on the screen together; whatever it gains will come from guessing, which shows up as
 final steps taken early. With notes or the whole transcript it should be at or near 24 of 24.
+
+What the larger model did (run finished 08:47 Pacific): with only the latest message, 0 of 12 "cannot fly as booked"
+cases right and 12 of 12 of the others; 23 of 24 with its own notes, 23 of 24 with the
+whole transcript (2 final steps taken early), 24 of 24 when told. The prediction held.

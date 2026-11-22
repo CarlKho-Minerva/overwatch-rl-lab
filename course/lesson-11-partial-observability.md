@@ -191,17 +191,17 @@ undone. The model is the same in every condition. Only what it is shown each tur
 
 In words: shown only the latest message, the model finished 6 of 24 cases and went round in circles in the other 18: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.73 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 23 of 24. In 2 cases it took the final step before the conversation had settled it, and 1 of those came out right by luck. In those its note said the customer wanted to change the date, written from a first message that fitted two wishes. The note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 24 of 24, in 2.75 turns a case where the best plan needs 2.25. It asked first in 24 of 24 cases and so never used the shortcut of section 6 (look up first, and stop if the ticket is basic). Told the hidden facts it was right in 24 of 24 in 1 turn. The gap between that column and the others is what the questions and lookups are buying.
 
-| gemma4:31b | Latest message only | Own notes |
-|---|---|---|
-| Cases run | 24 | 12 |
-| Right final step | 12 of 24 | 12 of 12 |
-| Wrong final step | 0 | 0 |
-| No final step in 8 turns | 12 | 0 |
-| Final step taken before the transcript settled it | 0 | 0 |
-| Turns per case (the best plan needs) | 5.00 (2.25) | 2.67 (2.33) |
-| Belief error on the wish (0 = exact, 1 = all wrong) | 0.27 | 0.05 |
+| gemma4:31b | Latest message only | Own notes | Whole transcript | Told the hidden facts |
+|---|---|---|---|---|
+| Cases run | 24 | 24 | 24 | 24 |
+| Right final step | 12 of 24 | 23 of 24 | 23 of 24 | 24 of 24 |
+| Wrong final step | 0 | 1 | 1 | 0 |
+| No final step in 8 turns | 12 | 0 | 0 | 0 |
+| Final step taken before the transcript settled it | 0 | 2 | 2 | 0 |
+| Turns per case (the best plan needs) | 5.00 (2.25) | 2.33 (2.25) | 2.33 (2.25) | 1.00 (1.00) |
+| Belief error on the wish (0 = exact, 1 = all wrong) | 0.27 | 0.11 | 0.08 | n/a |
 
-In words: shown only the latest message, the model finished 12 of 24 cases and went round in circles in the other 12: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.72 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 12 of 12. The note is a belief, and here it carried what was needed.
+In words: shown only the latest message, the model finished 12 of 24 cases and went round in circles in the other 12: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.72 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 23 of 24. In 2 cases it took the final step before the conversation had settled it, and 1 of those came out right by luck. In those its note said the customer wanted to change the date, written from a first message that fitted two wishes. The note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 23 of 24, in 2.33 turns a case where the best plan needs 2.25. Told the hidden facts it was right in 24 of 24 in 1 turn. The gap between that column and the others is what the questions and lookups are buying.
 
 The 24 cases per condition are every combination of wish, ticket type and opening phrasing, run once at temperature 0
 with a scripted customer. They describe one local model on one small world and nothing wider.

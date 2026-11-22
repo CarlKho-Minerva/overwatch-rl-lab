@@ -110,7 +110,7 @@
   },
   "gemma4:31b": {
    "model": "gemma4:31b",
-   "episodes": 36,
+   "episodes": 96,
    "conditions": {
     "last": {
      "name": "Latest message only",
@@ -139,27 +139,81 @@
     },
     "notes": {
      "name": "Latest message and its own notes",
-     "cases": 12,
-     "right": 12,
+     "cases": 24,
+     "right": 23,
+     "wrong": 1,
+     "no_final": 0,
+     "premature": 2,
+     "right_but_premature": 1,
+     "turns_mean": 2.3333333333333335,
+     "fewest_mean": 2.25,
+     "extra_turns_mean": 0.13043478260869565,
+     "repeat_steps_mean": 0.0,
+     "belief_err_wish": 0.11071428571428572,
+     "belief_err_flex": 0.0,
+     "belief_err_wish_after_lookup": 0.16666666666666666,
+     "belief_err_flex_after_customer": null,
+     "first_step": {
+      "ask_customer": 20,
+      "lookup_booking": 4
+     },
+     "right_cant_fly": 11,
+     "cases_cant_fly": 12,
+     "right_add_something": 12,
+     "cases_add_something": 12
+    },
+    "full": {
+     "name": "Whole transcript",
+     "cases": 24,
+     "right": 23,
+     "wrong": 1,
+     "no_final": 0,
+     "premature": 2,
+     "right_but_premature": 1,
+     "turns_mean": 2.3333333333333335,
+     "fewest_mean": 2.25,
+     "extra_turns_mean": 0.13043478260869565,
+     "repeat_steps_mean": 0.0,
+     "belief_err_wish": 0.07857142857142856,
+     "belief_err_flex": 0.0,
+     "belief_err_wish_after_lookup": 0.06666666666666667,
+     "belief_err_flex_after_customer": null,
+     "first_step": {
+      "ask_customer": 20,
+      "lookup_booking": 4
+     },
+     "right_cant_fly": 11,
+     "cases_cant_fly": 12,
+     "right_add_something": 12,
+     "cases_add_something": 12
+    },
+    "told": {
+     "name": "Transcript, and told the hidden facts",
+     "cases": 24,
+     "right": 24,
      "wrong": 0,
      "no_final": 0,
      "premature": 0,
      "right_but_premature": 0,
-     "turns_mean": 2.6666666666666665,
-     "fewest_mean": 2.3333333333333335,
-     "extra_turns_mean": 0.3333333333333333,
+     "turns_mean": 1.0,
+     "fewest_mean": 1.0,
+     "extra_turns_mean": 0.0,
      "repeat_steps_mean": 0.0,
-     "belief_err_wish": 0.05,
-     "belief_err_flex": 0.0,
-     "belief_err_wish_after_lookup": 0.0,
+     "belief_err_wish": null,
+     "belief_err_flex": null,
+     "belief_err_wish_after_lookup": null,
      "belief_err_flex_after_customer": null,
      "first_step": {
-      "ask_customer": 12
+      "add_bag": 6,
+      "cancel": 3,
+      "change_date": 3,
+      "refuse": 6,
+      "upgrade": 6
      },
-     "right_cant_fly": 8,
-     "cases_cant_fly": 8,
-     "right_add_something": 4,
-     "cases_add_something": 4
+     "right_cant_fly": 12,
+     "cases_cant_fly": 12,
+     "right_add_something": 12,
+     "cases_add_something": 12
     }
    }
   }
