@@ -230,3 +230,11 @@ is scripted, so the exact belief after every message is known, and before each s
 its own. `python llm/hidden_order.py --selftest` checks the world's rules with scripted agents and no model.
 `llm/summarise.py` writes `data/llm/summary.json`; `llm/live.py` serves a page where a person plays the customer.
 Results and what they do not show: `course/lesson-11-partial-observability.md`.
+
+### A larger model, named before its run (2026-11-22, 07:41 Pacific)
+
+The first model was gemma4:12b (96 cases: 6 of 24 right with the latest message only, 23 of 24 with its own notes,
+24 of 24 with the whole transcript, 24 of 24 when told). Next, the same 96 cases on gemma4:31b. Expected before
+looking: shown only the latest message, the larger model still fails most "cannot fly as booked" cases, because the
+two facts it needs are never on the screen together; whatever it gains will come from guessing, which shows up as
+final steps taken early. With notes or the whole transcript it should be at or near 24 of 24.
