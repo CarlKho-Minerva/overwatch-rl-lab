@@ -144,3 +144,47 @@ cd analysis
 Nothing in this repository presses keys or clicks. The script restarts its own match. If you want a watcher
 outside the game (for a restart that does not fire, or a lobby the game closes), that is your own tooling;
 keep it to menus in a private custom game.
+
+## The hidden-wall build (partial observability)
+
+`workshop/compiled/night-school-pomdp.txt` (source `workshop/night/night_pomdp.opy`, version 1102). Ten Q-learning
+runners on the usual strip (alpha 0.5, epsilon 0.1, 200 training episodes, a 40-step limit). For every episode one
+square at column 6 is shut: the one in the edge row or the one in the second row, drawn at random. A runner who
+walks at it does not move and pays for the step. The script enforces the wall, so each of the ten bots has her own.
+A red ball above the strip marks each bot's wall for a spectator; the bots are not shown it.
+
+The runner's true situation is (her square, which square is shut). The three conditions differ only in what she is told:
+
+| Condition | What she is told | States |
+|---|---|---|
+| RUNNER BLIND | her square | 48 |
+| RUNNER REMEMBERS BUMPS | her square, and a memory of this episode: no bump yet, or the row of the square she failed to enter | 48 x 3 used |
+| RUNNER SEES THE WALL | her square and the wall's row | 48 x 2 |
+
+The memory is the smallest belief state: it is built from what happened to her, not from being told.
+
+### Named before the first run (2026-11-22, 07:10 Pacific, before any block had finished)
+
+- A run is counted if it completed its 20 test crossings (learning and exploring off, a fresh random wall each).
+- Measures, per run: the share of the 20 test crossings that reach the goal, and the mean steps per test crossing
+  with a crossing that does not finish counted as the 40-step limit.
+- Planned comparisons: REMEMBERS against BLIND, and SEES against REMEMBERS, on both measures. Interval from
+  resampling runs, p from shuffling labels, as for the first night.
+- Training return is reported but is not a measure: a route that avoids the wall also moves away from the edge,
+  which changes how often the one-in-ten random step ends in a fall.
+- Expected before looking: REMEMBERS reaches the goal more often than BLIND; SEES needs slightly fewer steps than
+  REMEMBERS (she never pays for the bump). A blind runner can still do well if she learns the long way round through
+  the third row, where no wall ever stands. If most blind runners find that route the first comparison will be small,
+  and that is a result too.
+
+### Checks
+
+`night-school-pomdp-probe.txt` (version 9402) is the scripted check: every bot takes the same 16-step walk with the
+wall forced into the edge row (five steps forward, two bumps, around through the second row, one bump from the far
+side, on to the goal), two episodes under each condition. `analysis/tests/test_pomdp.py` rebuilds what each bot
+should have been told at every step. In the game on 2026-11-22: 2,304 steps, 432 bumps, 144 episodes, all as
+expected, and every table entry recomputed.
+
+The first version of the check (9401) failed once in 438 bumps: a bot arrived a little long on the square before the
+wall and drifted over the line into the shut square while standing at it. The script now puts a bot that ends a step
+inside the shut square back where the step began. `rllab.night.wall_check` runs on every hidden-wall log.

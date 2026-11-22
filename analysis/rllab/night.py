@@ -364,6 +364,81 @@ def replay_steps(m: Match, tol: float = 0.011):
     return checked, bad
 
 
+BLOCK_COL = 6
+
+
+def wall_check(m: Match):
+    """Hidden-wall build: rebuild from the logged steps what each bot should have been told, and compare.
+
+    The square she stood in and the move she chose give the square she aimed for. If that square is the
+    episode's wall she must not have moved. A bot with the bump memory (state view 4) must report "no bump yet"
+    until a move fails to arrive, and the row of the square she failed to enter from then on. A bot that sees
+    the wall (view 3) must report the wall's row on every step. Nobody may ever stand in the wall's square.
+    A miss that is not the wall is a physical slip: it is counted, and by the game's rule it also sets the memory.
+    Returns a dict: checked steps, bumps, slips, runs, and the list of mismatches (empty = the log is consistent).
+    """
+    out = {"checked": 0, "bumps": 0, "slips": 0, "runs": 0, "bad": []}
+    eps_by: dict = {}
+    for e in m.episodes:
+        eps_by.setdefault((e["bot"], e["run"]), []).append(e)
+    steps_by: dict = {}
+    for s in m.steps:
+        steps_by.setdefault((s["bot"], s["run"]), []).append(s)
+    for key, rows in sorted(steps_by.items()):
+        run = m.runs.get(key)
+        if not run or "agg" not in run:
+            continue
+        agg = run["agg"]
+        rows.sort(key=lambda r: r["t"])
+        if [r["t"] for r in rows] != list(range(len(rows))):
+            continue
+        walls = [e.get("station") for e in sorted(eps_by.get(key, []), key=lambda e: e["ep"]) if e["mode"] == 0]
+        out["runs"] += 1
+        ep, mem, prev_s2, first = 0, 0, None, True
+        for r in rows:
+            if ep >= len(walls) or walls[ep] is None or walls[ep] < 0:
+                break       # the episode's closing line (which names the wall) was not logged
+            wall_row = walls[ep]
+            wall_cell = wall_row * NCOLS + BLOCK_COL
+            cell, extra = r["s"] % NCELLS, r["s"] // NCELLS
+            cell2, extra2 = r["s2"] % NCELLS, r["s2"] // NCELLS
+            problems = []
+            if first and agg == 4 and extra != 0:
+                problems.append("episode did not start with an empty memory")
+            if not first and prev_s2 is not None and r["s"] != prev_s2:
+                problems.append("state does not continue from the last step")
+            if agg == 3 and extra != wall_row:
+                problems.append("the seeing bot was told the wrong row")
+            if agg == 0 and extra != 0:
+                problems.append("the blind bot was told more than her square")
+            tgt, fell = move(cell, r["a"])
+            if not fell:
+                aimed_at_wall = tgt == wall_cell and tgt != cell
+                if aimed_at_wall:
+                    out["bumps"] += 1
+                    if cell2 != cell:
+                        problems.append("she moved although she walked at the wall")
+                elif cell2 != tgt and not r["terminal"]:
+                    out["slips"] += 1
+                elif cell2 != tgt and r["terminal"] and r["r"] > -50:
+                    out["slips"] += 1
+                if cell2 == wall_cell and r["r"] > -50:
+                    problems.append("she is standing in the wall's square")
+                if tgt != cell and cell2 != tgt and r["r"] > -50:
+                    mem = 1 + tgt // NCOLS          # the game's rule: remember the row of the square she failed to enter
+                if agg == 4 and r["r"] > -50 and extra2 != mem:
+                    problems.append(f"memory is {extra2}, the rule gives {mem}")
+                if agg == 3 and r["r"] > -50 and extra2 != wall_row:
+                    problems.append("the seeing bot was told the wrong row after the step")
+            out["checked"] += 1
+            if problems:
+                out["bad"].append((key, r["t"], problems))
+            prev_s2, first = r["s2"], False
+            if r["terminal"]:
+                ep, mem, prev_s2, first = ep + 1, 0, None, True
+    return out
+
+
 def episodes_from_steps(m: Match, bot: int, run: int):
     """Rebuild episodes of (s, a, r, s2, a2, terminal) from a run's logged step lines."""
     rows = sorted((s for s in m.steps if s["bot"] == bot and s["run"] == run), key=lambda r: r["t"])

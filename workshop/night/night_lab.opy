@@ -224,6 +224,10 @@ playervar seenRow = 0           # what the runner is told about it (0 when it is
 playervar Qb = [0, 0, 0, 0]     # the blocker's score for each row, learned as a four-armed bandit
 playervar Nb = [0, 0, 0, 0]
 playervar bumps = 0
+playervar wallRow = -1           # hidden-wall build: the row of this episode's wall (column BLOCK_COL), never shown to the bot
+playervar wallPos
+playervar wallFx = 0
+playervar mem = 0                # 0 = no bump yet this episode, 1 + row = she bumped into something standing in that row
 playervar curA
 playervar curExplore
 playervar nextS
@@ -310,8 +314,10 @@ macro BELOW = (eventPlayer.getPosition().y < floorY - 1.2)
 # What the bot is told about where it stands (Lecture 6). 0: the exact cell, 48 states. 1: the row and which
 # quarter of the strip, 16 states. 2: the row only, 4 states. The real cell still decides what happens to it.
 #                                          3: the exact cell and the row the blocker stands in this episode, 192 states.
+#                                          4: the exact cell and a memory of this episode's bumps (none yet, or the row she bumped
+#                                             into), 240 states. The memory is the bot's belief about a blocker she is never shown.
 macro AGG(c):
-    (c if eventPlayer.agg == 0 else (floor(c / NCOLS) * 4 + floor((c % NCOLS) / 3) if eventPlayer.agg == 1 else (floor(c / NCOLS) if eventPlayer.agg == 2 else c + NCELLS * eventPlayer.seenRow)))
+    (c if eventPlayer.agg == 0 else (floor(c / NCOLS) * 4 + floor((c % NCOLS) / 3) if eventPlayer.agg == 1 else (floor(c / NCOLS) if eventPlayer.agg == 2 else (c + NCELLS * eventPlayer.seenRow if eventPlayer.agg == 3 else c + NCELLS * eventPlayer.mem))))
 macro onPlatform(p):
     abs(raycast(p + vect(0, 2, 0), p - vect(0, 2, 0), null, null, false).getHitPosition().y - floorY) < 0.3
 
@@ -487,6 +493,12 @@ def stepEnv():
         # Blocked: that side of the grid is open floor and the rule says no. The step still costs its reward.
         eventPlayer.intended = eventPlayer.curCell
         wait(0.032)
+    elif VWALL and eventPlayer.blockMode > 0 and eventPlayer.tgtRow == eventPlayer.wallRow and eventPlayer.tgtCol == BLOCK_COL:
+        # Hidden-wall build: this square is shut for this episode. She turns to it, does not move, and the step costs
+        # its reward. The script enforces it (no enemy body) so that ten bots can each have their own wall at once.
+        eventPlayer.intended = eventPlayer.tgtRow * NCOLS + eventPlayer.tgtCol
+        eventPlayer.setFacing(eventPlayer.actDir, Relativity.TO_WORLD)
+        wait(0.15)
     else:
         eventPlayer.intended = eventPlayer.tgtRow * NCOLS + eventPlayer.tgtCol
         eventPlayer.tgtPos = vect(gridX0 + (eventPlayer.tgtCol + 0.5) * cell, floorY, zBase[eventPlayer.side] + zSign[eventPlayer.side] * (eventPlayer.tgtRow + 0.5) * cell)
@@ -504,7 +516,16 @@ def stepEnv():
         else:
             waitUntil(eventPlayer.getHorizontalSpeed() < 0.2 or BELOW or eventPlayer.died, 0.4)
     observe()
+    if VWALL and eventPlayer.blockMode > 0 and eventPlayer.obsCell == eventPlayer.wallRow * NCOLS + BLOCK_COL and not (BELOW or eventPlayer.died):
+        # A slide carried her into the shut square. Seen once in 438 bumps in the scripted check (2026-11-22): she
+        # arrived a little long on the square before the wall and drifted over the line while standing at it.
+        # The wall is a rule, so put her back on the square she started the step from.
+        eventPlayer.teleport(cellPos[eventPlayer.side * NCELLS + eventPlayer.curCell])
+        eventPlayer.obsCell = eventPlayer.curCell
     eventPlayer.nextCell = eventPlayer.obsCell
+    if eventPlayer.blockMode > 0 and eventPlayer.intended != eventPlayer.curCell and eventPlayer.nextCell != eventPlayer.intended and not (BELOW or eventPlayer.died):
+        # She aimed at a square on the grid and did not arrive: something is standing in it. Remember its row.
+        eventPlayer.mem = 1 + floor(eventPlayer.intended / NCOLS)
     eventPlayer.nextS = AGG(eventPlayer.nextCell)
     if BELOW or eventPlayer.died:
         eventPlayer.terminal = true
@@ -811,6 +832,9 @@ def runEpisode():
         # with one random pick in ten. It stands mid-strip and is pinned there for the episode.
         if eventPlayer.blockMode == 1:
             eventPlayer.partner.station = 0
+        elif eventPlayer.blockMode == 3:
+            # Lecture on partial observability: the blocker's row is drawn afresh every episode and never shown.
+            eventPlayer.partner.station = random.randint(0, POMDP_ROWS - 1)
         else:
             eventPlayer.rowMax = sorted(eventPlayer.partner.Qb).last()
             eventPlayer.partner.station = random.choice([0, 1, 2, 3].filter(lambda x: eventPlayer.partner.Qb[x] >= eventPlayer.rowMax - 0.0001))
@@ -823,6 +847,16 @@ def runEpisode():
         if PIN_BLOCKER:
             eventPlayer.partner.startForcingPosition(cellPos[eventPlayer.side * NCELLS + eventPlayer.partner.station * NCOLS + BLOCK_COL], false)
         eventPlayer.seenRow = eventPlayer.partner.station if eventPlayer.agg == 3 else 0
+    if VWALL and eventPlayer.blockMode > 0:
+        # The wall's row is drawn afresh for every episode (or forced, for the scripted check). Only a bot whose
+        # state view is 3 is told where it is.
+        eventPlayer.wallRow = random.randint(0, POMDP_ROWS - 1) if FORCE_WALL < 0 else FORCE_WALL
+        eventPlayer.wallPos = cellPos[eventPlayer.side * NCELLS + eventPlayer.wallRow * NCOLS + BLOCK_COL] + vect(0, 0.5 + 0.45 * (eventPlayer.bid % 5), 0)
+        eventPlayer.seenRow = eventPlayer.wallRow if eventPlayer.agg == 3 else 0
+        if eventPlayer.wallFx == 0:
+            eventPlayer.wallFx = 1
+            createEffect(getAllPlayers(), Effect.SPHERE, Color.RED, eventPlayer.wallPos, 0.22, EffectReeval.VISIBILITY_POSITION_AND_RADIUS)
+    eventPlayer.mem = 0
     resetBot()
     eventPlayer.epSteps = 0
     eventPlayer.epReturn = 0
@@ -899,7 +933,7 @@ def runEpisode():
     # E: bot, run, episode (evaluation episodes continue the count), mode (0 training, 1 evaluation), return, steps,
     #    outcome (1 goal, 2 fell, 3 timeout), mean distance from the edge (m), slips, seconds since match start,
     #    the row the blocker stood in (-1 when there is no blocker)
-    LOG("NS,E,{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount + eventPlayer.evalCount, 0 if eventPlayer.isTraining else 1, eventPlayer.epReturn, eventPlayer.epSteps, eventPlayer.outcome, eventPlayer.epEdgeSum / max(1, eventPlayer.epSteps), eventPlayer.epSlips, NOW - matchT0, eventPlayer.partner.station if eventPlayer.blockMode > 0 else -1))
+    LOG("NS,E,{},{},{},{},{},{},{},{},{},{},{}".format(eventPlayer.bid, eventPlayer.runCount, eventPlayer.epCount + eventPlayer.evalCount, 0 if eventPlayer.isTraining else 1, eventPlayer.epReturn, eventPlayer.epSteps, eventPlayer.outcome, eventPlayer.epEdgeSum / max(1, eventPlayer.epSteps), eventPlayer.epSlips, NOW - matchT0, (eventPlayer.wallRow if VWALL else eventPlayer.partner.station) if eventPlayer.blockMode > 0 else -1))
     logBytes += 50
     if eventPlayer.algo == Alg.RANDOM and eventPlayer.isTraining and (eventPlayer.epCount == 10 or eventPlayer.epCount == 30 or eventPlayer.epCount == 100):
         logTables()
@@ -918,7 +952,7 @@ rule "Bot: run after run until the block ends":
             wait(0.1)
         if eventPlayer.algo != Alg.RANDOM:
             eventPlayer.isTraining = false
-            while eventPlayer.evalCount < cfgEvalEps and not stopping and NOW - eventPlayer.runT0 < cfgRunMaxMin * 60 + 120:
+            while eventPlayer.evalCount < cfgEvalEps and not stopping and NOW - eventPlayer.runT0 < cfgRunMaxMin * 60 + EVAL_GRACE_SEC:
                 runEpisode()
                 wait(0.1)
         endRun()
@@ -932,7 +966,7 @@ rule "Bot: run after run until the block ends":
 # ---------------------------------------------------------------------------
 rule "Block: end when every bot is done, the log file is nearly full, or the hard time limit passes":
     @Condition calStage == 2
-    waitUntil(bots.all(lambda b: b.done) or logBytes > LOG_BUDGET or NOW - matchT0 > (cfgSoftMin + cfgRunMaxMin + 4) * 60, 99999)
+    waitUntil(bots.all(lambda b: b.done) or logBytes > LOG_BUDGET or NOW - matchT0 > (cfgSoftMin + cfgRunMaxMin + 2) * 60 + EVAL_GRACE_SEC, 99999)
     stopReason = 1 if bots.all(lambda b: b.done) else (2 if logBytes > LOG_BUDGET else 3)
     stopping = true
     waitUntil(bots.all(lambda b: b.done), 150)

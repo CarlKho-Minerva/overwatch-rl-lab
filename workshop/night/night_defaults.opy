@@ -1,5 +1,5 @@
 # Defaults of the Night School build. A variant redefines the few it wants to change, then includes night.opy.
-#!define BUILD_VERSION 210
+#!define BUILD_VERSION 212
 #!define DEF_BOTS_PER_TEAM 5
 #!define DEF_MOVE_SPEED 200
 #!define DEF_EVAL_EPS 10
@@ -53,6 +53,14 @@
 #!define STATE_MULT 1
 #!define BLOCK_COL 6
 #!define PIN_BLOCKER false
+# How many rows (counted from the edge) a random blocker may stand in (night_pomdp.opy).
+#!define POMDP_ROWS 4
+# Hidden-wall build: the blocked square is enforced by the script, one wall per bot, instead of an enemy body.
+#!define VWALL false
+# Scripted check only: the row every wall stands in (-1 = drawn at random).
+#!define FORCE_WALL (-1)
+# Seconds a run may spend on its greedy test episodes after its time limit.
+#!define EVAL_GRACE_SEC 120
 #!define CONDITION_BLOCKS [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # The order the rotation walks through. A variant can repeat conditions to give them more runs (night_fill.opy).

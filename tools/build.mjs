@@ -26,6 +26,8 @@ const targets = [
     ["workshop/night/night_golden.opy", "workshop/compiled/night-school-golden.txt"],
     ["workshop/night/night_duel.opy", "workshop/compiled/night-school-duel.txt"],
     ["workshop/night/night_fill.opy", "workshop/compiled/night-school-fill.txt"],
+    ["workshop/night/night_pomdp.opy", "workshop/compiled/night-school-pomdp.txt"],
+    ["workshop/night/night_pomdp_probe.opy", "workshop/compiled/night-school-pomdp-probe.txt"],
     ["workshop/night/night_duel_test.opy", "workshop/compiled/night-school-duel-test.txt"],
 ];
 

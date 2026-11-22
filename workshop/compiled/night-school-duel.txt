@@ -168,51 +168,55 @@ variables {
         51: Qb
         52: Nb
         53: bumps
-        54: curA
-        55: curExplore
-        56: nextS
-        57: nextA
-        58: nextExplore
-        59: reward
-        60: terminal
-        61: outcome
-        62: epSteps
-        63: epReturn
-        64: epEdgeSum
-        65: epSlips
-        66: stepCol
-        67: stepRow
-        68: tgtCol
-        69: tgtRow
-        70: tgtPos
-        71: actDir
-        72: intended
-        73: obsP
-        74: obsCell
-        75: selS
-        76: selA
-        77: selExplore
-        78: rowQ
-        79: rowMax
-        80: idx
-        81: qOld
-        82: tgt
-        83: delta
-        84: g
-        85: k
-        86: a
-        87: sweep
-        88: vDelta
-        89: qNew
-        90: s2
-        91: pIdx
-        92: gS
-        93: theta
-        94: probs
-        95: baseline
-        96: u
-        97: actCount
-        98: qDirect
+        54: wallRow
+        55: wallPos
+        56: wallFx
+        57: mem
+        58: curA
+        59: curExplore
+        60: nextS
+        61: nextA
+        62: nextExplore
+        63: reward
+        64: terminal
+        65: outcome
+        66: epSteps
+        67: epReturn
+        68: epEdgeSum
+        69: epSlips
+        70: stepCol
+        71: stepRow
+        72: tgtCol
+        73: tgtRow
+        74: tgtPos
+        75: actDir
+        76: intended
+        77: obsP
+        78: obsCell
+        79: selS
+        80: selA
+        81: selExplore
+        82: rowQ
+        83: rowMax
+        84: idx
+        85: qOld
+        86: tgt
+        87: delta
+        88: g
+        89: k
+        90: a
+        91: sweep
+        92: vDelta
+        93: qNew
+        94: s2
+        95: pIdx
+        96: gS
+        97: theta
+        98: probs
+        99: baseline
+        100: u
+        101: actCount
+        102: qDirect
 }
 
 subroutines {
@@ -311,6 +315,7 @@ rule ("Initialize player variables") {
         Set Player Variable(Event Player, station, -1);
         Set Player Variable(Event Player, Qb, Array(0, 0, 0, 0));
         Set Player Variable(Event Player, Nb, Array(0, 0, 0, 0));
+        Set Player Variable(Event Player, wallRow, -1);
         Set Player Variable(Event Player, theta, Empty Array);
         Set Player Variable(Event Player, probs, Empty Array);
     }
@@ -577,7 +582,11 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
         End;
         Call Subroutine(observe);
         Set Player Variable(Event Player, nextCell, (Event Player).obsCell);
-        Set Player Variable(Event Player, nextS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).nextCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).nextCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).nextCell, 12), 3), Down)), If-Then-Else(Compare((Event Player).agg, ==, 2), Round To Integer(Divide((Event Player).nextCell, 12), Down), Add((Event Player).nextCell, Multiply(48, (Event Player).seenRow))))));
+        If(And(And(And(Compare((Event Player).blockMode, >, 0), Compare((Event Player).intended, !=, (Event Player).curCell)), Compare((Event Player).nextCell, !=, (Event Player).intended)), Not(Or(Compare(Y Component Of(Position Of(Event Player)), <, Subtract(Global.floorY, 1.2)), (Event Player).died))));
+            "She aimed at a square on the grid and did not arrive: something is standing in it. Remember its row."
+            Set Player Variable(Event Player, mem, Add(1, Round To Integer(Divide((Event Player).intended, 12), Down)));
+        End;
+        Set Player Variable(Event Player, nextS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).nextCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).nextCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).nextCell, 12), 3), Down)), If-Then-Else(Compare((Event Player).agg, ==, 2), Round To Integer(Divide((Event Player).nextCell, 12), Down), If-Then-Else(Compare((Event Player).agg, ==, 3), Add((Event Player).nextCell, Multiply(48, (Event Player).seenRow)), Add((Event Player).nextCell, Multiply(48, (Event Player).mem)))))));
         If(Or(Compare(Y Component Of(Position Of(Event Player)), <, Subtract(Global.floorY, 1.2)), (Event Player).died));
             Set Player Variable(Event Player, terminal, True);
             Set Player Variable(Event Player, outcome, 2);
@@ -655,7 +664,7 @@ rule ("Agent: refresh the policy arrow for cell gS") {
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("G"));
             Abort;
         End;
-        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply(If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).gS, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).gS, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).gS, 12), 3), Down)), If-Then-Else(Compare((Event Player).agg, ==, 2), Round To Integer(Divide((Event Player).gS, 12), Down), Add((Event Player).gS, Multiply(48, (Event Player).seenRow))))), 4), 4));
+        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply(If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).gS, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).gS, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).gS, 12), 3), Down)), If-Then-Else(Compare((Event Player).agg, ==, 2), Round To Integer(Divide((Event Player).gS, 12), Down), If-Then-Else(Compare((Event Player).agg, ==, 3), Add((Event Player).gS, Multiply(48, (Event Player).seenRow)), Add((Event Player).gS, Multiply(48, (Event Player).mem)))))), 4), 4));
         Set Player Variable(Event Player, rowMax, Last Of(Sorted Array((Event Player).rowQ, Current Array Element)));
         If(Compare(First Of(Sorted Array((Event Player).rowQ, Current Array Element)), ==, (Event Player).rowMax));
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("·"));
@@ -961,6 +970,9 @@ rule ("Run: one episode") {
             "The blocker picks a row for this episode: always row 0, or (learning) the row its scores rate best,\nwith one random pick in ten. It stands mid-strip and is pinned there for the episode."
             If(Compare((Event Player).blockMode, ==, 1));
                 Set Player Variable((Event Player).partner, station, 0);
+            Else If(Compare((Event Player).blockMode, ==, 3));
+                "Lecture on partial observability: the blocker's row is drawn afresh every episode and never shown."
+                Set Player Variable((Event Player).partner, station, Random Integer(0, 3));
             Else;
                 Set Player Variable(Event Player, rowMax, Last Of(Sorted Array(((Event Player).partner).Qb, Current Array Element)));
                 Set Player Variable((Event Player).partner, station, Random Value In Array(Filtered Array(Array(0, 1, 2, 3), Compare(Value In Array(((Event Player).partner).Qb, Current Array Element), >=, Subtract((Event Player).rowMax, 0.0001)))));
@@ -973,6 +985,7 @@ rule ("Run: one episode") {
             Teleport((Event Player).partner, Value In Array(Global.cellPos, Add(Add(Multiply((Event Player).side, 48), Multiply(((Event Player).partner).station, 12)), 6)));
             Set Player Variable(Event Player, seenRow, If-Then-Else(Compare((Event Player).agg, ==, 3), ((Event Player).partner).station, 0));
         End;
+        Set Player Variable(Event Player, mem, 0);
         Call Subroutine(resetBot);
         Set Player Variable(Event Player, epSteps, 0);
         Set Player Variable(Event Player, epReturn, 0);
@@ -986,7 +999,7 @@ rule ("Run: one episode") {
         End;
         Call Subroutine(observe);
         Set Player Variable(Event Player, curCell, (Event Player).obsCell);
-        Set Player Variable(Event Player, curS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).curCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).curCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).curCell, 12), 3), Down)), If-Then-Else(Compare((Event Player).agg, ==, 2), Round To Integer(Divide((Event Player).curCell, 12), Down), Add((Event Player).curCell, Multiply(48, (Event Player).seenRow))))));
+        Set Player Variable(Event Player, curS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).curCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).curCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).curCell, 12), 3), Down)), If-Then-Else(Compare((Event Player).agg, ==, 2), Round To Integer(Divide((Event Player).curCell, 12), Down), If-Then-Else(Compare((Event Player).agg, ==, 3), Add((Event Player).curCell, Multiply(48, (Event Player).seenRow)), Add((Event Player).curCell, Multiply(48, (Event Player).mem)))))));
         Set Player Variable(Event Player, selS, (Event Player).curS);
         Call Subroutine(chooseAction);
         Set Player Variable(Event Player, curA, (Event Player).selA);
@@ -1110,7 +1123,7 @@ rule ("Block: end when every bot is done, the log file is nearly full, or the ha
         Global.calStage == 2;
     }
     actions {
-        Wait Until(Or(Or(Is True For All(Global.bots, (Current Array Element).done), Compare(Global.logBytes, >, 232000)), Compare(Subtract(Total Time Elapsed, Global.matchT0), >, Multiply(Add(Add(Global.cfgSoftMin, Global.cfgRunMaxMin), 4), 60))), 99999);
+        Wait Until(Or(Or(Is True For All(Global.bots, (Current Array Element).done), Compare(Global.logBytes, >, 232000)), Compare(Subtract(Total Time Elapsed, Global.matchT0), >, Add(Multiply(Add(Add(Global.cfgSoftMin, Global.cfgRunMaxMin), 2), 60), 120))), 99999);
         Set Global Variable(stopReason, If-Then-Else(Is True For All(Global.bots, (Current Array Element).done), 1, If-Then-Else(Compare(Global.logBytes, >, 232000), 2, 3)));
         Set Global Variable(stopping, True);
         Wait Until(Is True For All(Global.bots, (Current Array Element).done), 150);
