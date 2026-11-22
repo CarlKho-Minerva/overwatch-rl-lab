@@ -39,72 +39,76 @@ variables {
         6: cLam
         7: cBonus
         8: cTrain
-        9: cfgBotsPerTeam
-        10: cfgMoveSpeed
-        11: cfgEvalEps
-        12: cfgSoftMin
-        13: cfgRunMaxMin
-        14: cfgAutoRestart
-        15: cfgMaxSteps
-        16: cfgEvalMaxSteps
-        17: cfgCell
-        18: gamma
-        19: rStep
-        20: rGoal
-        21: rFall
-        22: rTimeout
-        23: calStage
-        24: calMsg
-        25: floorY
-        26: isleCenter
-        27: edgeXMin
-        28: edgeXMax
-        29: edgeZMin
-        30: edgeZMax
-        31: probeDir
-        32: probeLo
-        33: probeHi
-        34: probeMid
-        35: probeI
-        36: cell
-        37: gridX0
-        38: zBase
-        39: zSign
-        40: cellPos
-        41: startPos
-        42: goalPos
-        43: camEye
-        44: camLook
-        45: runSpeed
-        46: coastDist
-        47: actTimeout
-        48: calP0
-        49: calP1
-        50: calT0
-        51: spawnTry
-        52: spawnI
-        53: spawnCalls
-        54: n1
-        55: n2
-        56: bots
-        57: nBots
-        58: condOffset
-        59: matchT0
-        60: stopping
-        61: logBytes
-        62: totalEpisodes
-        63: totalSteps
-        64: feat
-        65: featI
-        66: uiI
-        67: uiJ
-        68: glyphSet
-        69: stopReason
-        70: hudHead
-        71: hudLine
-        72: hudFeat
-        73: hudI
-        74: scriptPlan
+        9: cAgg
+        10: cfgBotsPerTeam
+        11: cfgMoveSpeed
+        12: cfgEvalEps
+        13: cfgSoftMin
+        14: cfgRunMaxMin
+        15: cfgAutoRestart
+        16: cfgMaxSteps
+        17: cfgEvalMaxSteps
+        18: cfgCell
+        19: gamma
+        20: rStep
+        21: rGoal
+        22: rFall
+        23: rTimeout
+        24: calStage
+        25: calMsg
+        26: floorY
+        27: isleCenter
+        28: edgeXMin
+        29: edgeXMax
+        30: edgeZMin
+        31: edgeZMax
+        32: probeDir
+        33: probeLo
+        34: probeHi
+        35: probeMid
+        36: probeI
+        37: cell
+        38: gridX0
+        39: zBase
+        40: zSign
+        41: cellPos
+        42: startPos
+        43: goalPos
+        44: camEye
+        45: camLook
+        46: runSpeed
+        47: coastDist
+        48: actTimeout
+        49: calP0
+        50: calP1
+        51: calT0
+        52: spawnTry
+        53: spawnI
+        54: spawnCalls
+        55: n1
+        56: n2
+        57: bots
+        58: nBots
+        59: condOffset
+        60: matchT0
+        61: stopping
+        62: logBytes
+        63: totalEpisodes
+        64: totalSteps
+        65: feat
+        66: featI
+        67: uiI
+        68: uiJ
+        69: glyphSet
+        70: stopReason
+        71: hudHead
+        72: hudLine
+        73: hudFeat
+        74: hudI
+        75: logQ
+        76: flushN
+        77: flushI
+        78: scriptPlan
     player:
         0: bid
         1: side
@@ -143,56 +147,60 @@ variables {
         34: mSeen
         35: Vtd
         36: Vmc
-        37: Nv
-        38: epS
-        39: epR
-        40: glyph
-        41: curS
-        42: curA
-        43: curExplore
-        44: nextS
-        45: nextA
-        46: nextExplore
-        47: reward
-        48: terminal
-        49: outcome
-        50: epSteps
-        51: epReturn
-        52: epEdgeSum
-        53: epSlips
-        54: stepCol
-        55: stepRow
-        56: tgtCol
-        57: tgtRow
-        58: tgtPos
-        59: actDir
-        60: intended
-        61: obsP
-        62: obsCell
-        63: selS
-        64: selA
-        65: selExplore
-        66: rowQ
-        67: rowMax
-        68: idx
-        69: qOld
-        70: tgt
-        71: delta
-        72: g
-        73: k
-        74: a
-        75: sweep
-        76: vDelta
-        77: qNew
-        78: s2
-        79: pIdx
-        80: gS
-        81: theta
-        82: probs
-        83: baseline
-        84: u
-        85: actCount
-        86: qDirect
+        37: Vtd2
+        38: Nv
+        39: epS
+        40: epR
+        41: glyph
+        42: curS
+        43: curCell
+        44: nextCell
+        45: agg
+        46: curA
+        47: curExplore
+        48: nextS
+        49: nextA
+        50: nextExplore
+        51: reward
+        52: terminal
+        53: outcome
+        54: epSteps
+        55: epReturn
+        56: epEdgeSum
+        57: epSlips
+        58: stepCol
+        59: stepRow
+        60: tgtCol
+        61: tgtRow
+        62: tgtPos
+        63: actDir
+        64: intended
+        65: obsP
+        66: obsCell
+        67: selS
+        68: selA
+        69: selExplore
+        70: rowQ
+        71: rowMax
+        72: idx
+        73: qOld
+        74: tgt
+        75: delta
+        76: g
+        77: k
+        78: a
+        79: sweep
+        80: vDelta
+        81: qNew
+        82: s2
+        83: pIdx
+        84: gS
+        85: theta
+        86: probs
+        87: baseline
+        88: u
+        89: actCount
+        90: qDirect
 }
 
 subroutines {
@@ -216,15 +224,16 @@ rule ("Initialize global variables") {
         Ongoing - Global;
     }
     actions {
-        Set Global Variable(cName, Array(Custom String("SARSA"), Custom String("Q-LEARNING"), Custom String("EXPECTED SARSA"), Custom String("Q + FADING EXPLORATION"), Custom String("Q + OPTIMISM"), Custom String("DYNA-Q"), Custom String("MONTE CARLO"), Custom String("SARSA LAMBDA"), Custom String("Q + COUNT BONUS"), Custom String("RANDOM WALK"), Custom String("PLANNER"), Custom String("POLICY GRADIENT"), Custom String("ACTOR-CRITIC"), Custom String("MONTE CARLO + OPTIMISM")));
-        Set Global Variable(cAlgo, Array(0, 1, 2, 1, 1, 3, 4, 5, 1, 6, 7, 8, 9, 4));
-        Set Global Variable(cEps, Array(0.1, 0.1, 0.1, -1, 0, 0.1, 0.1, 0.1, 0, 1, 0, 0, 0, 0.1));
-        Set Global Variable(cAlpha, Array(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.3, 0.5, 0.1, 0, 0.02, 0.1, 0.2));
-        Set Global Variable(cQInit, Array(0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 40));
-        Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0));
-        Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0));
-        Set Global Variable(cTrain, Array(12, 12, 12, 12, 12, 12, 12, 12, 12, 30, 6, 12, 12, 12));
+        Set Global Variable(cName, Array(Custom String("SARSA"), Custom String("Q-LEARNING"), Custom String("EXPECTED SARSA"), Custom String("Q + FADING EXPLORATION"), Custom String("Q + OPTIMISM"), Custom String("DYNA-Q"), Custom String("MONTE CARLO"), Custom String("SARSA LAMBDA"), Custom String("Q + COUNT BONUS"), Custom String("RANDOM WALK"), Custom String("PLANNER"), Custom String("POLICY GRADIENT"), Custom String("ACTOR-CRITIC"), Custom String("MONTE CARLO + OPTIMISM"), Custom String("Q, 16 COARSE STATES"), Custom String("Q, ROW ONLY")));
+        Set Global Variable(cAlgo, Array(0, 1, 2, 1, 1, 3, 4, 5, 1, 6, 7, 8, 9, 4, 1, 1));
+        Set Global Variable(cEps, Array(0.1, 0.1, 0.1, -1, 0, 0.1, 0.1, 0.1, 0, 1, 0, 0, 0, 0.1, 0.1, 0.1));
+        Set Global Variable(cAlpha, Array(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.3, 0.5, 0.1, 0, 0.02, 0.1, 0.2, 0.5, 0.5));
+        Set Global Variable(cQInit, Array(0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0));
+        Set Global Variable(cPlan, Array(0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cLam, Array(0, 0, 0, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cBonus, Array(0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0));
+        Set Global Variable(cTrain, Array(12, 12, 12, 12, 12, 12, 12, 12, 12, 30, 6, 12, 12, 12, 12, 12));
+        Set Global Variable(cAgg, Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2));
         Set Global Variable(cfgBotsPerTeam, Workshop Setting Integer(Custom String("Night School"), Custom String("Bots per team"), 5, 1, 5, 0));
         Set Global Variable(cfgMoveSpeed, Workshop Setting Integer(Custom String("Night School"), Custom String("Bot move speed percent"), 200, 50, 300, 1));
         Set Global Variable(cfgEvalEps, Workshop Setting Integer(Custom String("Night School"), Custom String("Greedy evaluation episodes per run"), 3, 0, 100, 2));
@@ -252,6 +261,7 @@ rule ("Initialize global variables") {
         Set Global Variable(hudHead, Custom String(""));
         Set Global Variable(hudLine, Empty Array);
         Set Global Variable(hudFeat, Array(Custom String(""), Custom String("")));
+        Set Global Variable(logQ, Empty Array);
         Set Global Variable(scriptPlan, Array(0));
     }
 }
@@ -276,12 +286,32 @@ rule ("Initialize player variables") {
         Set Player Variable(Event Player, mSeen, Empty Array);
         Set Player Variable(Event Player, Vtd, Empty Array);
         Set Player Variable(Event Player, Vmc, Empty Array);
+        Set Player Variable(Event Player, Vtd2, Empty Array);
         Set Player Variable(Event Player, Nv, Empty Array);
         Set Player Variable(Event Player, epS, Empty Array);
         Set Player Variable(Event Player, epR, Empty Array);
         Set Player Variable(Event Player, glyph, Empty Array);
         Set Player Variable(Event Player, theta, Empty Array);
         Set Player Variable(Event Player, probs, Empty Array);
+    }
+}
+
+rule ("Log: write the queued lines in one frame, once a second") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Wait(1, Ignore Condition);
+        If(Compare(Count Of(Global.logQ), >, 0));
+            Set Global Variable(flushN, Min(Count Of(Global.logQ), 150));
+            Enable Inspector Recording;
+            For Global Variable(flushI, 0, Global.flushN, 1);
+                Log To Inspector(Value In Array(Global.logQ, Global.flushI));
+            End;
+            Disable Inspector Recording;
+            Set Global Variable(logQ, Array Slice(Global.logQ, Global.flushN, 1000));
+        End;
+        Loop;
     }
 }
 
@@ -334,9 +364,7 @@ rule ("Init: measure the island and lay out both strips") {
         If(Or(Or(Or(Compare(Y Component Of(Global.isleCenter), <, -59), Compare(Subtract(Global.edgeXMax, Global.edgeXMin), <, 26)), Compare(Subtract(Global.edgeZMax, Global.edgeZMin), <, 22)), Compare(Subtract(Global.edgeXMax, Global.edgeXMin), >, 500)));
             Set Global Variable(calStage, -1);
             Set Global Variable(calMsg, Custom String("island measurement looks wrong. Is the map Workshop Island?"));
-            Enable Inspector Recording;
-            Log To Inspector(Custom String("NS,FAIL,island,{0},{1},{2}", Global.edgeXMin, Global.edgeXMax, Custom String("{0},{1},{2}", Global.edgeZMin, Global.edgeZMax, Global.floorY)));
-            Disable Inspector Recording;
+            Modify Global Variable(logQ, Append To Array, Custom String("NS,FAIL,island,{0},{1},{2}", Global.edgeXMin, Global.edgeXMax, Custom String("{0},{1},{2}", Global.edgeZMin, Global.edgeZMax, Global.floorY)));
             Abort;
         End;
         Set Global Variable(cell, Min(Global.cfgCell, Divide(Subtract(Subtract(Global.edgeXMax, Global.edgeXMin), 4), 12)));
@@ -385,9 +413,7 @@ rule ("Init: spawn the bots, measure their run speed, start the block") {
         If(Compare(Global.nBots, <, 1));
             Set Global Variable(calStage, -1);
             Set Global Variable(calMsg, Custom String("no bot spawned. Leave free slots on both teams, then Esc > Show Lobby > Restart Match"));
-            Enable Inspector Recording;
-            Log To Inspector(Custom String("NS,FAIL,spawn,{0},{1}", Number Of Players(Team 1), Number Of Players(Team 2)));
-            Disable Inspector Recording;
+            Modify Global Variable(logQ, Append To Array, Custom String("NS,FAIL,spawn,{0},{1}", Number Of Players(Team 1), Number Of Players(Team 2)));
             Abort;
         End;
         Set Move Speed(Global.bots, Global.cfgMoveSpeed);
@@ -411,24 +437,16 @@ rule ("Init: spawn the bots, measure their run speed, start the block") {
         If(Compare(Global.runSpeed, <, 1));
             Set Global Variable(calStage, -1);
             Set Global Variable(calMsg, Custom String("the bot did not move under throttle control"));
-            Enable Inspector Recording;
-            Log To Inspector(Custom String("NS,FAIL,throttle,{0},{1},{2}", Global.runSpeed, Global.calP0, Global.calP1));
-            Disable Inspector Recording;
+            Modify Global Variable(logQ, Append To Array, Custom String("NS,FAIL,throttle,{0},{1},{2}", Global.runSpeed, Global.calP0, Global.calP1));
             Abort;
         End;
         Set Global Variable(actTimeout, Add(Divide(Multiply(2.5, Global.cell), Global.runSpeed), 0.25));
-        Set Global Variable(condOffset, Random Integer(0, 13));
+        Set Global Variable(condOffset, Random Integer(0, 15));
         Set Global Variable(feat, Array(First Of(Global.bots), Last Of(Global.bots)));
         Set Global Variable(matchT0, Total Time Elapsed);
-        "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
-        Enable Inspector Recording;
-        "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
-        Log To Inspector(Custom String("NS,M,9206,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},14", Global.condOffset, Global.spawnCalls)))))))));
-        "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions"
-        Disable Inspector Recording;
-        Enable Inspector Recording;
-        Log To Inspector(Custom String("NS,CAL,{0},{1},{2}", Global.floorY, Global.edgeXMin, Custom String("{0},{1},{2}", Global.edgeXMax, Global.edgeZMin, Custom String("{0},{1},{2}", Global.edgeZMax, Global.gridX0, Global.actTimeout))));
-        Disable Inspector Recording;
+        "M: version, bots, team1 bots, cell, run speed, coast, move speed %, eval episodes, step limit, eval step limit,\ngamma*1000, r_step, r_goal, r_fall, r_timeout, condition offset, spawn calls, conditions, no-new-run minute, longest run (minutes)"
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,M,9210,{0},{1},{2}", Global.nBots, Count Of(Filtered Array(All Players(Team 1), Is Dummy Bot(Current Array Element))), Custom String("{0},{1},{2}", Global.cell, Global.runSpeed, Custom String("{0},{1},{2}", Global.coastDist, Global.cfgMoveSpeed, Custom String("{0},{1},{2}", Global.cfgEvalEps, Global.cfgMaxSteps, Custom String("{0},{1},{2}", Global.cfgEvalMaxSteps, Round To Integer(Multiply(Global.gamma, 1000), To Nearest), Custom String("{0},{1},{2}", Global.rStep, Global.rGoal, Custom String("{0},{1},{2}", Global.rFall, Global.rTimeout, Custom String("{0},{1},16,{2}", Global.condOffset, Global.spawnCalls, Custom String("{0},{1}", Global.cfgSoftMin, Global.cfgRunMaxMin))))))))));
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,CAL,{0},{1},{2}", Global.floorY, Global.edgeXMin, Custom String("{0},{1},{2}", Global.edgeXMax, Global.edgeZMin, Custom String("{0},{1},{2}", Global.edgeZMax, Global.gridX0, Global.actTimeout))));
         Modify Global Variable(logBytes, Add, 260);
         For Global Variable(spawnI, 0, Global.nBots, 1);
             Set Player Variable(Value In Array(Global.bots, Global.spawnI), side, If-Then-Else(Compare(Team Of(Value In Array(Global.bots, Global.spawnI)), ==, Team 1), 0, 1));
@@ -494,8 +512,8 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
         stepEnv;
     }
     actions {
-        Set Player Variable(Event Player, stepCol, Modulo((Event Player).curS, 12));
-        Set Player Variable(Event Player, stepRow, Round To Integer(Divide((Event Player).curS, 12), Down));
+        Set Player Variable(Event Player, stepCol, Modulo((Event Player).curCell, 12));
+        Set Player Variable(Event Player, stepRow, Round To Integer(Divide((Event Player).curCell, 12), Down));
         Set Player Variable(Event Player, actDir, Value In Array(Array(Left, Right, Vector(0, 0, Value In Array(Global.zSign, (Event Player).side)), Vector(0, 0, Subtract(0, Value In Array(Global.zSign, (Event Player).side)))), (Event Player).curA));
         Set Player Variable(Event Player, tgtCol, Add((Event Player).stepCol, Value In Array(Array(1, -1, 0, 0), (Event Player).curA)));
         Set Player Variable(Event Player, tgtRow, Add((Event Player).stepRow, Value In Array(Array(0, 0, 1, -1), (Event Player).curA)));
@@ -504,7 +522,7 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
         Set Player Variable(Event Player, outcome, 0);
         If(Or(Or(Compare((Event Player).tgtCol, <, 0), Compare((Event Player).tgtCol, >=, 12)), Compare((Event Player).tgtRow, >=, 4)));
             "Blocked: that side of the grid is open floor and the rule says no. The step still costs its reward."
-            Set Player Variable(Event Player, intended, (Event Player).curS);
+            Set Player Variable(Event Player, intended, (Event Player).curCell);
             Wait(0.032, Ignore Condition);
         Else;
             Set Player Variable(Event Player, intended, Add(Multiply((Event Player).tgtRow, 12), (Event Player).tgtCol));
@@ -526,7 +544,8 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
             End;
         End;
         Call Subroutine(observe);
-        Set Player Variable(Event Player, nextS, (Event Player).obsCell);
+        Set Player Variable(Event Player, nextCell, (Event Player).obsCell);
+        Set Player Variable(Event Player, nextS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).nextCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).nextCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).nextCell, 12), 3), Down)), Round To Integer(Divide((Event Player).nextCell, 12), Down))));
         If(Or(Compare(Y Component Of(Position Of(Event Player)), <, Subtract(Global.floorY, 1.2)), (Event Player).died));
             Set Player Variable(Event Player, terminal, True);
             Set Player Variable(Event Player, outcome, 2);
@@ -536,10 +555,10 @@ rule ("Environment: carry out action curA with the real bot and observe the resu
             End;
         Else;
             Modify Player Variable(Event Player, epEdgeSum, Add, Add(Multiply(Value In Array(Global.zSign, (Event Player).side), Subtract(Z Component Of((Event Player).obsP), Value In Array(Global.zBase, (Event Player).side))), 0.5));
-            If(Compare((Event Player).nextS, !=, (Event Player).intended));
+            If(Compare((Event Player).nextCell, !=, (Event Player).intended));
                 Modify Player Variable(Event Player, epSlips, Add, 1);
             End;
-            If(Compare((Event Player).nextS, ==, 11));
+            If(Compare((Event Player).nextCell, ==, 11));
                 Set Player Variable(Event Player, terminal, True);
                 Set Player Variable(Event Player, outcome, 1);
                 Modify Player Variable(Event Player, reward, Add, Global.rGoal);
@@ -604,7 +623,7 @@ rule ("Agent: refresh the policy arrow for cell gS") {
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("G"));
             Abort;
         End;
-        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply((Event Player).gS, 4), 4));
+        Set Player Variable(Event Player, rowQ, Array Slice(If-Then-Else(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)), (Event Player).theta, (Event Player).Q), Multiply(If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).gS, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).gS, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).gS, 12), 3), Down)), Round To Integer(Divide((Event Player).gS, 12), Down))), 4), 4));
         Set Player Variable(Event Player, rowMax, Last Of(Sorted Array((Event Player).rowQ, Current Array Element)));
         If(Compare(First Of(Sorted Array((Event Player).rowQ, Current Array Element)), ==, (Event Player).rowMax));
             Set Player Variable At Index(Event Player, glyph, (Event Player).gS, Custom String("·"));
@@ -678,11 +697,12 @@ rule ("Agent: the update after one real step") {
             "Prediction (Lecture 4): the policy is fixed (uniform random); TD(0) learns its value every step."
             Set Player Variable(Event Player, tgt, Add((Event Player).reward, If-Then-Else((Event Player).terminal, 0, Multiply(Global.gamma, Value In Array((Event Player).Vtd, (Event Player).nextS)))));
             Modify Player Variable At Index(Event Player, Vtd, (Event Player).curS, Add, Multiply((Event Player).alpha, Subtract((Event Player).tgt, Value In Array((Event Player).Vtd, (Event Player).curS))));
+            Modify Player Variable At Index(Event Player, Vtd2, (Event Player).curS, Add, Multiply(0.5, Subtract(Add((Event Player).reward, If-Then-Else((Event Player).terminal, 0, Multiply(Global.gamma, Value In Array((Event Player).Vtd2, (Event Player).nextS)))), Value In Array((Event Player).Vtd2, (Event Player).curS))));
             Modify Player Variable(Event Player, epS, Append To Array, (Event Player).curS);
             Modify Player Variable(Event Player, epR, Append To Array, (Event Player).reward);
         End;
         Modify Player Variable At Index(Event Player, Nsa, (Event Player).idx, Add, 1);
-        Set Player Variable(Event Player, gS, (Event Player).curS);
+        Set Player Variable(Event Player, gS, (Event Player).curCell);
         Call Subroutine(updateGlyph);
     }
 }
@@ -758,9 +778,7 @@ rule ("Agent: value iteration on the grid's rules, no walking (Lecture 3)") {
                     Wait(0.016, Ignore Condition);
                 End;
             End;
-            Enable Inspector Recording;
-            Log To Inspector(Custom String("NS,V,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1}", (Event Player).sweep, (Event Player).vDelta)));
-            Disable Inspector Recording;
+            Modify Global Variable(logQ, Append To Array, Custom String("NS,V,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1}", (Event Player).sweep, (Event Player).vDelta)));
             Modify Global Variable(logBytes, Add, 36);
             Wait(0.4, Ignore Condition);
             If(Compare((Event Player).vDelta, <, 0.001));
@@ -776,7 +794,7 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         startRun;
     }
     actions {
-        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 14));
+        Set Player Variable(Event Player, cond, Modulo(Add(Add((Event Player).bid, Global.condOffset), (Event Player).runCount), 16));
         Set Player Variable(Event Player, algo, Value In Array(Global.cAlgo, (Event Player).cond));
         Set Player Variable(Event Player, alpha, Value In Array(Global.cAlpha, (Event Player).cond));
         Set Player Variable(Event Player, eps0, Value In Array(Global.cEps, (Event Player).cond));
@@ -785,6 +803,7 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         Set Player Variable(Event Player, lam, Value In Array(Global.cLam, (Event Player).cond));
         Set Player Variable(Event Player, bonus, Value In Array(Global.cBonus, (Event Player).cond));
         Set Player Variable(Event Player, trainEps, Value In Array(Global.cTrain, (Event Player).cond));
+        Set Player Variable(Event Player, agg, Value In Array(Global.cAgg, (Event Player).cond));
         Set Player Variable(Event Player, Q, Empty Array);
         Set Player Variable At Index(Event Player, Q, 191, 0);
         If(Compare(Value In Array(Global.cQInit, (Event Player).cond), !=, 0));
@@ -805,6 +824,8 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         Set Player Variable At Index(Event Player, Vtd, 47, 0);
         Set Player Variable(Event Player, Vmc, Empty Array);
         Set Player Variable At Index(Event Player, Vmc, 47, 0);
+        Set Player Variable(Event Player, Vtd2, Empty Array);
+        Set Player Variable At Index(Event Player, Vtd2, 47, 0);
         Set Player Variable(Event Player, Nv, Empty Array);
         Set Player Variable At Index(Event Player, Nv, 47, 0);
         For Player Variable(Event Player, k, 0, 48, 1);
@@ -825,12 +846,8 @@ rule ("Run: pick the condition, clear the tables, log the header") {
         Set Player Variable(Event Player, actCount, 0);
         Set Player Variable(Event Player, runT0, Total Time Elapsed);
         Start Forcing Dummy Bot Name(Event Player, Custom String("{0} {1}", Value In Array(Global.cName, (Event Player).cond), (Event Player).bid));
-        "H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t"
-        Enable Inspector Recording;
-        "H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t"
-        Log To Inspector(Custom String("NS,H,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).cond, (Event Player).algo, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).eps0, 1000), To Nearest), Round To Integer(Multiply((Event Player).alpha, 1000), To Nearest), Custom String("{0},{1},{2}", Value In Array(Global.cQInit, (Event Player).cond), (Event Player).planN, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).lam, 1000), To Nearest), (Event Player).bonus, Custom String("{0},{1},{2}", (Event Player).trainEps, (Event Player).side, Subtract(Total Time Elapsed, Global.matchT0))))))));
-        "H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t"
-        Disable Inspector Recording;
+        "H: bot, run, condition, algo, eps*1000 (-1000 = decays), alpha*1000, initial Q, planning steps, lambda*1000, bonus, training episodes, side, t, state detail (0 cell, 1 quarter, 2 row)"
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,H,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).cond, (Event Player).algo, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).eps0, 1000), To Nearest), Round To Integer(Multiply((Event Player).alpha, 1000), To Nearest), Custom String("{0},{1},{2}", Value In Array(Global.cQInit, (Event Player).cond), (Event Player).planN, Custom String("{0},{1},{2}", Round To Integer(Multiply((Event Player).lam, 1000), To Nearest), (Event Player).bonus, Custom String("{0},{1},{2}", (Event Player).trainEps, (Event Player).side, Custom String("{0},{1}", Subtract(Total Time Elapsed, Global.matchT0), (Event Player).agg))))))));
         Modify Global Variable(logBytes, Add, 70);
         If(Compare((Event Player).algo, ==, 7));
             Call Subroutine(planDP);
@@ -845,18 +862,13 @@ rule ("Log: the bot's tables (Q or preferences per visited state; value tables f
     }
     actions {
         If(Compare((Event Player).algo, ==, 6));
-            "P: bot, run, episode, kind (0 TD(0), 1 Monte Carlo, 2 visits), row, then the 12 values of that row"
+            "P: bot, run, episode, kind (0 TD(0) step 0.1, 1 Monte Carlo, 2 visits, 3 TD(0) step 0.5), row, then the 12 values of that row"
             For Player Variable(Event Player, k, 0, 4, 1);
-                Enable Inspector Recording;
-                Log To Inspector(Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},0,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 11)))))))))));
-                Disable Inspector Recording;
-                Enable Inspector Recording;
-                Log To Inspector(Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},1,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 11)))))))))));
-                Disable Inspector Recording;
-                Enable Inspector Recording;
-                Log To Inspector(Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},2,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Multiply((Event Player).k, 12)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 11)))))))))));
-                Disable Inspector Recording;
-                Modify Global Variable(logBytes, Add, 300);
+                Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},0,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vtd, Add(Multiply((Event Player).k, 12), 11)))))))))));
+                Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},1,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vmc, Add(Multiply((Event Player).k, 12), 11)))))))))));
+                Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},2,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Multiply((Event Player).k, 12)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Nv, Add(Multiply((Event Player).k, 12), 11)))))))))));
+                Modify Global Variable(logQ, Append To Array, Custom String("NS,P,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},3,{1},{2}", (Event Player).epCount, (Event Player).k, Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Multiply((Event Player).k, 12)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 1)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 2)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 3)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 4)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 5)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 6)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 7)), Custom String("{0},{1},{2}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 8)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 9)), Custom String("{0},{1}", Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 10)), Value In Array((Event Player).Vtd2, Add(Multiply((Event Player).k, 12), 11)))))))))));
+                Modify Global Variable(logBytes, Add, 400);
                 Wait(0.016, Ignore Condition);
             End;
             Abort;
@@ -866,13 +878,9 @@ rule ("Log: the bot's tables (Q or preferences per visited state; value tables f
             Set Player Variable(Event Player, u, Add(Add(Add(Value In Array((Event Player).Nsa, Multiply((Event Player).k, 4)), Value In Array((Event Player).Nsa, Add(Multiply((Event Player).k, 4), 1))), Value In Array((Event Player).Nsa, Add(Multiply((Event Player).k, 4), 2))), Value In Array((Event Player).Nsa, Add(Multiply((Event Player).k, 4), 3))));
             If(Or(Compare((Event Player).u, >, 0), And(Compare((Event Player).algo, ==, 7), Compare((Event Player).k, !=, 11))));
                 If(Or(Compare((Event Player).algo, ==, 8), Compare((Event Player).algo, ==, 9)));
-                    Enable Inspector Recording;
-                    Log To Inspector(Custom String("NS,Q,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).k, Value In Array((Event Player).theta, Multiply((Event Player).k, 4)), Custom String("{0},{1},{2}", Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 1)), Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 2)), Custom String("{0},{1}", Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 3)), (Event Player).u)))));
-                    Disable Inspector Recording;
+                    Modify Global Variable(logQ, Append To Array, Custom String("NS,Q,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).k, Value In Array((Event Player).theta, Multiply((Event Player).k, 4)), Custom String("{0},{1},{2}", Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 1)), Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 2)), Custom String("{0},{1}", Value In Array((Event Player).theta, Add(Multiply((Event Player).k, 4), 3)), (Event Player).u)))));
                 Else;
-                    Enable Inspector Recording;
-                    Log To Inspector(Custom String("NS,Q,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).k, Value In Array((Event Player).Q, Multiply((Event Player).k, 4)), Custom String("{0},{1},{2}", Value In Array((Event Player).Q, Add(Multiply((Event Player).k, 4), 1)), Value In Array((Event Player).Q, Add(Multiply((Event Player).k, 4), 2)), Custom String("{0},{1}", Value In Array((Event Player).Q, Add(Multiply((Event Player).k, 4), 3)), (Event Player).u)))));
-                    Disable Inspector Recording;
+                    Modify Global Variable(logQ, Append To Array, Custom String("NS,Q,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).k, Value In Array((Event Player).Q, Multiply((Event Player).k, 4)), Custom String("{0},{1},{2}", Value In Array((Event Player).Q, Add(Multiply((Event Player).k, 4), 1)), Value In Array((Event Player).Q, Add(Multiply((Event Player).k, 4), 2)), Custom String("{0},{1}", Value In Array((Event Player).Q, Add(Multiply((Event Player).k, 4), 3)), (Event Player).u)))));
                 End;
                 Modify Global Variable(logBytes, Add, 52);
             End;
@@ -890,11 +898,7 @@ rule ("Run: log the footer and the tables") {
     }
     actions {
         "F: bot, run, condition, complete (1) or cut short (0), training episodes, goals, falls, timeouts,\nevaluation episodes, goals, falls, timeouts, real steps, slips, seconds"
-        Enable Inspector Recording;
-        "F: bot, run, condition, complete (1) or cut short (0), training episodes, goals, falls, timeouts,\nevaluation episodes, goals, falls, timeouts, real steps, slips, seconds"
-        Log To Inspector(Custom String("NS,F,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).cond, If-Then-Else(And(Compare((Event Player).epCount, >=, (Event Player).trainEps), Compare((Event Player).evalCount, >=, If-Then-Else(Compare((Event Player).algo, ==, 6), 0, Global.cfgEvalEps))), 1, 0), Custom String("{0},{1},{2}", (Event Player).epCount, (Event Player).cntGoal, Custom String("{0},{1},{2}", (Event Player).cntFell, (Event Player).cntTimeout, Custom String("{0},{1},{2}", (Event Player).evalCount, (Event Player).evGoal, Custom String("{0},{1},{2}", (Event Player).evFell, (Event Player).evTimeout, Custom String("{0},{1},{2}", (Event Player).runSteps, (Event Player).runSlips, Subtract(Total Time Elapsed, (Event Player).runT0)))))))));
-        "F: bot, run, condition, complete (1) or cut short (0), training episodes, goals, falls, timeouts,\nevaluation episodes, goals, falls, timeouts, real steps, slips, seconds"
-        Disable Inspector Recording;
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,F,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).cond, If-Then-Else(And(Compare((Event Player).epCount, >=, (Event Player).trainEps), Compare((Event Player).evalCount, >=, If-Then-Else(Compare((Event Player).algo, ==, 6), 0, Global.cfgEvalEps))), 1, 0), Custom String("{0},{1},{2}", (Event Player).epCount, (Event Player).cntGoal, Custom String("{0},{1},{2}", (Event Player).cntFell, (Event Player).cntTimeout, Custom String("{0},{1},{2}", (Event Player).evalCount, (Event Player).evGoal, Custom String("{0},{1},{2}", (Event Player).evFell, (Event Player).evTimeout, Custom String("{0},{1},{2}", (Event Player).runSteps, (Event Player).runSlips, Subtract(Total Time Elapsed, (Event Player).runT0)))))))));
         Modify Global Variable(logBytes, Add, 80);
         Call Subroutine(logTables);
     }
@@ -921,7 +925,8 @@ rule ("Run: one episode") {
             Set Player Variable At Index(Event Player, E, 191, 0);
         End;
         Call Subroutine(observe);
-        Set Player Variable(Event Player, curS, (Event Player).obsCell);
+        Set Player Variable(Event Player, curCell, (Event Player).obsCell);
+        Set Player Variable(Event Player, curS, If-Then-Else(Compare((Event Player).agg, ==, 0), (Event Player).curCell, If-Then-Else(Compare((Event Player).agg, ==, 1), Add(Multiply(Round To Integer(Divide((Event Player).curCell, 12), Down), 4), Round To Integer(Divide(Modulo((Event Player).curCell, 12), 3), Down)), Round To Integer(Divide((Event Player).curCell, 12), Down))));
         Set Player Variable(Event Player, selS, (Event Player).curS);
         Call Subroutine(chooseAction);
         Set Player Variable(Event Player, curA, (Event Player).selA);
@@ -939,9 +944,7 @@ rule ("Run: one episode") {
             If(And((Event Player).isTraining, Compare((Event Player).algo, !=, 7)));
                 Call Subroutine(learnStep);
                 If(And(Compare((Event Player).runSteps, <, 30), Compare((Event Player).algo, <=, 3)));
-                    Enable Inspector Recording;
-                    Log To Inspector(Custom String("NS,S,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).runSteps, (Event Player).curS, Custom String("{0},{1},{2}", (Event Player).curA, (Event Player).reward, Custom String("{0},{1},{2}", (Event Player).nextS, (Event Player).nextA, Custom String("{0},{1},{2}", (Event Player).terminal, (Event Player).curExplore, Custom String("{0},{1},{2}", (Event Player).qOld, If-Then-Else(Compare((Event Player).algo, ==, 3), (Event Player).qDirect, Value In Array((Event Player).Q, Add(Multiply((Event Player).curS, 4), (Event Player).curA))), Custom String("{0},{1}", (Event Player).tgt, Round To Integer(Multiply((Event Player).eps, 1000), To Nearest)))))))));
-                    Disable Inspector Recording;
+                    Modify Global Variable(logQ, Append To Array, Custom String("NS,S,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", (Event Player).runSteps, (Event Player).curS, Custom String("{0},{1},{2}", (Event Player).curA, (Event Player).reward, Custom String("{0},{1},{2}", (Event Player).nextS, (Event Player).nextA, Custom String("{0},{1},{2}", (Event Player).terminal, (Event Player).curExplore, Custom String("{0},{1},{2}", (Event Player).qOld, If-Then-Else(Compare((Event Player).algo, ==, 3), (Event Player).qDirect, Value In Array((Event Player).Q, Add(Multiply((Event Player).curS, 4), (Event Player).curA))), Custom String("{0},{1}", (Event Player).tgt, Round To Integer(Multiply((Event Player).eps, 1000), To Nearest)))))))));
                     Modify Global Variable(logBytes, Add, 75);
                 End;
             End;
@@ -949,13 +952,14 @@ rule ("Run: one episode") {
             Modify Player Variable(Event Player, runSteps, Add, 1);
             Modify Player Variable(Event Player, epReturn, Add, (Event Player).reward);
             Set Player Variable(Event Player, curS, (Event Player).nextS);
+            Set Player Variable(Event Player, curCell, (Event Player).nextCell);
             Set Player Variable(Event Player, curA, (Event Player).nextA);
             Set Player Variable(Event Player, curExplore, (Event Player).nextExplore);
         End;
         Stop Throttle In Direction(Event Player);
         If((Event Player).isTraining);
             Call Subroutine(learnEpisodeEnd);
-            If(Or(Or(Or(Compare((Event Player).algo, ==, 3), Compare((Event Player).algo, ==, 4)), Compare((Event Player).algo, ==, 5)), Compare((Event Player).algo, ==, 8)));
+            If(Or(Or(Or(Or(Compare((Event Player).algo, ==, 3), Compare((Event Player).algo, ==, 4)), Compare((Event Player).algo, ==, 5)), Compare((Event Player).algo, ==, 8)), Compare((Event Player).agg, >, 0)));
                 "These methods change many cells per episode: redraw every arrow."
                 For Player Variable(Event Player, gS, 0, 48, 1);
                     Call Subroutine(updateGlyph);
@@ -985,11 +989,7 @@ rule ("Run: one episode") {
         Modify Global Variable(totalEpisodes, Add, 1);
         Modify Global Variable(totalSteps, Add, (Event Player).epSteps);
         "E: bot, run, episode (evaluation episodes continue the count), mode (0 training, 1 evaluation), return, steps,\noutcome (1 goal, 2 fell, 3 timeout), mean distance from the edge (m), slips, seconds since match start"
-        Enable Inspector Recording;
-        "E: bot, run, episode (evaluation episodes continue the count), mode (0 training, 1 evaluation), return, steps,\noutcome (1 goal, 2 fell, 3 timeout), mean distance from the edge (m), slips, seconds since match start"
-        Log To Inspector(Custom String("NS,E,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", Add((Event Player).epCount, (Event Player).evalCount), If-Then-Else((Event Player).isTraining, 0, 1), Custom String("{0},{1},{2}", (Event Player).epReturn, (Event Player).epSteps, Custom String("{0},{1},{2}", (Event Player).outcome, Divide((Event Player).epEdgeSum, Max(1, (Event Player).epSteps)), Custom String("{0},{1}", (Event Player).epSlips, Subtract(Total Time Elapsed, Global.matchT0)))))));
-        "E: bot, run, episode (evaluation episodes continue the count), mode (0 training, 1 evaluation), return, steps,\noutcome (1 goal, 2 fell, 3 timeout), mean distance from the edge (m), slips, seconds since match start"
-        Disable Inspector Recording;
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,E,{0},{1},{2}", (Event Player).bid, (Event Player).runCount, Custom String("{0},{1},{2}", Add((Event Player).epCount, (Event Player).evalCount), If-Then-Else((Event Player).isTraining, 0, 1), Custom String("{0},{1},{2}", (Event Player).epReturn, (Event Player).epSteps, Custom String("{0},{1},{2}", (Event Player).outcome, Divide((Event Player).epEdgeSum, Max(1, (Event Player).epSteps)), Custom String("{0},{1}", (Event Player).epSlips, Subtract(Total Time Elapsed, Global.matchT0)))))));
         Modify Global Variable(logBytes, Add, 50);
         If(And(And(Compare((Event Player).algo, ==, 6), (Event Player).isTraining), Or(Or(Compare((Event Player).epCount, ==, 10), Compare((Event Player).epCount, ==, 30)), Compare((Event Player).epCount, ==, 100))));
             Call Subroutine(logTables);
@@ -1045,15 +1045,12 @@ rule ("Block: end when every bot is done, the log file is nearly full, or the ha
         Set Global Variable(stopping, True);
         Wait Until(Is True For All(Global.bots, (Current Array Element).done), 150);
         "X: reason (1 all bots done, 2 log budget, 3 time limit), seconds, episodes, real steps, estimated log bytes, server load now / average / peak"
-        Enable Inspector Recording;
-        "X: reason (1 all bots done, 2 log budget, 3 time limit), seconds, episodes, real steps, estimated log bytes, server load now / average / peak"
-        Log To Inspector(Custom String("NS,X,{0},{1},{2}", Global.stopReason, Subtract(Total Time Elapsed, Global.matchT0), Custom String("{0},{1},{2}", Global.totalEpisodes, Global.totalSteps, Custom String("{0},{1},{2}", Global.logBytes, Server Load, Custom String("{0},{1}", Server Load Average, Server Load Peak)))));
-        "X: reason (1 all bots done, 2 log budget, 3 time limit), seconds, episodes, real steps, estimated log bytes, server load now / average / peak"
-        Disable Inspector Recording;
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,X,{0},{1},{2}", Global.stopReason, Subtract(Total Time Elapsed, Global.matchT0), Custom String("{0},{1},{2}", Global.totalEpisodes, Global.totalSteps, Custom String("{0},{1},{2}", Global.logBytes, Server Load, Custom String("{0},{1}", Server Load Average, Server Load Peak)))));
         Set Global Variable(calMsg, Custom String("block finished"));
         "Stage 3 stops the once-a-minute line, so if the restart below does not fire the log goes quiet and the\nwatcher outside the game can tell."
         Set Global Variable(calStage, 3);
-        Wait(3, Ignore Condition);
+        Wait Until(Compare(Count Of(Global.logQ), ==, 0), 20);
+        Wait(2, Ignore Condition);
         If(Global.cfgAutoRestart);
             Restart Match;
     }
@@ -1069,11 +1066,7 @@ rule ("Telemetry: server load once a minute") {
     actions {
         Wait(60, Ignore Condition);
         "L: seconds, load now, average, peak, episodes, real steps, estimated log bytes"
-        Enable Inspector Recording;
-        "L: seconds, load now, average, peak, episodes, real steps, estimated log bytes"
-        Log To Inspector(Custom String("NS,L,{0},{1},{2}", Subtract(Total Time Elapsed, Global.matchT0), Server Load, Custom String("{0},{1},{2}", Server Load Average, Server Load Peak, Custom String("{0},{1},{2}", Global.totalEpisodes, Global.totalSteps, Global.logBytes))));
-        "L: seconds, load now, average, peak, episodes, real steps, estimated log bytes"
-        Disable Inspector Recording;
+        Modify Global Variable(logQ, Append To Array, Custom String("NS,L,{0},{1},{2}", Subtract(Total Time Elapsed, Global.matchT0), Server Load, Custom String("{0},{1},{2}", Server Load Average, Server Load Peak, Custom String("{0},{1},{2}", Global.totalEpisodes, Global.totalSteps, Global.logBytes))));
         Modify Global Variable(logBytes, Add, 60);
         Loop If Condition Is True;
     }
