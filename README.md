@@ -97,6 +97,29 @@ and every table the game logs is recomputed outside it. Conditions, log format, 
 trap worth knowing about (the Workshop Inspector silently stops recording, and the log file with it):
 [`docs/night-school.md`](docs/night-school.md).
 
+### The first night (2026-11-21 to 22)
+
+![Falls per 100 training episodes for every method](analysis/figures/night/fig_falls_by_method.png)
+
+28,372 episodes and 517,518 real steps in 5.6 hours of game time: 180 finished runs across the sixteen
+conditions, at 25.6 real steps a second (the single-bot build manages about 2.2).
+
+- **The question this lab started from now has repeats.** SARSA fell 16.3 times per 100 training episodes and
+  Q-learning 26.5 (16 and 11 runs; difference -10.1, 95% bootstrap interval -14.2 to -5.8,
+  permutation p under 0.001), and walked 3.88 m from the edge against 2.07 m.
+- Optimistic starting values and a count bonus cut falls to 7.2 and 7.1 per 100.
+- Monte Carlo control and REINFORCE learned to step off the edge at once (of the endings a beginner sees, that one
+  costs least); one-step actor-critic did not (7.1 falls per 100, every evaluation clean).
+- Q-learning told only its row and quarter of the strip fell 16.3 times per 100; told only its row,
+  42.5; told its exact cell, 26.5.
+- Dyna-Q averaged -31.7 over its first 40 episodes against -57.6 for Q-learning, and was level with it by the last 40.
+- 4,043 logged steps were recomputed outside the game with 0 mismatches.
+
+Only the SARSA against Q-learning comparison was planned in advance. Settings were fixed before any run and not
+tuned; the rotation was weighted toward SARSA and Q-learning for the last hour because the random rotation had
+given them the fewest runs. Numbers: [`analysis/figures/night/summary.json`](analysis/figures/night/summary.json).
+Logs: [`data/logs/night/`](data/logs/night).
+
 ## Labs
 
 | Lab | Question |
