@@ -1,0 +1,23 @@
+{
+ "model": "gemma4:12b",
+ "before_any_call": {
+  "prompt_tokens": 166,
+  "next": "get_user_details({\"user_id\": \"raj_sanchez_7340\"})"
+ },
+ "dropped_once": {
+  "prompt_tokens": 171,
+  "next": "get_user_details({\"user_id\": \"raj_sanchez_7340\"})"
+ },
+ "dropped_three_times": {
+  "prompt_tokens": 171,
+  "next": "get_user_details({\"user_id\": \"raj_sanchez_7340\"})"
+ },
+ "kept_once": {
+  "prompt_tokens": 250,
+  "next": "get_reservation_details({\"reservation_id\": \"Q69X3R\"})"
+ },
+ "result_reached_the_model_when_dropped": false,
+ "result_reached_the_model_when_kept": true,
+ "repeats_the_lookup_when_dropped": true,
+ "moves_on_when_kept": true
+}

@@ -15,8 +15,9 @@ says which comparisons were planned before the runs and which were not.
 | 3 | [Planning by Dynamic Programming](lecture-03.md) | [video](https://www.youtube.com/watch?v=Nd1-UUMVfz4) | [outline](../series/episode-03.md) |
 | 4 | [Model-Free Prediction](lecture-04.md) | [video](https://www.youtube.com/watch?v=PnHCvfgC_ZA) | [outline](../series/episode-04.md) |
 | 5 | [Model-Free Control](lecture-05.md) | [video](https://www.youtube.com/watch?v=0g4j2k_Ggc4) | [outline](../series/episode-05.md) |
+| 6 | [Value Function Approximation](lecture-06.md) | [video](https://www.youtube.com/watch?v=UoPei5o4fps) | [outline](../series/episode-06.md) |
 
-5 of 10 lectures are written so far.
+6 of 10 lectures are written so far.
 
 The finale: [lesson 11, the wall she cannot see](lesson-11-partial-observability.md). Partial observability on the island, by simulation, and on a local language model.
 

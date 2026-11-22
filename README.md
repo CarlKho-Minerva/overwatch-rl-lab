@@ -6,15 +6,41 @@ sends her off the island for real, and the game's own physics decide what each m
 You watch the policy form as arrows on the floor, switch between SARSA and Q-learning, and take
 the logs out for analysis.
 
-There is no simulator in this repository. All movement, falling, shooting and dying happen in the
+The experiments are not simulated. All movement, falling, shooting and dying happen in the
 game, driven by an official Workshop script. Python is used only to read the game's log files.
+(One small rules-only simulator was added for lesson 11, to predict a result before the game was
+asked. It is labelled wherever its numbers appear.)
 
 ![SARSA training on Workshop Island, episode 9](docs/img/2026-11-21_sarsa_training_episode9.jpg)
 
 *A real screenshot (Overwatch 2.25.1.0, 2026-11-21). The red line is the island's edge. Arrows are
 the action Tracer currently rates best in each cell; dots are cells she has not learned about.*
 
-**The course.** David Silver's ten lectures, gone through in order and re-explained with these experiments: [course/](course/README.md). Episode outlines for a video series: [series/](series/).
+
+<!-- day2:start -->
+## The course, and a wall she cannot see
+
+**The course.** David Silver's ten lectures were transcribed in full and gone through in his order, each idea followed
+by the same idea on the strip with what the bots did: [course/](course/README.md) (6 of 10 written so far), with
+an outline per lecture for a video series in [series/](series/README.md). Lecture transcripts are not in this
+repository; the pages are re-explanations with time stamps into the videos.
+
+**Lesson 11: partial observability.** One square on the runner's way is shut, a different one each episode, and she is
+not told which. Three Q-learning runners differ only in what they are given: her square; her square and a memory of
+the bump; her square and the wall. Measures and comparisons were committed before each design ran
+([docs](docs/night-school.md)), and a rules-only simulator (`node analysis/sim/hidden_wall_sim.js`) gave the prediction
+for the second design before the game did.
+
+- Short strip, wall in any of four rows, no way round (3, 4 and 3 runs): test crossings reaching the goal were 52% for the runner told only her square, 100% for the one who also remembers a bump, 87% for the one shown the wall. Remembering against blind: +48 points (95% interval 20 to 100, shuffle probability 0.029), a real difference by the rule set in advance.
+- Long strip, wall in one of two rows, a way round exists (3, 4 and 3 runs): test crossings reaching the goal were 67% for the runner told only her square, 50% for the one who also remembers a bump, 50% for the one shown the wall. Remembering against blind: -17 points (95% interval -75 to 50, shuffle probability 1.000), inconclusive by the rule set in advance.
+
+The same three conditions on a local language model (`llm/hidden_order.py`, a small support task where the exact
+belief after every message is known):
+
+- gemma4:12b, 24 cases per condition: right final step in 6 with only the latest message (18 never finished), 23 with its own notes, 24 with the whole transcript, 24 when told the hidden facts.
+
+The write-up, with what each result does and does not show: [course/lesson-11-partial-observability.md](course/lesson-11-partial-observability.md).
+<!-- day2:end -->
 
 ## Run it in five minutes
 

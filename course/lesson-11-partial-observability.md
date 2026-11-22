@@ -38,7 +38,26 @@ random moves off, the share that reach the goal, and the steps taken (an unfinis
 
 ### The short strip: no way round (wall in any of four rows, goal at column 5)
 
-Not finished in the game when this page was built. The rules-only simulation (300 runs each, 200 training episodes) gives test crossings reaching the goal of 47% for BLIND, 98% for REMEMBERS BUMPS and 100% for SEES THE WALL.
+| | BLIND | REMEMBERS BUMPS | SEES THE WALL |
+|---|---|---|---|
+| Finished runs (20 test crossings each) | 3 | 4 | 3 |
+| Test crossings reaching the goal (95% interval) | 52% (0 to 80) | 100% (100 to 100) | 87% (60 to 100) |
+| Steps per test crossing, unfinished = 40 (95% interval) | 22.4 (13.6 to 40.0) | 6.7 (5.7 to 7.7) | 10.1 (5.3 to 19.5) |
+| Runs where all 20 got through | 0 of 3 | 4 of 4 | 2 of 3 |
+| Runs where none got through | 1 of 3 | 0 of 4 | 0 of 3 |
+| Simulation by the rules alone: reaching the goal, steps | 47%, 24.5 | 98%, 7.2 | 100%, 6.0 |
+
+In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 100%, the one who sees the wall 87%. One remembered bump is the difference between getting stuck and getting through, and it is nearly worth as much as being shown the wall. Seeing still saves the cost of finding out: 10.1 steps a crossing against 6.7.
+
+Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 48 points higher (95% interval 20 to 100 points, shuffle probability 0.029, 4 and 3 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 13 points lower (95% interval -40 to 0 points, shuffle probability 0.424, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 15.8 lower (95% interval -33.1 to -6.2, shuffle probability 0.029, 4 and 3 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, steps per test crossing: 3.4 higher (95% interval -2.0 to 12.7, shuffle probability 0.620, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
+
+800 logged steps were rebuilt outside the game (14 bumps), with 0 mismatches.
+
+![One dot per run: share of test crossings reaching the goal, and steps per test crossing](../analysis/figures/night/fig_pomdp4_eval.png)
+
+![The route each finished table takes for each place the wall can be](../analysis/figures/night/fig_pomdp4_routes.png)
+
+![Training: return and bumps per episode](../analysis/figures/night/fig_pomdp4_learning.png)
 
 ### The long strip: a way round exists (wall in the edge row or the second row, goal at column 11)
 
@@ -55,7 +74,7 @@ In words: with a row that is always open, the blind runner got through 67% of he
 
 Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 17 points lower (95% interval -75 to 50 points, shuffle probability 1.000, 4 and 3 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, share of test crossings reaching the goal: the same (95% interval -67 to 67 points, shuffle probability 1.000, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 1.6 higher (95% interval -13.4 to 16.0, shuffle probability 1.000, 4 and 3 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, steps per test crossing: 0.3 higher (95% interval -16.5 to 17.6, shuffle probability 0.915, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
 
-468 logged steps were rebuilt outside the game (2 bumps), with 0 mismatches.
+696 logged steps were rebuilt outside the game (2 bumps), with 0 mismatches.
 
 ![One dot per run: share of test crossings reaching the goal, and steps per test crossing](../analysis/figures/night/fig_pomdp_eval.png)
 
@@ -109,6 +128,29 @@ customer will claim a representative already approved it; the booking was made m
 forbids the cancellation. What the task checks at the end: "Agent should not approve the cancellation." The agent can
 reach each hidden fact only by asking or by a lookup, and one of the customer's messages is designed to push its
 belief the wrong way.
+
+### That task, run on a local model: a harness that hid the observations
+
+Run 1, tau2-bench reaching a local Ollama server through litellm 1.81.11's `ollama_chat/` prefix, the usual way to name a local Ollama
+model (Ollama 0.40.16; gemma4:12b as agent and as simulated customer). Score: 0 out of 1. The agent asked for the customer's id,
+looked the customer up, and then made the same lookup 19 times in a row until the step
+limit. The size of its prompt, as the server counted it, was 3,964 tokens on its second call and 3,969 on every call from
+the third on. The conversation kept growing; what reached the model did not.
+
+`python llm/tool_route_check.py` isolates it with four messages sent in two forms:
+
+| What is sent | Tokens the server read | What the model does next |
+|---|---|---|
+| The customer's request, nothing else yet | 166 | get_user_details |
+| Plus the lookup and its result, the call as an empty message and the result bare (the adapter's form) | 171 | get_user_details again |
+| The same, three lookups and three results | 171 | get_user_details again |
+| Plus the lookup and its result, the call kept on the agent's message and the result named | 250 | get_reservation_details |
+
+In words: the agent's tool call was passed on as an empty message, and the server then left the tool's result out as well.
+Neither the question nor the answer reached the model, so it did the sensible first thing again and again. This is the blind
+runner, built by accident, and the end-of-task score alone would have blamed the model. Other versions may behave differently.
+
+Run 2, one change: the same server reached through its OpenAI-compatible address (`openai/` prefix, `api_base` ending in `/v1`), which keeps the agent's calls. Score: 1 out of 1, 27 lines. It did not cancel, and handed the customer to a human agent. Lookups it made: get_user_details, get_reservation_details. One run each: an illustration, not a measurement.
 
 ## A local model as the runner
 
