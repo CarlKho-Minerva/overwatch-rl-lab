@@ -5,68 +5,68 @@
    "n": 1,
    "after": "09:47",
    "title": "Guess what the number will do",
-   "silver": "Silver says reinforcement learning has no teacher who shows the right move: the learner gets only a number, called the reward, and that number can come long after the move that earned it.",
+   "silver": "Silver's first point: there is no teacher pointing at the right move. You get a number, the reward, and it can show up long after the move that earned it. Think of your rank bar after a game: it moves, and it never says why.",
    "do": "Five white rings stand around you, and the yellow line shows the last reward and the running total. A question floats in front of you. Answer with left click, right click or melee.",
    "predict": "Commit to what the total will do while a round is running and you stand still.",
-   "saw": "It drops by 1 every second. The score says that time costs something and nothing else: not where to go, not which ring is good. That is reward without a supervisor. A teacher would point; the score only counts.",
-   "agent": "An agent graded only on whether its task passed gets the same kind of signal: one number, with no reason attached."
+   "saw": "It drops by 1 every second. That is all the score says: time costs something. Not where to go, not which ring is good. A teacher would point. The score only counts. That is reward without a supervisor.",
+   "agent": "An agent graded only on whether its task passed gets the same deal: one number, no reason attached."
   },
   {
    "n": 2,
    "after": "23:00",
    "title": "Find the ring the score likes",
-   "silver": "Silver's reward hypothesis says any goal can be written as a total to make as large as possible, so 'finish fast' becomes minus one for every step.",
+   "silver": "Silver's reward hypothesis: any goal can be written as one total to push as high as it will go. Even 'finish fast' fits, as minus one for every step.",
    "do": "Walk with WASD when you are ready; the round's clock starts at your first step. Try the rings. The round ends when one of them pays, or 120 seconds after your first step.",
    "predict": "Before you step, pick the ring you will try first and say how you will know whether it was the right one.",
-   "saw": "Most rings paid 0, and one paid +50 and ended the round. Your total is 50 minus the seconds you spent, so every wrong ring cost you the walk to it. Nobody told you to hurry; the minus one a second did. That is the reward hypothesis in your hands: a goal, find it and be quick, turned into one number to push up."
+   "saw": "Most rings paid 0. One paid +50 and ended the round. Your total is 50 minus the seconds you spent, so every wrong ring cost you the walk to it. Nobody told you to hurry. The minus one a second did. That is the reward hypothesis in your hands: a goal (find it, be quick) turned into one number to push up."
   },
   {
    "n": 3,
    "after": "29:35",
    "title": "Wait for the late bill",
-   "silver": "Silver draws a loop: the learner acts, the world answers with what it now shows and a reward, and that stream of experience is all the data there is.",
+   "silver": "Silver draws a loop. The learner acts, the world answers with what it now shows plus a reward, and round it goes. That stream of experience is all the data there is.",
    "do": "Round 1 is over, and a question asks whether your total can still change. Answer with left click or right click, then watch the yellow line.",
    "predict": "Commit: is the number on screen now your final total for round 1?",
-   "saw": "If you touched the billing ring, -20 arrived only now, after the round ended, and nothing says which ring sent it. That is late feedback, and working out which past move earned it is called credit assignment. If no bill came, the billing ring is one you never touched. Either way you acted, read the number and acted again: action, observation, reward, in a loop.",
-   "agent": "A coding agent whose tests fail at the end of a long task faces the same puzzle: which of its many edits caused it."
+   "saw": "If you touched the billing ring, -20 turned up only now, after the round ended, with nothing saying which ring sent it. That is late feedback, and working out which past move earned it is called credit assignment. No bill? Then the billing ring is one you never touched. Either way you acted, read the number and acted again: action, observation, reward, in a loop.",
+   "agent": "A coding agent whose tests fail at the end of a long task gets the same late bill, and the same puzzle: which of its many edits sent it."
   },
   {
    "n": 4,
    "after": "29:35",
    "title": "Run round 2 on what you learned",
-   "silver": "In that loop the learner's only way to get better is the experience it has collected, and here round 1 is that experience.",
+   "silver": "In that loop, the only thing the learner can improve from is the experience it has collected. Here, that experience is round 1.",
    "do": "A question asks what your round 2 total will be if you go straight to the ring that paid. Answer, then walk to that ring with WASD; the clock starts at your first step. Both totals then sit side by side on the right.",
    "predict": "Name what still limits your round 2 total, given that the layout has not changed.",
-   "saw": "Going straight there, you lose only the seconds of one walk, so the total lands a little under +50. The right side shows round 2 minus round 1. That gap is learning from reward: the same map and the same rules, and a better total because of what the score showed you."
+   "saw": "Straight to the ring, you lose only the seconds of one walk, so the total lands a little under +50. The right side shows round 2 minus round 1. That gap is learning from reward: same map, same rules, a better total, and the only thing that changed is what the score showed you."
   },
   {
    "n": 5,
    "after": "33:53",
    "title": "Steer by memory with the rings gone",
-   "silver": "Silver calls everything seen, done and scored so far the history, and calls the state whatever summary of it the learner keeps and acts on.",
+   "silver": "Silver calls everything seen, done and scored so far the history. The state is whatever summary of it the learner keeps and acts on: the full recording of your match versus the two notes in your head.",
    "do": "Answer a question about round 3 with left click or right click. Then you are held still for 2 seconds to look before the rings vanish. Answer the next question, then walk with WASD to where the paying ring was.",
    "predict": "Before the rings go, commit to how you will find the paying ring once nothing on screen marks it.",
-   "saw": "With nothing on screen, you went where your memory said. Your history is every second, ring and bill so far; the one fact you kept from it, that ring over there, is your state. The first question was its price: going straight earns now but teaches nothing about the rings you skipped. That is using what you know instead of trying things."
+   "saw": "With nothing on screen, you went where your memory said. Your history is every second, ring and bill so far. The one fact you kept from it, that ring over there, is your state. The first question was its price: going straight earns now but teaches you nothing about the rings you skipped. That is using what you know instead of trying things."
   },
   {
    "n": 6,
    "after": "52:23",
    "title": "Trust your eyes in round 4",
-   "silver": "Silver turns to problems where the learner sees the world only in part, so one view can hide different situations and the learner must build its own state.",
+   "silver": "Silver turns to worlds the learner sees only in part. One view can hide different situations, so the learner has to build its own state. Call it the invisible Sombra problem.",
    "do": "The rings are back. A question asks whether your old ring will pay +50. Answer with left click or right click, then walk with WASD; the clock starts at your first step.",
    "predict": "Decide whether what you can see is enough to know which ring pays now.",
-   "saw": "The island looked exactly like round 2, but the hidden payouts had been redrawn and the +50 ring had moved. Your old ring paid nothing, and you were back to trying things. The same view with a different hidden state is partial observability, the problem the course ends on.",
-   "agent": "Two customers can open a support chat with the same first message and want different things the agent cannot see."
+   "saw": "The island looked exactly like round 2, but the hidden payouts had been redrawn and the +50 ring had moved. Your old ring paid nothing, and you were back to trying things. Same view, different hidden state: that is partial observability, the problem the course ends on.",
+   "agent": "Two customers can open a support chat with the same first message and want different things. The agent sees the same view; the hidden state is different."
   },
   {
    "n": 7,
    "after": "1:20:44",
    "title": "Read your four rounds back",
-   "silver": "Silver ends on a trade every learner faces: use what you know to score now, or try something new to find out more.",
+   "silver": "Silver ends on a trade every learner faces: use what you know and score now, or try something new and find out more. Your main, or the hero you have never queued.",
    "do": "Nothing to press. The left side lists what you did, what it is called and where it shows up in a language-model agent, with your prediction score. The right side keeps all four round totals.",
    "predict": "Before reading, guess which round cost you the most seconds, and why.",
-   "saw": "Round 1 was trying things and round 2 was using what you knew; rounds 3 and 4 asked what you were acting on. Your total rose when your memory matched the world and fell when it did not. The game is simpler than Silver's setting: you always knew where you stood, so your memory was nearly a complete state.",
-   "agent": "An agent scored only at the end of a task works the same way: the transcript is its history, and what the program that runs the model (its harness) shows it each turn is its state."
+   "saw": "Round 1 was trying things. Round 2 was using what you knew. Rounds 3 and 4 asked what you were acting on. Your total went up when your memory matched the world and down when it did not. (The game is easier than Silver's setting: you always knew where you stood, so your memory was nearly a complete state.)",
+   "agent": "An agent scored only at the end of a task works the same way. The transcript is its history, and whatever its harness (the program that runs the model) shows it each turn is its state."
   }
  ]
 }

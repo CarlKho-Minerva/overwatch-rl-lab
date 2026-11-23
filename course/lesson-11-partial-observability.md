@@ -113,13 +113,13 @@ policy-gradient methods of lecture 7 are for, and that bot has not been run on t
 
 > **Alt+Tab · game 11 · stop 1 of 7: Ping once, then say how sure**
 >
-> **What the page just said:** The page has just split the world in two: what is really there, and what the runner is shown, and a runner who cannot see the shut square has to act anyway.
+> **What the page just said:** You know the feeling of a Sombra on the enemy team. She is there, somewhere, and your screen shows nothing. The page has just split the world in two: what is really there, and what you get shown. When those differ, you still have to act.
 >
 > **In the game:** Sombra hides in one of two rooms, and you cannot see her. Press F to ping. The game then asks how sure you should be that she is where the ping says: left click, right click or melee.
 >
 > **Before you press:** Before you answer, decide what one reading from a ping that is right 8 times in 10 is worth, when you knew nothing a moment ago.
 >
-> <details><summary>Back from the game: what you just saw</summary>The ping named a room and the answer was 80%. With nothing to go on before, the ping's own accuracy is all you have. Her room is the hidden part of the state, the ping is an observation, and the two are not the same thing. That gap is what makes this a partially observable problem. <em>In an agent:</em> A customer's first message names a wish, and it is evidence about what they want, not the want itself.</details>
+> <details><summary>Back from the game: what you just saw</summary>You pressed F, a room lit up, and the honest answer was 80%. You knew nothing before, so the ping's own track record is all you have. Where she really is, nobody shows you. Silver calls that the hidden state, and the ping an observation. This game is a partially observable problem. <em>In an agent:</em> A customer's first message names a wish. It is evidence about what they want, not the want itself.</details>
 
 ## A belief is a number that moves
 
@@ -135,13 +135,13 @@ With a sensor that is always right you get the island: one bump, and the belief 
 
 > **Alt+Tab · game 11 · stop 2 of 7: Ping again, then pick a room**
 >
-> **What the page just said:** The page has just shown that a belief is one number, and that each new reading moves it by a single rule: keep each possibility in proportion to how well it explains what was seen.
+> **What the page just said:** Two teammates call the same flank and you believe it more than one. One says left, one says right, and you are back to shrugging. The page has just turned that instinct into one number and one rule for moving it.
 >
 > **In the game:** Press F for a second ping and answer how sure you are now. The rooms then open: press F to ping more, or walk onto the pad of the room you think is empty (+10; hers costs 30).
 >
 > **Before you press:** Decide where the bar will land if the second ping agrees with the first, and where it lands if it disagrees.
 >
-> <details><summary>Back from the game: what you just saw</summary>Two pings that agree put the bar near 94%; one each way sends it back to 50%. The purple bar on the right is your belief, and it moved by Bayes' rule after every ping. Look at the coach line after the reveal: it says what entering was worth at your belief, and what one more ping was worth. <em>In an agent:</em> Every tool result an agent reads should move its picture of the task by the same kind of rule, up or down.</details>
+> <details><summary>Back from the game: what you just saw</summary>Two pings that agree put the bar near 94%. One each way sends it straight back to 50%, as if you had never pinged. The purple bar is your belief, and it moved by one rule: keep each room in proportion to how well it explains what you heard. That rule is Bayes' rule. (The coach line after the reveal prices your choice: walking in at your belief, against one more ping.) <em>In an agent:</em> Each tool result an agent reads should move its picture of the task the same way, up or down, and by how much it explains.</details>
 
 ## The same problem in a support conversation
 
@@ -188,13 +188,13 @@ Run 2, one change: the same server reached through its OpenAI-compatible address
 
 > **Alt+Tab · game 11 · stop 3 of 7: At 80%, walk in or ask again**
 >
-> **What the page just said:** The page has just laid out the support conversation: a question or a lookup only finds things out, while a change to the booking cannot be undone.
+> **What the page just said:** Holding an ult for the perfect fight costs you fights. Using it on a guess sometimes wastes it. The page has just shown the support version: a question or a lookup only finds things out, but a change to the booking cannot be undone.
 >
 > **In the game:** Round 2: she has moved. Press F once. The question asks whether to walk into the other room now or ping again: left click or right click. Then play the round your way.
 >
 > **Before you press:** Commit to a choice at 80% before you see the arithmetic: is 80% sure enough when the empty room pays 10 and hers costs 30?
 >
-> <details><summary>Back from the game: what you just saw</summary>At 80% walking in is worth 2 on average (0.8 times 10, less 0.2 times 30), and pinging on with the best plan is worth 5.71. One wrong room costs as much as three right ones, so 80% is a gamble with a price. Acting on a belief that is not settled is the same choice an agent makes when it cancels a booking on a guess. <em>In an agent:</em> Cancelling at 80% sure is the agent walking into Sombra's room.</details>
+> <details><summary>Back from the game: what you just saw</summary>80% feels like a sure thing. Here it is worth 2 on average: 8 times you get 10, twice you lose 30. Pinging on is worth 5.71. One wrong room costs as much as three right ones. So acting on a belief that is not settled is a bet with a price, and the price decides how sure is sure enough. <em>In an agent:</em> An agent that cancels a booking at 80% sure has walked into Sombra's room.</details>
 
 ## A local model as the runner
 
@@ -243,13 +243,13 @@ every step.
 
 > **Alt+Tab · game 11 · stop 4 of 7: Same last ping, different bar**
 >
-> **What the page just said:** The page has just shown a model given only the latest message going round in circles, because the answer to its last question was gone by the next turn.
+> **What the page just said:** Ask someone who walked in mid-fight what happened, and they will tell you about the last kill feed line. It is not enough. The page has just shown a model handed only the latest message, asking the same question in circles, because its last answer was gone.
 >
 > **In the game:** The game asks about two players whose latest ping both said LEFT, with different pings before it: same bar or different bars, left click or right click. Then round 3: ping with F or walk onto a pad, your call.
 >
 > **Before you press:** Decide whether the latest reading alone tells you where the bar is.
 >
-> <details><summary>Back from the game: what you just saw</summary>The bars differ, 50% for one player and 94% for the other. The latest observation is not a state: two situations look the same and are not, like the blind runner's square or the look-alike squares of lecture 7. The bar keeps what the latest reading forgets, which is why a belief is a good state and the last ping is not. <em>In an agent:</em> Check what the agent was actually shown on the turn it went wrong before you blame the model.</details>
+> <details><summary>Back from the game: what you just saw</summary>Same last ping, different bars: 50% for one player, 94% for the other. The latest reading forgets what came before, and the bar does not. The last ping is not a state. Two situations that look alike are not alike, like the blind runner's square in lesson 11, or the look-alike squares of lecture 7 (where the same view needed different moves). <em>In an agent:</em> Before you blame the model, check what it was actually shown on the turn it went wrong.</details>
 
 ## Ask or act: the price of finding out
 
@@ -270,33 +270,33 @@ you do: for a customer who wants a bag or an upgrade, allowed on every ticket, i
 
 > **Alt+Tab · game 11 · stop 5 of 7: Where a ping is worth most**
 >
-> **What the page just said:** The page has just priced finding out: a lookup is worth a step only when some answer it could give would change what you do.
+> **What the page just said:** Checking the scoreboard mid-fight is worth it only if what you see could change your next move. The page has just priced finding out: a lookup is worth a step only when some answer could change what you do.
 >
 > **In the game:** The game asks when one more ping is worth most: at 50% (left click), at 94% (right click), or the same (melee). Then round 4: ping with F or walk onto a pad.
 >
 > **Before you press:** Pick the belief at which a ping is most likely to change which room you walk into.
 >
-> <details><summary>Back from the game: what you just saw</summary>At 50% pinging beats walking in by about 14.7; at 94% it loses about 0.13. Information pays where it can change your move, which is lecture 9's value of information. The plan on the right comes from value iteration over beliefs: ping while the bar is between 6% and 94%, enter outside it. <em>In an agent:</em> A lookup for a wish every ticket allows, like a bag or an upgrade, is a ping at 94%: it costs a turn and changes nothing.</details>
+> <details><summary>Back from the game: what you just saw</summary>At 50% a ping beats walking in by about 14.7. At 94% it loses about 0.13. Same ping, same cost. What changed is whether the answer could change your room. Lecture 9 called this the value of information. The plan on the right is value iteration over beliefs (the arithmetic that weighs every future ping): ping between 6% and 94%, walk in outside it. <em>In an agent:</em> Looking up a booking to add a bag, which every ticket allows, is a ping at 94%: a turn spent, nothing changed.</details>
 
 > **Alt+Tab · game 11 · stop 6 of 7: One ping that is never wrong**
 >
-> **What the page just said:** The page has priced finding out, and back in its belief section it noted that a sensor that is always right turns the belief into a fact with one reading.
+> **What the page just said:** Widowmaker's infra-sight does not hint. It shows you. Back in its belief section, the page noted the same thing: a sensor that is always right turns the belief into a fact with one reading.
 >
 > **In the game:** The game asks how many pings you need when the ping is always right: one, two, or three or more. Then round 5, with a ping like Widowmaker's infra-sight: press F, or walk onto a pad.
 >
 > **Before you press:** Decide how far a single perfect reading moves the bar.
 >
-> <details><summary>Back from the game: what you just saw</summary>One ping takes the bar to 100% or 0%, and the belief becomes a fact. That is the island's single bump in lesson 11's hidden wall. With a perfect ping the best plan is worth 9 a round against 4.71 with the 80% ping, so the better sensor is worth about 4.3 a round. <em>In an agent:</em> A lookup that returns the booking itself is a perfect ping; a customer's own account of it is not.</details>
+> <details><summary>Back from the game: what you just saw</summary>One ping, and the bar jumped to 100% or 0%. No more doubt to spend pings on. That is the island's single bump from the hidden wall: one touch and the wall is known. The best plan is worth 9 a round with this ping and 4.71 with the 80% one. In words: a better sensor is worth about 4.3 a round, before you have done anything clever. <em>In an agent:</em> Reading the booking itself is a perfect ping. The customer's memory of it is the 80% one.</details>
 
 > **Alt+Tab · game 11 · stop 7 of 7: Read what you just did**
 >
-> **What the page just said:** The page closes the loop: the program that runs the model, called the harness, decides what the model sees each turn, so it decides the agent's state.
+> **What the page just said:** The page ends where agents actually break: the program wrapped around a model, the harness, picks what the model sees each turn. So it picks the agent's state.
 >
 > **In the game:** Press F to see the debrief. Three lines appear on the left, with your final score and your prediction score.
 >
 > **Before you press:** Before you press, say in one sentence what the purple bar was standing in for.
 >
-> <details><summary>Back from the game: what you just saw</summary>You pinged to find out, then walked into rooms you could not see into. The name is partial observability; the bar is a belief state, and a ping is an action taken only for information. The game leaves a lot out: two rooms, a known accuracy, and a Sombra who never moves. <em>In an agent:</em> In an agent a question or a lookup is a ping and a cancellation is a room, so check what it was shown before you blame it.</details>
+> <details><summary>Back from the game: what you just saw</summary>You pinged to find out, then walked into rooms you could not see into. That is the whole lesson in two moves. The name is partial observability. The bar was a belief state, and a ping was an action you took only for what it told you. (The game is kind to you: two rooms, a known accuracy, and a Sombra who never moves.) <em>In an agent:</em> A question or a lookup is a ping, and a cancellation is a room. Check what the agent was shown before you blame it.</details>
 
 ## What to carry forward
 

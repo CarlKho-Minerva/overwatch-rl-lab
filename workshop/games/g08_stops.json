@@ -5,61 +5,61 @@
    "n": 1,
    "after": "15:54",
    "title": "Walk the maze once yourself",
-   "silver": "A model is the agent's own guess of where a move lands and what it pays, and every real step is one worked example to learn that guess from.",
+   "silver": "Silver's model is two guesses per move: where you land and what it pays. The good news is that the answer key comes free. Every real step you take is one worked example: from here, with this move, you landed there and were paid this.",
    "do": "The game waits on the blue pad. Walk with W, A, S and D onto a pad next to yours, one pad at a time, until you reach the green pad. A red ball is wall and bounces you back. There is no clock.",
    "predict": "Before you set off, decide whether a bump into the wall is worth remembering, or only the steps that got somewhere.",
-   "saw": "The right side counted your steps and your bumps. Each one became a line in the replaying bot's memory: from this pad, with this move, you landed there and were paid this much. That memory is its model. Because you reached the goal, the model already holds the one reward in the maze, and each bump is a line too, saying that move goes nowhere.",
-   "agent": "An agent that keeps logs of real conversations is collecting the same kind of lines: what it said, and what the user said back."
+   "saw": "Look right: your steps and your bumps, counted. Every one is now a line in the replaying bot's memory: from this pad, with this move, you landed there and were paid this much. That memory is its model. You reached the goal, so it already holds the only reward in the maze. The bumps count too. Each is a line saying that move goes nowhere.",
+   "agent": "Every logged conversation is a stack of the same lines: what the agent said, and what the user said back. Nobody had to label them. The user did, by answering."
   },
   {
    "n": 2,
    "after": "27:54",
    "title": "Pick replays, then watch race 1",
-   "silver": "The simplest model stores every step it has seen, and drawing one of those stored steps at random is the same as asking the model what happens next.",
+   "silver": "The simplest model is a tally. Or skip the counting: keep every step you have seen, and when you want to know what a move does, pull out one of those stored steps at random. Silver says that tells you the same thing as asking the model.",
    "do": "Press F (Interact) to change the replays per real step between 0, 5 and 20, and R (Reload) to start. Answer two questions with left click, right click or melee. Then watch both bots run 10 trips; the game pauses when the plain bot first reaches the goal.",
    "predict": "Commit to how many pads the plain bot will know the way from after its first arrival, and to which bot first makes a trip of 10 steps or fewer.",
-   "saw": "At the pause, orange light stood on the pads the plain bot knows and blue balls on the replaying bot's. Q-learning from lecture 5 moves good news back one pad per visit, so a first arrival teaches the plain bot one pad. The replaying bot reruns stored steps, your walk among them, between real steps, so the news spreads further. With 0 replays the two are one learner with the same dice and tie trip for trip.",
-   "agent": "Replaying stored steps is like an agent rereading its own logged conversations between new ones."
+   "saw": "At the pause, orange light marks the pads the plain bot knows, blue balls the replaying bot's. Q-learning from lecture 5 carries good news back one pad per visit, so a first arrival teaches the plain bot one pad. The replaying bot reruns stored steps between real ones, your walk among them, so the news spreads further while it stands still. On 0 replays they are one learner with the same dice, tied trip for trip.",
+   "agent": "Replaying stored steps is an agent rereading its own old conversations between new ones, and learning from each one a second time."
   },
   {
    "n": 3,
    "after": "33:17",
    "title": "Change the replays, run race 2",
-   "silver": "Planning means drawing imagined steps from the model and learning from them as if they were real, as many as there is time to think.",
+   "silver": "Planning, for Silver, is practice in your head: draw made-up steps from the model and learn from them as if they were real. The world sets how fast you act. In your head you get as many steps as you have time to think.",
    "do": "Pick a different number with F (Interact) and start with R (Reload). Answer one question with left click, right click or melee, then watch race 2.",
    "predict": "Decide whether the replaying bot's real steps over 10 trips will be far fewer, about the same, or far more than in race 1.",
-   "saw": "The plain bot rolls the same dice every race, so its row did not move: it is the yardstick. Going from 0 replays to some cuts the replaying bot's real steps many times over; going from 5 to 20 changes little. The shortest trip is 8 steps, and once the way has spread through memory, more thinking cannot make it shorter. This is sample-based planning, and its returns shrink.",
-   "agent": "More practice runs against a simulator stop helping once the agent already does everything that simulator can teach it."
+   "saw": "The plain bot rolls the same dice every race, so its row did not budge. It is the yardstick. Going from 0 replays to some cuts the replaying bot's real steps many times over. Going from 5 to 20 changes little. The shortest trip is 8 steps, and once the way has spread through memory, no amount of thinking turns 8 into 7. This is sample-based planning, and its returns shrink.",
+   "agent": "Practice against a simulator has a ceiling. Once the agent already does everything the simulator can teach it, another thousand runs teach it nothing new."
   },
   {
    "n": 4,
    "after": "44:23",
    "title": "Move the gap, predict who struggles",
-   "silver": "A plan is only as good as the model behind it, so a model that has gone wrong produces a wrong plan with full confidence.",
+   "silver": "A plan is only as good as the model behind it. Plan perfectly on a model that has gone wrong and you get a wrong plan with full confidence, like a perfect dive on the spot where the enemy Ana stood thirty seconds ago.",
    "do": "Press R (Reload) to move the gap to the far side of the wall. Both bots keep what they learned. Answer with left click, right click or melee which bot will need more real steps over the next 10 trips.",
    "predict": "Decide whether the replaying bot's out-of-date memory or the plain bot's out-of-date values will cost more real steps.",
-   "saw": "The red balls moved: the old gap is shut, and a new one opened on the far row. The replaying bot's memory still says the old gap leads through, and the plain bot's values say the same thing in another form, as numbers on each pad. The answer shows in race 3 at the next stop, in the two totals on the right.",
-   "agent": "When the users change and the simulator does not, everything the agent rehearsed describes users who are gone."
+   "saw": "The red balls moved. The old gap is shut and a new one opened on the far row. Now both bots are out of date. The replaying bot's memory still says the old gap leads through. The plain bot's values say the same thing in another form, as numbers on each pad. Which mistake costs more shows in race 3 at the next stop, in the two totals on the right.",
+   "agent": "When the users change and the simulator does not, the agent keeps rehearsing for users who are gone."
   },
   {
    "n": 5,
    "after": "1:01:09",
    "title": "Predict the fix, watch race 3",
-   "silver": "When the maze changes, the model keeps recommending the old route until real experience corrects it, so planning cannot stand in for exploring.",
+   "silver": "When the maze changes, the model keeps recommending the old route until real experience corrects it. Planning works from what you remember, and nothing you remember points at the new gap. So planning cannot stand in for exploring.",
    "do": "Answer one question with left click, right click or melee, then watch race 3 with 20 replays per real step.",
    "predict": "Decide which comes later for the replaying bot: fixing its memory of the old gap, or finding the new one.",
-   "saw": "Trips that stop at the 200-step limit mean a bot's values still point at the shut gap; only real steps lower them. The replaying bot bumps the old gap within a few steps, which rewrites that line, and its replays spread the fix. Finding the new gap takes far longer: no memory points there, and only a random step can find it. The last line counts replays of memories the move made untrue.",
-   "agent": "No amount of rehearsal on old logs tells an agent about a tool or a user behaviour it has never met; it has to try."
+   "saw": "A trip that stops at the 200-step limit means a bot's values still point at the shut gap, and only real steps lower them. The replaying bot bumps the old gap within a few steps, which rewrites that line, and its replays spread the fix. The new gap takes far longer. No memory points there, so only a random step can find it. The last line counts replays of memories the move made untrue.",
+   "agent": "Rehearsing old logs cannot teach an agent about a tool or a user behaviour it has never met. For that, it has to go and try."
   },
   {
    "n": 6,
    "after": "1:01:09",
    "title": "Read the summary",
-   "silver": "A version called Dyna-Q+ adds a small reward for moves untried for a long time, so it goes back to check and notices a changed maze sooner.",
+   "silver": "Silver's fix is Dyna-Q+: a small reward for any move that has gone untried for a long time. It is the teammate who checks the other flank now and then, just in case, and so it notices a changed maze sooner.",
    "do": "Press R (Reload) to show the summary: three lines on what you did, what it is called, and where it shows up in a language-model agent, under your prediction score.",
    "predict": "Before you press, name in a few words what the replaying bot had that the plain bot lacked.",
-   "saw": "You walked once, and the replaying bot turned your steps and its own into a model it could rehearse between real steps. That is Dyna-Q: learn a model from experience, then plan by replaying it. The game left out Dyna-Q+, which would have found the new gap sooner, and it left out search from the current position.",
-   "agent": "An agent trained against a simulated user learns that simulation, and where the simulation differs from real users it learns the wrong lessons quickly."
+   "saw": "You walked the maze once. The replaying bot turned your steps and its own into a model and rehearsed it between real steps, a Recall for its memory. That is Dyna-Q: learn a model from experience, then plan by replaying it. Two things were left out: Dyna-Q+, which would have found the new gap sooner, and search from the current position, which the rest of the lecture covers.",
+   "agent": "An agent trained against a simulated user learns that simulation. Where the simulation differs from real users, it learns the wrong lessons, and it learns them fast."
   }
  ]
 }
