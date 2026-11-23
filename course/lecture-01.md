@@ -245,7 +245,7 @@ He closes with Atari (56:32). The environment state is the console's 1,024 bits,
 >
 > <details><summary>Back from the game: what you just saw</summary>The island looked exactly like round 2, but the hidden payouts had been redrawn and the +50 ring had moved. Your old ring paid nothing, and you were back to trying things. Same view, different hidden state: that is partial observability, the problem the course ends on. <em>In an agent:</em> Two customers can open a support chat with the same first message and want different things. The agent sees the same view; the hidden state is different.</details>
 
-**On the island:** In the two-player build, a runner who was not told the blocker's row faced a partially observable problem, by the fact sheet's own description. The hidden-wall build, planned and being run now, puts all three ideas on the strip: RUNNER BLIND, RUNNER REMEMBERS BUMPS (the smallest possible belief, built from what happened to her) and RUNNER SEES THE WALL. It has no results yet.
+**On the island:** In the two-player build, a runner who was not told the blocker's row faced a partially observable problem, by the fact sheet's own description. The hidden-wall build in lesson 11 puts all three ideas on the strip: RUNNER BLIND, RUNNER REMEMBERS BUMPS (the smallest possible belief, built from what happened to her) and RUNNER SEES THE WALL. With no row that is always open, they got through 52%, 90% and 94% of their test crossings. One remembered bump was most of the difference.
 
 ### [57:06](https://www.youtube.com/watch?v=2pWv7GOvuf0&t=3426s) Open up the agent: habits, a gut feeling, a map in its head
 
@@ -331,39 +331,51 @@ Same square, same rules. Only the policy changed.
 
 ## What the island measured for this lecture
 
-The pairing is the setup itself, with RANDOM WALK as the floor (no learning) and PLANNER as the ceiling (knows the rules).
+Give a Tracer four buttons and a whole night, and you would expect luck to carry her to the goal every so often. It is only twelve squares. And a bot handed the rules should do well, if not perfectly, in a real game where a step can miss.
+
+Two bots test both guesses, and neither learns a thing. RANDOM WALK is the floor: no learning at all. PLANNER is the ceiling: she knows the rules.
 
 | Bot | Runs | Falls per 100 (95% interval) | Return, first 40 | Return, last 40 | First goal (median episode) | Runs never reaching goal | Steps per episode |
 |---|---|---|---|---|---|---|---|
 | RANDOM WALK | 11 | 97.4 (96.9 to 97.9) | -111.3 | -113.3 | 37 | 2 | 14.9 |
 | PLANNER | 10 | 0.0 (0.0 to 0.0) | 39.0 | 39.0 | 1 | 0 | 11.0 |
 
-Over 2,308 episodes RANDOM WALK averaged -112.7 (standard error 0.46). The exact start-square value, solved with the time limit ignored, is -114.4; their closeness is a sanity check, not a test. PLANNER settled in 13 sweeps, good news moving back one column per sweep, and her 39.0 is the best possible return. Neither bot was in a planned comparison; the only planned comparison was SARSA against Q-LEARNING on falls. These numbers mark the range a learner lives in. They do not show how hard the task is to learn, and PLANNER's record holds only because her rules match the game.
+Luck did not carry her far. RANDOM WALK fell in 97.4 of every 100 episodes, and 2 of her 11 runs never reached the goal at all. Her first 40 episodes score about the same as her last 40, as they should: her policy never changes.
+
+Over 2,308 episodes she averaged -112.7 (standard error 0.46, roughly how far that average would move if you ran the night again). Work the strip out on paper from its rules, with the time limit ignored, and her start square is worth -114.4.
+
+Close. That is a sanity check that the game and the rules agree, not a test.
+
+PLANNER swept the whole strip 13 times before her first step, and each sweep carried the good news from the goal back one more column. Then she walked, 11 steps an episode on average, and never fell. Her 39.0 is the best return the strip allows.
+
+Neither bot was in a planned comparison; the night's only one was SARSA against Q-LEARNING on falls. These two are the ruler, not the race.
+
+And a ruler has limits. A floor and a ceiling say nothing about how hard the climb between them is, and the climb is what learning means. PLANNER's spotless record also holds only because the rules she was handed match the game.
 
 ## Guess first
 
-<details><summary>The strip's state is her square. Markov, yes or no?</summary>
-Almost, not quite. A step missed its aimed square only 0.21 times per 1,000, so the square nearly fixes the next one. But the -50 after 100 steps depends on the step count, which the square lacks. It is Silver's helicopter with position but no velocity, in a mild form.
+<details><summary>You know only which square Tracer stands on. Can you predict what her next step brings as well as someone who watched the whole episode?</summary>
+Almost, but not quite. A step lands where she aimed all but 0.21 times in 1,000, so her square nearly settles what comes next. But the -50 arrives after 100 steps, and her square cannot tell step 5 from step 99. It is Silver's helicopter with a position and no velocity, in a mild form. What she nearly has is a Markov state.
 </details>
 
-<details><summary>Under RANDOM WALK's policy, which is worth more: the start beside the edge, or the far inland corner?</summary>
-The start, at -114.4, against -135.5 for the corner. From the corner she wanders longer, paying -1 a step, and still usually falls.
+<details><summary>A random Tracer can start right beside the drop, or in the far inland corner, as far from the drop as the strip goes. Which start scores better on average?</summary>
+Beside the drop: -114.4, against -135.5 for the corner. Distance does not save her. From the corner she wanders longer, paying -1 a step, and usually falls anyway. Those two numbers are each square's value under her policy: the return you expect from there if she keeps moving at random.
 </details>
 
-<details><summary>Q, ROW ONLY knows her row, not her column. More or fewer falls than full Q-LEARNING, and faster or slower crossings?</summary>
-Worse on both: 42.5 falls per 100 against 26.5, and 47.1 steps per episode against 18.6. Forward and back look identical to her, so she dithers along the edge.
+<details><summary>One Tracer is told how far she is from the edge, but not how far along the strip. Against a Tracer told her exact square, does she fall more or less, and cross faster or slower?</summary>
+Worse on both: 42.5 falls per 100 against 26.5, and 47.1 steps an episode against 18.6. She learns where the edge is at once. But as far as she can tell, forward and back both lead to where she already is, so she dithers along the edge row. She is Q, ROW ONLY, and her state is a summary too small to tell two places apart.
 </details>
 
-<details><summary>In the third rat episode, what does a rat whose state is "counts of lights, bells and levers" predict?</summary>
-Cheese. Two levers, one light and one bell match episode two, which ended in cheese. A rat using the last three items predicts the shock. Same history, different state, different prediction.
+<details><summary>Back to the rat. Episode three was lever, light, lever, bell. A rat who keeps only a tally of lights, bells and levers has to bet: cheese or shock?</summary>
+Cheese. Her tally reads two levers, one light and one bell, the same as episode two, which ended in cheese. A rat who keeps only the last three things sees light, lever, bell, the ending of episode one, and braces for the shock. Same events, different notes, different bet. The notes are what Silver calls her state.
 </details>
 
-<details><summary>The full history is always a Markov state. Why not just use it?</summary>
-It grows without limit and never repeats, so nothing learned in one history carries to another. The environment state is also Markov, but usually hidden.
+<details><summary>One Tracer keeps her whole history as her state, every square, move and reward so far. Another keeps only her square. The history is always Markov. Which one do you bet on to learn the strip?</summary>
+The one with only her square. The history grows every step and hardly ever repeats, so a table built on it almost never meets the same state twice, and nothing learned in one episode carries to the next. Always Markov, close to useless. The environment state is always Markov too, but usually hidden. The real job is a small summary that is nearly Markov.
 </details>
 
-<details><summary>PLANNER never fell in 10 runs. Is she doing reinforcement learning?</summary>
-No, she is planning: given the model, she computed values without trial and error, then walked. Her record shows what the rules allow, not what a bot can learn.
+<details><summary>PLANNER crossed the strip for 10 runs and never fell once. Is she the best reinforcement learner on the island?</summary>
+She is not a learner at all. She was handed the rules, worked out what every square is worth in 13 sweeps without a single trial, and then walked. Her record shows what the rules allow, not what a bot can learn. Silver calls what she does planning, the other half of his split between learning and planning.
 </details>
 
 ## Cards
@@ -394,7 +406,21 @@ The mapping breaks in two places.
 
 ## The thread to partial observability
 
-Silver makes the history the only thing an agent ever has, defines state as a function of it, and uses the Markov property as the test of a good summary. He splits the fully observed case (the MDP, most of the course) from the partially observed one (the POMDP), and names three ways to build an agent state: the whole history, a belief, a recurrent network. Carry three things forward. A non-Markov state makes a bot treat two situations as one, as Q, ROW ONLY did. Memory is how an agent recovers what it cannot see; RUNNER REMEMBERS BUMPS in the hidden-wall build is the smallest belief there is. And the rat shows that choosing the summary is part of the problem, not a preprocessing step.
+Everything in this lecture leans on one quiet piece of luck. Tracer is told her square, and her square is very nearly her whole situation. What she sees, what she keeps and what the world holds are one thing, the nice case from (51:14). Most of the course lives there.
+
+Now take the luck away: put something on the strip that matters and that her screen does not show. Her square stops being a good summary, and Silver's three ways out come back: the whole history, a belief, or a network that carries it.
+
+Three things from this lecture come along:
+
+1. **Too small a state turns two situations into one.** Q, ROW ONLY saw every square in a row as the same place, so she could not tell forward from back.
+2. **Memory is how you get back what you cannot see.** It does not have to be much.
+3. **Choosing the summary is part of the problem.** Three rats, the same events, three different answers. It is not a chore you finish before the real work starts.
+
+Lesson 11 takes the luck away for real. Before each episode one square on her path is shut, and nobody tells her which. RUNNER BLIND gets her square. RUNNER REMEMBERS BUMPS gets her square plus one memory, no bump yet or the row that stopped her: the smallest belief there is. RUNNER SEES THE WALL is told. On the short strip, where no row is always open, they got through 52%, 90% and 94% of their test crossings.
+
+One remembered bump was the difference between stuck and through.
+
+The 38-point gap between remembering and blind passed the test named before the runs. Whether seeing the wall beats remembering it is not yet conclusive. (On the long strip, where a way round always exists, none of the gaps is established.) The game for that lesson, Sombra's Room, puts you in the same seat, with a ping that is right 8 times in 10.
 
 ## Experiments the lecture asks for that the island has not run
 

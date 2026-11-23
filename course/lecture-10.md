@@ -334,6 +334,10 @@ His closing point: search and knowledge trade off. A program can put more knowle
 
 ## What the island measured for this lecture
 
+Before the runs, you would put money on two things. A blocker who learns where to stand should hurt the runner more than one who stands in the same row every time. And a runner who is told where the blocker is should beat one who has to walk into her to find out.
+
+In these short runs the first bet paid. The second one lost, in both pairings.
+
 | Condition | Runs | Runner's mean return, last 40 | Goal reached, last 40 | Bumps per episode | Blocker's share of rows 0-3, last third |
 |---|---|---|---|---|---|
 | Runner blind, blocker fixed | 1 | -14.0 | 70% | 0.20 | [1.0, 0.0, 0.0, 0.0] |
@@ -341,32 +345,42 @@ His closing point: search and knowledge trade off. A program can put more knowle
 | Runner sees, blocker fixed | 5 | -35.1 | 48% | 0.22 | [1.0, 0.0, 0.0, 0.0] |
 | Runner sees, blocker learns | 4 | -66.4 | 29% | 0.46 | [0.36, 0.28, 0.14, 0.21] |
 
-All exploratory: 12 nine-minute runs (66 to 99 training episodes, 40-step limit), nothing planned in advance, no intervals, runners still early in learning. In both pairings a learning blocker cost the runner more than a fixed one and about doubled the bumps, and the seeing runner did worse than the blind one. One untested reading: 192 states instead of 48 means a quarter of the visits per state. The blocker's spread against the seeing runner looks like mixing, but 4 runs cannot tell an equilibrium from noise. The build shows no Nash equilibrium, minimax, self-play or search: the blocker decides once per episode, so this is two learners with opposite rewards, not a game played move by move. Unblocked Q-learning's 7.5 came from longer runs with a 100-step limit and is not comparable.
+The first bet came in as expected. In both pairings a learning blocker cost the runner more than a fixed one and about doubled the bumps.
+
+The second is the strange one. The seeing runner was handed the one fact the blind runner has to bump into to learn, and she did worse than the blind one: -35.1 against -14.0 with a fixed blocker, -66.4 against -46.1 with a learning one.
+
+One untested reading: knowing the blocker's row turns 48 states into 192, so in the same nine minutes each state gets about a quarter of the visits. She knows more, and she has practised each thing she knows far less.
+
+Then there is the blocker facing the seeing runner. Her time came out spread over all four rows, which looks like the mixing of rock, paper, scissors. It might be. But 4 runs cannot tell an equilibrium from noise.
+
+What the island did not show is most of the lecture. There is no Nash equilibrium here, no minimax, no self-play and no search. The blocker decides once per episode and then stands still, so this is two learners with opposite rewards, not a game played move by move.
+
+And read every number above as a first look. All of it is exploratory: 12 nine-minute runs (66 to 99 training episodes, 40-step limit), nothing planned in advance, no intervals, runners still early in learning. With so few runs, every gap in the table is not yet conclusive. (Nor should any of it be held up against unblocked Q-learning's 7.5, which came from longer runs with a 100-step limit and is not comparable.)
 
 ## Guess first
 
-<details><summary>The seeing runner is told the blocker's row; the blind runner is not. In nine-minute runs, which scores higher?</summary>
-The blind one, in both pairings (-14.0 against -35.1, and -46.1 against -66.4). Information pays only once learned, and 192 states each need their own visits. It is lecture 6's trade: a richer state is more exact and slower to fill (exploratory, few runs).
+<details><summary>Two Tracers get nine minutes of practice each. One is told the blocker's row at every step, like a teammate calling it out. The other is told nothing and finds out by bumping into her. Who scores more?</summary>
+The one told nothing, in both pairings: -14.0 against -35.1 with a fixed blocker, -46.1 against -66.4 with a learning one. The callout splits her 48 squares into 192 situations, each needing its own visits, so nine minutes spreads thin. Information pays only once it is learned. It is lecture 6's trade: a richer state is more exact and slower to fill (exploratory, few runs).
 </details>
 
-<details><summary>The blocker always stands in the edge row. Is the blind runner's problem a game or an MDP?</summary>
-An MDP. A fixed opponent folds into the dynamics (13:17), so Q-learning seeks a best response, and her square is a complete state because the blocker never moves. It becomes a game once the blocker can choose.
+<details><summary>The enemy bot stands in the edge row every single episode, like a Widowmaker who never changes her sightline. Is the runner playing a game against her, or just learning a map?</summary>
+A map. An opponent who never changes folds into the environment's rules (13:17), as much a part of them as the drop, and the runner's square is a complete state because the blocker never moves. So this is an ordinary MDP, and what Q-learning is looking for is called a best response. It becomes a game the moment the blocker can choose.
 </details>
 
-<details><summary>TD-Gammon learned greedily with no exploration. Would a greedy Q-learner starting from zeros manage that on the island?</summary>
-Probably not: the island has no dice to push play around (0.21 slips per 1,000 steps), so a greedy learner repeats herself. No greedy zero-start bot was run. Q + OPTIMISM is greedy yet explores, because every Q starts at 40 (lecture 9).
+<details><summary>TD-Gammon always took the move that looked best, never explored, and still learned backgammon. Put a Tracer on the island who does the same, with every score starting at zero. Does she find her way?</summary>
+Probably not, though nobody ran that bot. TD-Gammon had dice shoving it into new positions. The island has almost no randomness (0.21 slips per 1,000 steps), so a learner who always takes the best-looking move repeats herself. That habit is called greedy. The island's greedy bot that did explore, Q + OPTIMISM, managed it because every Q starts at 40, so an untried move always looks better than a tried one (lecture 9).
 </details>
 
-<details><summary>TreeStrap learns from its own search and DYNA-Q from imagined steps (lecture 8). What keeps either from drifting into fantasy?</summary>
-Real outcomes. Silver's answer on convergence (1:25:48) is grounding in games played to a real end. DYNA-Q's model is built only from real steps; her imagined updates sped early learning but did not cut falls.
+<details><summary>TreeStrap grades its gut with its own search. DYNA-Q practises on steps she only imagines (lecture 8). Both learn from inside their own heads. What stops either one from talking itself into a fantasy?</summary>
+Real games. Asked whether this is sure to settle (1:25:48), Silver says the learning has to be tied to games played to a real end. DYNA-Q is tied by design: her imagined steps come from a model built only from real ones. Her imagined practice sped up early learning, but it did not cut her falls. Silver's word for that tie is grounding.
 </details>
 
-<details><summary>Your opponent always plays rock. Should you play the rock, paper, scissors equilibrium?</summary>
-No, if beating this opponent is the goal. The equilibrium cannot be exploited but wins nothing on average against always-rock, while always-paper wins every round. Silver's poker result turns on the same gap: the self-play agent won more by exploiting weaker entrants.
+<details><summary>Your opponent will throw rock every single round, and you know it. Do you still play the unbeatable mix, a third rock, a third paper, a third scissors?</summary>
+No, not if you want to beat this opponent. The mix cannot be exploited, but against always-rock it wins nothing on average, while always-paper, the best response, wins every round. The mix is the equilibrium: it keeps you safe, and it punishes nobody. Silver's poker result turns on the same gap: the self-play agent won more by exploiting weaker entrants.
 </details>
 
-<details><summary>Plain MCTS diverged on poker. What change made Smooth UCT converge?</summary>
-Answering the opponent's average behaviour instead of her current one (fictitious play). Chasing the current policy circles: paper chases rock and is chased by scissors. The average moves slowly and settles. The island's blocker chases recent results.
+<details><summary>Plain tree search diverged at poker, the two sides chasing each other like a counter-swap spiral: they go Pharah, you go Soldier, they go Winston, forever. What one change to what you answer makes the spiral stop?</summary>
+Answer her average, not her latest. Pick what beats everything she has played so far, not what she played last. The latest move jumps about, so chasing it circles: paper chases rock and is chased by scissors. The average moves slowly, so the chase settles. That is fictitious play, and Smooth UCT is the search built on it. The island's blocker still chases recent results.
 </details>
 
 ## Cards
@@ -392,7 +406,25 @@ Search maps more directly. When you sample continuations, score them and keep th
 
 ## The thread to partial observability
 
-This lecture names the hidden-state case. In imperfect-information games the tree is built over information states, what one player knows, each shared by many real states (1:43:28). Maven guessed the hidden rack at random and ignored what play revealed (1:39:43): the gap between one guess and a belief, a probability over hidden states updated from history. Poker adds an opponent who chooses the hidden thing and exploits predictability, so the answer was an average strategy. The blind runner facing a learning blocker sits exactly here. Carry forward: information state against true state, belief built from history, and the cost of ignoring clues within an episode. The hidden-wall build, now running, gives the runner the smallest such memory.
+The enemy Sombra goes invisible, and the fight does not wait for you. She is still somewhere. You still have to decide where to stand.
+
+Almost everything in this hour quietly assumed the opposite. Minimax gives every position one worth, and part of what makes that work is that white and black both see every piece (25:09). Monte Carlo tree search can settle on that worth because every imagined game starts from the real position. And a score for a position needs a position you know you are in.
+
+Hide part of the board and all three wobble.
+
+Applied naively to poker, tree search diverges (1:42:13). Silver's repair is to build each player's tree over what she knows, her cards and what she has seen, which he calls an information state; many real states share one (1:43:28). Poker adds an opponent who chooses the hidden thing and exploits you if you are predictable, so the answer there was an average strategy.
+
+Maven never got that far. It drew the opponent's letters at random and ignored what their plays gave away (1:39:43). That is the gap between a guess and a belief: a probability over the hidden part, updated from everything that has happened so far.
+
+The blind runner facing a learning blocker lives in that gap. Her information state is her square; the true state adds the blocker's row. A bump tells her where the blocker is this episode, and she has nowhere to keep it.
+
+Lesson 11 gives her somewhere. One square on her way is shut, a different one each episode, and nobody says which. On the short strip, where no row is always open, the blind runner got 52% of her test crossings to the goal. A runner with the smallest memory there is, one slot that reads "no bump yet" or the row that stopped her, got 90%. A runner simply told where the wall is got 94%.
+
+One remembered bump was worth 38 more crossings in every 100 (95% interval 10 to 66), a real difference by the rule set before the runs. Being told against remembering, 3 more in every 100, is not yet conclusive.
+
+And this lecture's surprise comes back. On the long strip, where a way round exists, the real runs settled nothing yet, and the simulation by the rules alone has the blind runner ahead at 200 episodes and level by 400. A richer state is a cost first and a benefit later.
+
+Carry forward: what she knows against what is true, a belief built from history, and the price of throwing away a clue you have already paid for.
 
 ## Experiments the lecture asks for that the island has not run
 

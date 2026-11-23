@@ -136,7 +136,7 @@ His features (16:20) each pair a wall with a move, such as an outside wall to th
 
 </details>
 
-**On the island:** Q, ROW ONLY is told only which row she is in. Her case is milder. Forward is the right move in every edge-row square, but forward and back both seem to lead "to the place she is already in", so she dithers (47.1 steps per episode against 18.6 for full Q-learning; 3 of 10 runs clean at test). The planned hidden-wall build is the island's version of the grey squares: RUNNER BLIND meets two situations that look identical. It has no results yet.
+**On the island:** Q, ROW ONLY is told only which row she is in. Her case is milder. Forward is the right move in every edge-row square, but forward and back both seem to lead "to the place she is already in", so she dithers (47.1 steps per episode against 18.6 for full Q-learning; 3 of 10 runs clean at test). The hidden-wall build in lesson 11 is the island's version of the grey squares: RUNNER BLIND meets two situations that look identical. She got through 52% of her test crossings, against 90% for the runner who remembers her bumps.
 
 ### [20:42](https://www.youtube.com/watch?v=KHZVXao4qXs&t=1242s) Better by which number?
 
@@ -390,6 +390,10 @@ The summary (1:30:32) in one line: every method moves the policy toward more val
 
 ## What the island measured for this lecture
 
+You would expect the two policy bots to finish close together. They have the same kind of brain, a habit table and nothing else, on the same island with the same rewards. If one of them was going to struggle, surely it would be by a few points.
+
+It was by 136 points.
+
 | Measure | Policy gradient | Actor-critic | Q-learning |
 |---|---|---|---|
 | Runs | 15 | 17 | 11 |
@@ -398,32 +402,45 @@ The summary (1:30:32) in one line: every method moves the policy toward more val
 | Runs never reaching the goal | 14 | 0 | 0 |
 | Runs with 10 clean test crossings | 0/15 | 17/17 | 11/11 |
 
-Last-40 return differences: actor-critic minus policy gradient 136.35 (135.66 to 137.17); policy gradient minus Q-learning -109.08 (-117.07 to -101.30); actor-critic minus Q-learning 27.27 (18.72 to 34.83). Falls, actor-critic minus Q-learning: -19.38 (-23.31 to -15.09). All four are exploratory, uncorrected for multiple comparisons; only SARSA against Q-learning on falls was planned. They show that, with untuned settings and 150 episodes, judging moves by the whole ending taught a softmax policy to step off, and a TD critic prevented it. MONTE CARLO, also judging by the ending, fell the same way (98.3 per 100). They do not show that REINFORCE fails in general: Silver's puck needed about 100 million iterations, and the bots' step sizes differ (0.02 against 0.1).
+POLICY GRADIENT fell in 96.5 of every 100 training episodes, and in 14 of her 15 runs she never reached the goal at all. ACTOR-CRITIC fell in 7.1, and all 17 of her runs passed their ten test crossings clean. Q-learning, which keeps scores instead of habits, landed in between on both.
+
+What sets the two policy bots apart by design is the judge. POLICY GRADIENT grades each move by how the whole episode ended. ACTOR-CRITIC grades it by how much her critic's guess changed across that one step. Here are the gaps, each with its 95% interval:
+
+1. **Last-40 return, actor-critic minus policy gradient:** 136.35 (135.66 to 137.17). Roughly the distance between a near-perfect crossing and a jump off the very first square.
+2. **Last-40 return, policy gradient minus Q-learning:** -109.08 (-117.07 to -101.30).
+3. **Last-40 return, actor-critic minus Q-learning:** 27.27 (18.72 to 34.83). The habit bot with a critic also beat the score-keeper.
+4. **Falls, actor-critic minus Q-learning:** -19.38 per 100 episodes (-23.31 to -15.09).
+
+None of the four intervals comes near zero. Treat them as first looks anyway: all four are exploratory, uncorrected for multiple comparisons, and the only comparison planned before the night was SARSA against Q-learning on falls.
+
+What they do show: with untuned settings and 150 episodes, judging moves by the whole ending taught a softmax policy to step off, and a TD critic prevented it. The trap does not even need a habit table. MONTE CARLO keeps scores, also judges by the ending, and fell the same way (98.3 per 100).
+
+What they do not show is that REINFORCE fails in general. Silver's puck needed about 100 million iterations, and these bots got 150 episodes. The two policy bots also ran at different step sizes (0.02 against 0.1), so this night cannot say how much of the gap belongs to the judge and how much to the dial.
 
 ## Guess first
 
-<details><summary>A new POLICY GRADIENT Tracer has seen three endings: wandered then fell (about -110), timed out (-150), stepped straight off (-101). Which move does REINFORCE with a baseline strengthen most?</summary>
-Stepping off. It is the best ending she knows, so it beats her baseline; the +50 never enters her sums. Hence 14 of 15 runs never reached the goal.
+<details><summary>A fresh POLICY GRADIENT Tracer has lived three endings: she wandered and then fell (about -110), she ran out of time (-150), and she stepped straight off the edge (-101). She has never seen the goal. Which habit gets stronger, walking forward or jumping?</summary>
+Jumping. Of the three endings she knows, stepping straight off is the best by about nine points, so it beats her usual result and gets pushed up. The +50 at the goal never enters her sums, because she has never been there. That is REINFORCE with a baseline doing exactly its job, and it is why 14 of her 15 runs never reached the goal.
 </details>
 
-<details><summary>ACTOR-CRITIC has the same kind of habit table but bootstraps like lecture 4's TD. Does she learn to jump?</summary>
-No. Her verdict on a move is the TD error, which leans on the critic's guess for the next square, starting at zero, well above -101. Forward looks good before she sees the goal. All 17 runs clean.
+<details><summary>Now put ACTOR-CRITIC on the same edge. Same habit table, but a critic grades each step by its guess for the next square, the way lecture 4's TD learner did. Does she learn to jump too?</summary>
+No. All 17 of her runs crossed clean. Her critic's guess for a square she has never stood on starts at zero, far above the -101 of a fall, so a step forward into the unknown looks better than a step off, long before she has seen the goal. Leaning on your own next guess like that is bootstrapping, and her verdict on each move, the TD error, is built on it.
 </details>
 
-<details><summary>Lecture 2 proved every MDP has a deterministic optimal policy. Does the aliased gridworld break that?</summary>
-No. The theorem needs the true state. The agent sees only wall features, which two squares share, so what it observes is not an MDP [20:02].
+<details><summary>Lecture 2 promised that every Markov decision process has a best policy with no dice in it. Then Silver's corridor needs a coin flip in the two grey squares. Is lecture 2 wrong?</summary>
+No. The promise only covers an agent that sees her true situation. In the corridor she sees walls, and the two grey squares have the same walls, so what she observes is not a Markov decision process and the promise never applied (20:02). Two squares that look identical like that are called aliased.
 </details>
 
-<details><summary>Does subtracting a baseline change the average direction of the update, its noise, or both?</summary>
-Only the noise: the baseline term averages to zero because probabilities sum to 1 [1:07:03]. So it could not stop POLICY GRADIENT from learning to step off.
+<details><summary>You stop grading her by the raw score and start grading her by 'better or worse than her usual'. Does that change which way she gets pushed on average, how wildly each push swings, or both?</summary>
+Only the swings. In any square her move chances add up to 1, so the subtracted part averages out to zero and the push keeps its direction (1:07:03). That is a baseline: less noise, same aim. It is also why her baseline could not stop POLICY GRADIENT from learning to step off. Stepping off really was better than her usual.
 </details>
 
-<details><summary>On the full strip, would PLANNER do better with a coin flip somewhere?</summary>
-No. The strip is fully observed and nearly deterministic (0.21 slips per 1,000 steps), so a fixed route is optimal: 39 every time. Randomness pays only against an adaptive opponent or under aliasing.
+<details><summary>PLANNER walks the same eleven steps every time and scores 39. Hand her a coin to flip somewhere on the strip. Does she do better?</summary>
+No. Nothing on the strip is hidden and almost nothing is left to chance (0.21 slips per 1,000 steps), so her fixed route is already the best there is: 39 every time. A coin can only cost her steps. Randomness pays in two places only: against an opponent who adapts to you, and when two situations look the same, which is called aliasing.
 </details>
 
-<details><summary>Lecture 5's MONTE CARLO control and this lecture's REINFORCE are different families. What shared habit made both fail on the island?</summary>
-Both judge a move by the complete return after it, and early on the best return either has seen is stepping off. MONTE CARLO fell 98.3 times per 100, POLICY GRADIENT 96.5. Every TD learner reached the goal in every run.
+<details><summary>Lecture 5's MONTE CARLO keeps a score for every move. POLICY GRADIENT keeps only habits. Different families, different brains. Put both on the edge: does either one escape the jump?</summary>
+Neither. MONTE CARLO fell 98.3 times per 100 episodes and POLICY GRADIENT 96.5, while every TD learner reached the goal in every run. What they share is the judge, not the brain: both grade a move by the complete return after it, and early on the best return either has seen is stepping off. That is lecture 4's Monte Carlo way of learning, from whole episodes.
 </details>
 
 ## Cards
@@ -449,7 +466,22 @@ So the island's trap has a cousin: an agent that rarely sees success may learn t
 
 ## The thread to partial observability
 
-At [15:30] Silver ties aliasing to the loss of the Markov property, and treats "partially observed" and "my features hide something" as one situation. At [20:02] he limits the deterministic-policy theorem to a perfect state description. A policy reading only the current observation can need randomness, which greedy value methods cannot give, since aliased states get one value and so one action. Carry forward two remedies: randomise, the best a memoryless policy can do, or remember (an agent recalling its last move could leave the left grey square without a coin flip; this point is not from the lecture). The planned hidden-wall build sets RUNNER BLIND beside RUNNER REMEMBERS BUMPS, the smallest possible memory.
+When the enemy team has a Sombra, your screen and the real game stop agreeing. She is somewhere, you are shown nothing, and you still have to pick a corner to watch.
+
+Both bots in this lecture were spared that. Each was told exactly which of the 48 squares she stood on, and on the strip that is everything that matters.
+
+Silver shows what changes when it stops being true (15:30). If what she sees no longer tells her everything that matters, the Markov property fails, and he treats "partially observed" and "my features hide something" as one situation. Even lecture 2's promise of a best policy with no dice in it assumed a perfect description of the state (20:02).
+
+So a policy that reads only what it sees right now can need randomness, and greedy value methods cannot supply it: two squares that look the same get one value, and so one move. That leaves two ways out.
+
+1. **Flip a coin.** The best a policy with no memory can do.
+2. **Remember.** An agent that recalls her last move could leave the left grey square without a coin flip (this point is not from the lecture).
+
+Lesson 11 tried both, with one shut square she is never told about. On the short strip, where there is no way round it, RUNNER BLIND got through 52% of her test crossings and RUNNER REMEMBERS BUMPS, whose whole memory is one bump, got through 90%: 38 points higher (95% interval 10 to 66), a real difference by the rule set before the runs. (On the long strip, where she can simply go round, none of the gaps was established.)
+
+One remembered bump was the difference between stuck and through.
+
+The coin bought little. In that lesson's simulation, random moves took the blind runner from 47% to 52% at one in ten and down to 32% at one in two, because a random step beside a drop is often a fall. Silver's agent is random in the two grey squares and nowhere else. Learning where to be random is what this lecture's methods are for, and POLICY GRADIENT has not been run on the hidden wall.
 
 ## Experiments the lecture asks for that the island has not run
 

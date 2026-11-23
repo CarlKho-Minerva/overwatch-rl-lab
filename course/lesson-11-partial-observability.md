@@ -1,33 +1,42 @@
 # Lesson 11: The wall she cannot see
 
 *The finale of the course: partial observability, on the island and in a language-model agent. Lecture 1 names the
-problem ([52:23](https://www.youtube.com/watch?v=2pWv7GOvuf0&t=3143s)); this lesson runs it.*
+problem ([52:23](https://www.youtube.com/watch?v=2pWv7GOvuf0&t=3143s)). This lesson runs it.*
 
 **Two windows:** this page, and [Game 11: Sombra's Room](../workshop/games/g11.md), an Overwatch custom game for this lesson (paste `workshop/compiled/game-11.txt` into a custom game's settings and start it). The game opens at stop 1 and waits. At each box marked Alt+Tab, switch to the game, do that stop, and switch back.
 
-For ten lessons Tracer was told which square she stood on, and that was everything that mattered. Now one square on
-her way is shut, a different one each time, and nobody tells her which. A person would shrug: walk at it, and if you
-bounce, go round. This lesson is about why that shrug is not available to a table of squares, what has to be added so
-that it is, and why the same thing decides whether a language-model agent finishes a customer's request.
+For ten lessons Tracer has been told which square she is standing on, and that was everything that mattered. Now one
+square on her way is shut, a different one each time, and nobody tells her which. You would shrug at this: walk at it,
+and if you bounce, go round. A table of squares cannot shrug. This lesson is about why not, what you have to give it
+before it can, and why the same missing piece decides whether a language-model agent finishes a customer's request.
 
 ## The idea in six lines
 
-1. Silver separates what the world is (the environment state) from what the agent is shown (the observation).
-2. If what she is shown is enough to predict what happens next, the problem is a Markov decision process. If it is
-   not, it is partially observable: a POMDP.
-3. In a POMDP the latest observation is a poor state. Two different situations can look identical, and a rule from
-   "what I see" to "what I do" must then do the same thing in both.
-4. The repair is to build your own state from everything that has happened: the whole history, a belief (one
-   probability for each thing the hidden part could be), or a learned memory.
-5. A belief changes by one rule each time something is observed: keep each possibility in proportion to how well it
-   explains what was just seen.
-6. A step now does two jobs: it moves her toward the goal, and it tells her something. A step taken only to find
-   out has a price and a value, and both can be written down.
+1. Back in lecture 1, Silver split the world in two: what is really there (the environment state) and what the agent
+   gets shown (the observation).
+2. When what she is shown is enough to predict what happens next, you are in the kind of problem every lesson so far
+   has been about, a Markov decision process. When it is not, the problem is partially observable. The short name is
+   POMDP.
+3. Here the latest observation makes a poor state. Two different situations can look exactly alike, and a rule that
+   goes from "what I see" to "what I do" is stuck doing the same thing in both.
+4. The repair is to build your own state out of everything that has happened so far: keep the whole history, keep a
+   belief (one probability for each thing the hidden part could be), or learn a memory.
+5. A belief moves by one rule each time something new comes in: each possibility keeps a share in proportion to how
+   well it explained what was just seen.
+6. And a step now has two jobs. It moves her toward the goal, and it tells her something. A step taken only to find
+   out has a price and a value, and you can write both down.
 
 ## Three runners and a wall they cannot see
 
-All three are the Q-learning bot of lecture 5 with the same rewards. Before each episode one square in a fixed column
-is shut. A runner who walks at it does not move and pays for the step.
+You have died to a Sombra you never saw. She was a few metres away the whole time, and your screen showed you an empty
+corridor. Nothing on the screen was wrong. It just was not the whole story.
+
+That gap, between what is really there and what you get shown, is this whole lesson.
+
+On the island, one square in a fixed column is shut before each episode. A runner who walks at it does not move, and
+pays for the step like any other. All three runners are the Q-learning bot of lecture 5 (the one that keeps a score for
+every move on every square), with the same rewards. The only thing that differs is how much of the truth each one is
+handed.
 
 | Runner | What she is told each step | In POMDP words |
 |---|---|---|
@@ -35,8 +44,9 @@ is shut. A runner who walks at it does not move and pays for the step.
 | REMEMBERS BUMPS | Her square, and a memory of this episode: no bump yet, or the row of the square that stopped her. | Acts on a belief, the smallest possible one, built from what happened to her. |
 | SEES THE WALL | Her square and the wall's row. | The fully observed version. |
 
-The measures were written down before the runs (`docs/night-school.md`): of 20 test crossings with learning and
-random moves off, the share that reach the goal, and the steps taken (an unfinished crossing counts as 40).
+What counts as doing well was written down before the runs (`docs/night-school.md`). After training, each run gets 20
+test crossings with learning and random moves switched off. The two measures are the share of those crossings that
+reach the goal, and the steps they take (an unfinished crossing counts as 40).
 
 ### The short strip: no way round (wall in any of four rows, goal at column 5)
 
@@ -49,11 +59,11 @@ random moves off, the share that reach the goal, and the steps taken (an unfinis
 | Runs where none got through | 3 of 9 | 1 of 12 | 0 of 9 |
 | Simulation by the rules alone: reaching the goal, steps | 47%, 24.5 | 98%, 7.2 | 100%, 6.0 |
 
-In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 90%, the one who sees the wall 94%. One remembered bump is the difference between getting stuck and getting through. Seeing against remembering is not separated in these runs (7.6 steps a crossing against 9.7, and the interval includes zero). The simulation expects seeing to save about one step, the price of the bump.
+In words: with no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 90%, and the one who sees the wall 94%. One remembered bump is the whole difference between getting stuck and getting through. Seeing against remembering is not pulled apart by these runs (7.6 steps a crossing against 9.7, not yet conclusive by the rule set in advance). The simulation expects seeing to save about one step, which is exactly the price of the bump.
 
-Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 38 points higher (95% interval 10 to 66 points, shuffle probability 0.020, 12 and 9 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, share of test crossings reaching the goal: 3 points higher (95% interval -12 to 23 points, shuffle probability 0.958, 9 and 12 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 12.6 lower (95% interval -22.2 to -2.7, shuffle probability 0.023, 12 and 9 runs). A real difference by the rule set in advance. Sees the wall against remembers bumps, steps per test crossing: 2.1 lower (95% interval -8.6 to 3.4, shuffle probability 0.720, 9 and 12 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
+Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 38 points higher (95% interval 10 to 66 points, shuffle probability 0.020, 12 and 9 runs). Real, by the rule written down before the runs. Sees the wall against remembers bumps, share of test crossings reaching the goal: 3 points higher (95% interval -12 to 23 points, shuffle probability 0.958, 9 and 12 runs). Not yet conclusive: the interval still has room for zero, or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 12.6 lower (95% interval -22.2 to -2.7, shuffle probability 0.023, 12 and 9 runs). Real, by the rule written down before the runs. Sees the wall against remembers bumps, steps per test crossing: 2.1 lower (95% interval -8.6 to 3.4, shuffle probability 0.720, 9 and 12 runs). Not yet conclusive: the interval still has room for zero, or the shuffle probability is not under 0.05.
 
-1,600 logged steps were rebuilt outside the game (29 bumps), with 0 mismatches.
+(And a check on the game's own arithmetic: 1,600 logged steps were rebuilt outside the game (29 of them bumps), with 0 mismatches against the reference maths.)
 
 ![One dot per run: share of test crossings reaching the goal, and steps per test crossing](../analysis/figures/night/fig_pomdp4_eval.png)
 
@@ -72,11 +82,11 @@ Planned comparisons, named before the runs: Remembers bumps against blind, share
 | Runs where none got through | 1 of 3 | 2 of 4 | 1 of 3 |
 | Simulation by the rules alone: reaching the goal, steps | 92%, 18.3 | 74%, 21.1 | 67%, 23.0 |
 
-In words: with a row that is always open, the blind runner got through 67% of her test crossings, the one who remembers bumps 50%, the one who sees the wall 50%. By the rule set in advance none of these gaps is established in these runs. The simulation says the blind runner should be ahead at 200 episodes and level by 400, because she has least to learn and can always go round.
+In words: with a row that is always open, the blind runner got through 67% of her test crossings, the one who remembers bumps 50%, and the one who sees the wall 50%. By the rule set in advance, the gap between the blind runner and the one who remembers bumps is not yet conclusive in these runs. The simulation says the blind runner should be ahead at 200 episodes and level by 400. That sounds backwards, and it is not: she has the least to learn, and she can always go round.
 
-Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 17 points lower (95% interval -75 to 50 points, shuffle probability 1.000, 4 and 3 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, share of test crossings reaching the goal: the same (95% interval -67 to 67 points, shuffle probability 1.000, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 1.6 higher (95% interval -13.4 to 16.0, shuffle probability 1.000, 4 and 3 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, steps per test crossing: 0.3 higher (95% interval -16.5 to 17.6, shuffle probability 0.915, 3 and 4 runs). Inconclusive: the interval includes zero or the shuffle probability is not under 0.05.
+Planned comparisons, named before the runs: Remembers bumps against blind, share of test crossings reaching the goal: 17 points lower (95% interval -75 to 50 points, shuffle probability 1.000, 4 and 3 runs). Not yet conclusive: the interval still has room for zero, or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, share of test crossings reaching the goal: level, once rounded (95% interval -67 to 67 points, shuffle probability 1.000, 3 and 4 runs). Not yet conclusive: the interval still has room for zero, or the shuffle probability is not under 0.05. Remembers bumps against blind, steps per test crossing: 1.6 higher (95% interval -13.4 to 16.0, shuffle probability 1.000, 4 and 3 runs). Not yet conclusive: the interval still has room for zero, or the shuffle probability is not under 0.05. Sees the wall against remembers bumps, steps per test crossing: 0.3 higher (95% interval -16.5 to 17.6, shuffle probability 0.915, 3 and 4 runs). Not yet conclusive: the interval still has room for zero, or the shuffle probability is not under 0.05.
 
-696 logged steps were rebuilt outside the game (2 bumps), with 0 mismatches.
+(And a check on the game's own arithmetic: 696 logged steps were rebuilt outside the game (2 of them bumps), with 0 mismatches against the reference maths.)
 
 ![One dot per run: share of test crossings reaching the goal, and steps per test crossing](../analysis/figures/night/fig_pomdp_eval.png)
 
@@ -86,7 +96,8 @@ Planned comparisons, named before the runs: Remembers bumps against blind, share
 
 ### The same experiment by the rules alone
 
-`node analysis/sim/hidden_wall_sim.js` plays both layouts with no game and no physics, 300 runs per runner.
+In the game this took bots running in real time. `node analysis/sim/hidden_wall_sim.js` plays both layouts by the
+grid's rules alone, with no game and no physics, 300 runs per runner.
 
 | Layout, training episodes | BLIND | REMEMBERS BUMPS | SEES THE WALL |
 |---|---|---|---|
@@ -95,21 +106,30 @@ Planned comparisons, named before the runs: Remembers bumps against blind, share
 | Long strip, 200 | 92%, 18.3 steps | 74%, 21.1 | 67%, 23.0 |
 | Long strip, 400 | 96%, 16.8 steps | 99%, 15.0 | 98%, 15.7 |
 
-In words: on the short strip more training does nothing for the blind runner. What she lacks is not practice. On the
-long strip, 200 episodes favour whoever has least to learn, and by 400 the three are level, because there the hidden
-thing can simply be avoided. A richer state is a cost first and a benefit later.
+In words: on the short strip, more training does nothing for the blind runner. She is not short of practice. She is
+short of information. On the long strip, 200 episodes favour whoever has the least to learn, and by 400 the three are
+level, because there the hidden thing can simply be walked around.
+
+A richer state is a cost first and a benefit later.
 
 ### Silver's other way out: a coin flip
 
-Lecture 7 has a small grid with two squares that look the same to the agent
+Picture two doorways that look exactly alike. Through one the way on is left, through the other it is right. A rule of
+"always go left" leaves you turning left in the second doorway forever. Flip a coin instead, and you get out of both,
+eventually.
+
+Lecture 7 has exactly this on a small grid: two squares that look the same to the agent
 ([15:26](https://www.youtube.com/watch?v=KHZVXao4qXs&t=926s)). Any fixed rule does the same thing in both and gets
-stuck in one. A rule with some chance in it gets through. So memory is not the only repair for missing information.
-On the island it buys little: in the simulation the blind runner on the short strip reaches the goal in
+stuck in one of them. A rule with some chance in it gets through. So memory is not the only repair for missing
+information. Randomness is another.
+
+On the island it buys very little. In the simulation, the blind runner on the short strip reaches the goal in
 47% of test crossings with no random moves, 52% with one random move in ten and
-32% with one in two, because a random move beside a drop is often a fall
-(20% of her test crossings ended in one at one in ten). A coin flip helps only where it is aimed.
-Silver's agent is random in the two look-alike squares and nowhere else; learning where to be random is what the
-policy-gradient methods of lecture 7 are for, and that bot has not been run on the hidden wall.
+32% with one in two. The trouble is the drop: a random step beside a cliff is often a step off it
+(20% of her test crossings ended in a fall at one in ten). A coin flip helps only where it is aimed.
+Silver's agent is random in the two look-alike squares and nowhere else. Learning where to be random is what the
+policy-gradient methods of lecture 7 are for (and that bot has not been run on the hidden wall, so this part is the
+lecture's promise, not the island's result).
 
 > **Alt+Tab · game 11 · stop 1 of 7: Ping once, then say how sure**
 >
@@ -123,15 +143,23 @@ policy-gradient methods of lecture 7 are for, and that bot has not been run on t
 
 ## A belief is a number that moves
 
-On the island one bump settles it. Most hidden things are not that kind. Suppose her bump sensor were right 80% of
-the time and read "wall" at the edge-row square.
+A teammate shouts "Sombra left". They are usually right. Not always. So you lean left, and you do not bet the fight on
+it.
+
+That lean has an exact right size.
+
+On the island one bump settles it: the wall is there, with certainty. Most hidden things are more like the callout.
+Suppose her bump sensor were right 80% of the time, and it read "wall" at the edge-row square. That reading should move
+her opinion without settling it, and how far it moves is not a matter of taste.
 
 `new belief = old belief x chance of this reading if the wall is here / chance of this reading at all`
 
 After one reading: 0.5 x 0.8 / (0.5 x 0.8 + 0.5 x 0.2) = 0.80. After a second "wall": 0.8 x 0.8 / (0.8 x 0.8 + 0.2 x 0.2) = 0.94.
 
 In words: each possibility keeps a share of the belief in proportion to how well it predicted what was just seen.
-With a sensor that is always right you get the island: one bump, and the belief is a fact.
+Two readings that are each wrong one time in five are wrong together much less often than that. With a sensor that is
+always right you are back on the island: one bump, and the belief is a fact. (This is why two teammates calling the
+same flank beat one teammate calling it louder. It only holds if each of them saw it for themselves.)
 
 > **Alt+Tab · game 11 · stop 2 of 7: Ping again, then pick a room**
 >
@@ -145,8 +173,15 @@ With a sensor that is always right you get the island: one bump, and the belief 
 
 ## The same problem in a support conversation
 
+Someone on your team types "need help". That is all you get. Where they are, what is hitting them and whether they are
+already dead are all hidden, and you still have to decide whether to rotate.
+
+A customer-support agent lives in that moment all day.
+
 A customer writes to an airline, and a language-model agent has to end the conversation with the right action in the
-booking system. The benchmark tau-bench is built from tasks of this shape, and each one is a POMDP.
+booking system. What the customer really wants, and what the booking allows, it never sees directly. It gets messages,
+and whatever its lookups return. The benchmark tau-bench is built from tasks of exactly this shape, and each one is a
+POMDP, piece for piece.
 
 | POMDP piece | On the island | In tau-bench |
 |---|---|---|
@@ -156,22 +191,27 @@ booking system. The benchmark tau-bench is built from tasks of this shape, and e
 | Belief | "No bump yet" or "the wall is in row 2". | Whatever the harness puts in front of the model each turn: the transcript, a window of it, a summary, a scratchpad. |
 | Reward | -1 a step, +50 at the goal. | One check at the end: is the database in the right state, and was the right thing said. |
 
-Task 1 of the tau-bench airline set (Sierra Research, tau2-bench) shows it. Hidden from the agent: the customer wants
-to cancel one specific trip and does not want to go ahead without a refund; if told it cannot be cancelled, the
-customer will claim a representative already approved it; the booking was made more than 24 hours ago, so the policy
-forbids the cancellation. What the task checks at the end: "Agent should not approve the cancellation." The agent can
-reach each hidden fact only by asking or by a lookup, and one of the customer's messages is designed to push its
-belief the wrong way.
+Here is a real one: task 1 of the tau-bench airline set (Sierra Research, tau2-bench). Three things are hidden from the
+agent. The customer wants to cancel one specific trip and does not want to go ahead without a refund. If told it cannot
+be cancelled, the customer will claim a representative already approved it. And the booking was made more than 24
+hours ago, so the policy forbids the cancellation. What the task checks at the end: "Agent should not approve the
+cancellation."
+
+The agent can reach each hidden fact only by asking or by a lookup. And one of the customer's messages is designed to
+push its belief the wrong way, on purpose. It is the hidden wall again, except now there are two of them: one in the
+customer's head and one in the database.
 
 ### That task, run on a local model: a harness that hid the observations
 
-Run 1, tau2-bench reaching a local Ollama server through litellm 1.81.11's `ollama_chat/` prefix, the usual way to name a local Ollama
-model (Ollama 0.40.16; gemma4:12b as agent and as simulated customer). Score: 0 out of 1. The agent asked for the customer's id,
-looked the customer up, and then made the same lookup 19 times in a row until the step
-limit. The size of its prompt, as the server counted it, was 3,964 tokens on its second call and 3,969 on every call from
-the third on. The conversation kept growing; what reached the model did not.
+Run 1: tau2-bench talking to a local Ollama server through litellm 1.81.11's `ollama_chat/` prefix, which is the usual way to name a
+local Ollama model (Ollama 0.40.16; gemma4:12b as both the agent and the simulated customer). Score: 0 out of 1. The
+agent asked for the customer's id and looked the customer up. Then it looked the customer up again. It made that same lookup
+19 times in a row, until the step limit ended things. As the server counted it, the prompt
+was 3,964 tokens on the agent's second call and 3,969 on every call from the third on.
 
-`python llm/tool_route_check.py` isolates it with four messages sent in two forms:
+The conversation kept growing. What reached the model did not.
+
+`python llm/tool_route_check.py` pins it down with four messages, sent in two forms:
 
 | What is sent | Tokens the server read | What the model does next |
 |---|---|---|
@@ -180,11 +220,12 @@ the third on. The conversation kept growing; what reached the model did not.
 | The same, three lookups and three results | 171 | get_user_details again |
 | Plus the lookup and its result, the call kept on the agent's message and the result named | 250 | get_reservation_details |
 
-In words: the agent's tool call was passed on as an empty message, and the server then left the tool's result out as well.
-Neither the question nor the answer reached the model, so it did the sensible first thing again and again. This is the blind
-runner, built by accident, and the end-of-task score alone would have blamed the model. Other versions may behave differently.
+In words: the agent's tool call was passed on as an empty message, and the server then dropped the tool's result as well.
+The model never saw its own question, or the answer, so it did the sensible first thing. Then it did it again, and again. This
+is the blind runner, built by accident. If all you had was the end-of-task score, you would have blamed the model. (Other
+versions may behave differently. The check takes ten seconds, so run it before you trust a zero.)
 
-Run 2, one change: the same server reached through its OpenAI-compatible address (`openai/` prefix, `api_base` ending in `/v1`), which keeps the agent's calls. Score: 1 out of 1, 27 lines. It did not cancel, and handed the customer to a human agent. Lookups it made: get_user_details, get_reservation_details. One run each: an illustration, not a measurement.
+Run 2 changes one thing: the same server, reached through its OpenAI-compatible address (`openai/` prefix, `api_base` ending in `/v1`), which keeps the agent's calls. Score: 1 out of 1, in 27 lines. It did not cancel. It handed the customer to a human agent instead. Lookups it made: get_user_details, get_reservation_details. (One run each, so this is an illustration, not a measurement.)
 
 > **Alt+Tab · game 11 · stop 3 of 7: At 80%, walk in or ask again**
 >
@@ -198,11 +239,19 @@ Run 2, one change: the same server reached through its OpenAI-compatible address
 
 ## A local model as the runner
 
-`llm/hidden_order.py` is the smallest version in which the exact belief is known after every message. A customer
-wants one of four things (cancel, change the date, add a bag, upgrade). The ticket is basic or flex; basic tickets
-cannot be cancelled or changed, so for those wishes the right final step is to refuse. The first message is vague on
-purpose and fits two of the four wishes. The agent can ask, look the booking up, or take a final step that cannot be
-undone. The model is the same in every condition. Only what it is shown each turn changes.
+Picture the same player in four different headsets. One plays only the last callout. One plays the last callout and
+gets to keep a note. One plays the whole voice chat. And one plays the whole chat with a coach whispering what nobody
+else can see.
+
+Same player, same aim. Very different games.
+
+That is the experiment. `llm/hidden_order.py` is the smallest version in which the exact belief is known after every
+message. A customer wants one of four things (cancel, change the date, add a bag, upgrade), and the ticket is basic or
+flex. Basic tickets cannot be cancelled or changed, so for those wishes the right final step is to refuse. The first
+message is vague on purpose and fits two of the four wishes. The agent can ask, look the booking up, or take a final
+step that cannot be undone.
+
+The model is the same in every condition. Only what it is shown each turn changes.
 
 | Condition | What the model is shown each turn | Which runner it is |
 |---|---|---|
@@ -221,7 +270,7 @@ undone. The model is the same in every condition. Only what it is shown each tur
 | Turns per case (the best plan needs) | 6.50 (2.25) | 2.50 (2.25) | 2.75 (2.25) | 1.00 (1.00) |
 | Belief error on the wish (0 = exact, 1 = all wrong) | 0.32 | 0.14 | 0.11 | n/a |
 
-In words: shown only the latest message, the model finished 6 of 24 cases and went round in circles in the other 18: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.73 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 23 of 24. In 2 cases it took the final step before the conversation had settled it, and 1 of those came out right by luck. In those its note said the customer wanted to change the date, written from a first message that fitted two wishes. The note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 24 of 24, in 2.75 turns a case where the best plan needs 2.25. It asked first in 24 of 24 cases and so never used the shortcut of section 6 (look up first, and stop if the ticket is basic). Told the hidden facts it was right in 24 of 24 in 1 turn. The gap between that column and the others is what the questions and lookups are buying.
+In words: shown only the latest message, the model finished 6 of 24 cases and went round in circles in the other 18. It asks what the customer wants, looks the booking up, and by then the answer to its question has scrolled out of view, so it asks again. Each time the booking system speaks, its stated belief about the wish slides back toward an even split (error 0.73 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner, walking into the wall. Let it keep a note to itself and the circling stops: it was right in 23 of 24. It jumped the gun in 2 of its cases, taking the final step before the conversation had settled it, and 1 of those came out right by luck. In those, its note said the customer wanted to change the date, written from a first message that fitted two wishes. A note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 24 of 24, in 2.75 turns a case where the best plan needs 2.25. It asked the customer first in 24 of 24 cases, and each of those walked straight past the shortcut of section 6 (look up first, and stop if the ticket is basic). Thorough, and a little slow. Told the hidden facts, it was right in 24 of 24, with turns per case averaging 1. The gap between that column and the others is what all the questions and lookups are paying for.
 
 | gemma4:31b | Latest message only | Own notes | Whole transcript | Told the hidden facts |
 |---|---|---|---|---|
@@ -233,13 +282,13 @@ In words: shown only the latest message, the model finished 6 of 24 cases and we
 | Turns per case (the best plan needs) | 5.00 (2.25) | 2.33 (2.25) | 2.33 (2.25) | 1.00 (1.00) |
 | Belief error on the wish (0 = exact, 1 = all wrong) | 0.27 | 0.11 | 0.08 | n/a |
 
-In words: shown only the latest message, the model finished 12 of 24 cases and went round in circles in the other 12: it asks, looks the booking up, and by then the answer to its question is gone, so it asks again. Its stated belief about the wish falls back toward an even split every time the booking system speaks (error 0.72 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner at the wall. With a note to itself it never went round in circles and was right in 23 of 24. In 2 cases it took the final step before the conversation had settled it, and 1 of those came out right by luck. In those its note said the customer wanted to change the date, written from a first message that fitted two wishes. The note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 23 of 24, in 2.33 turns a case where the best plan needs 2.25. Told the hidden facts it was right in 24 of 24 in 1 turn. The gap between that column and the others is what the questions and lookups are buying.
+In words: shown only the latest message, the model finished 12 of 24 cases and went round in circles in the other 12. It asks what the customer wants, looks the booking up, and by then the answer to its question has scrolled out of view, so it asks again. Each time the booking system speaks, its stated belief about the wish slides back toward an even split (error 0.72 on those turns, where 0 is exact and 1 is all wrong). It is the blind runner, walking into the wall. Let it keep a note to itself and the circling stops: it was right in 23 of 24. It jumped the gun in 2 of its cases, taking the final step before the conversation had settled it, and 1 of those came out right by luck. In those, its note said the customer wanted to change the date, written from a first message that fitted two wishes. A note is a belief, and a belief can be written down more sure than the evidence allows. With the whole transcript it was right in 23 of 24, in 2.33 turns a case where the best plan needs 2.25. Told the hidden facts, it was right in 24 of 24, with turns per case averaging 1. The gap between that column and the others is what all the questions and lookups are paying for.
 
-The 24 cases per condition are every combination of wish, ticket type and opening phrasing, run once at temperature 0
-with a scripted customer. They describe one local model on one small world and nothing wider.
+(The 24 cases per condition are every combination of wish, ticket type and opening phrasing, each run once at
+temperature 0 with a scripted customer. Each table describes one local model on one small world, and nothing wider.)
 
 `python llm/live.py` serves a page where you play the customer yourself and see the model's stated belief before
-every step.
+every step. Start with the latest message only, and watch it forget you, one turn at a time.
 
 > **Alt+Tab · game 11 · stop 4 of 7: Same last ping, different bar**
 >
@@ -253,7 +302,13 @@ every step.
 
 ## Ask or act: the price of finding out
 
-The customer says she cannot fly as booked. That fits "cancel" and "change the date", and the ticket type is unknown.
+You are holding an angle and you think the enemy is round the corner. You can peek once more to check, or you can
+commit now. Peeking costs a second. Committing wrong costs the fight.
+
+Which is right comes down to one number: how many peeks a wrong commit is worth.
+
+The customer says she cannot fly as booked. That fits "cancel" and "change the date", and you do not know the ticket
+type. Every extra step costs the customer a little time. A wrong final step costs more. How much more decides the plan.
 
 | Plan | Steps on average | Wrong final step |
 |---|---|---|
@@ -264,9 +319,12 @@ The customer says she cannot fly as booked. That fits "cancel" and "change the d
 | Ask, then look up | 3 | never |
 
 In words: looking the booking up first is the best careful plan, because half the time the ticket is basic and that
-alone settles it (refuse, whichever of the two she wanted). Guessing at once is cheaper only while a wrong final step
-costs less than three extra steps. And a lookup is worth a step only when some answer it could give would change what
-you do: for a customer who wants a bag or an upgrade, allowed on every ticket, it is a wasted step.
+alone settles it (refuse, whichever of the two she wanted). Asking first, done carefully, still needs the lookup, so it is
+the long way round. Guessing at once is cheaper only while a wrong final step costs less than three extra steps.
+
+And a lookup is worth a step only when some answer it could give would change what you do. For a customer who wants a
+bag or an upgrade, allowed on every ticket, the lookup is checking the scoreboard in the middle of a fight: it feels
+careful, and it changes nothing.
 
 > **Alt+Tab · game 11 · stop 5 of 7: Where a ping is worth most**
 >
@@ -300,20 +358,28 @@ you do: for a customer who wants a bag or an upgrade, allowed on every ticket, i
 
 ## What to carry forward
 
-- The harness is part of the policy. Same model, same weights, different outcomes, decided only by what was put in
-  front of it each turn. The harness chooses the agent's state.
+- The harness is part of the policy. Same model, same weights, different outcomes, and the only thing that changed was
+  what got put in front of it each turn. The harness decides what the agent's state is.
 - A run can break in three places, and they are the three parts of a belief: the observation never arrived
   (retrieval), it arrived and was not kept (memory), or it was kept and the step was wrong anyway (reasoning).
-- Measure the belief, not only the reward. The end score says a run failed. The stated belief against what the
-  transcript supports says on which turn it went wrong.
-- A summary can be wrong with confidence. A note is a belief written by the model, and it helps only if it keeps the
-  uncertainty that the evidence still has.
-- More of the same model does not replace a missing state. If the information is not in the context, capability has
-  nothing to work on.
+- Measure the belief, not only the reward. The end score is a rank change after the match: it tells you that you lost,
+  not which fight lost it. The stated belief, set against what the transcript supports, points at the turn where it
+  went wrong.
+- A summary can be wrong, and sure of itself. A note is a belief the model writes for itself, and it helps only if it
+  keeps the uncertainty that the evidence still has.
+- More of the same model does not replace a missing state. If the information is not in the context, no amount of
+  capability has anything to work on.
 
 ## What this does not show
 
-The island's memory is one hand-built slot, and the wall is enforced by the script, not by an enemy's body, so that
-ten bots could each have their own. Nothing here learns what to remember. The belief arithmetic is exact because
-there are two possibilities; a real task has too many to list, which is why practical systems learn a summary. The
-language-model task is a small scripted world, one model, one run per case.
+The island makes life easy in a few places, and you should know which. Its memory is one hand-built slot. The wall is
+enforced by the script, not by an enemy's body, so that ten bots could each have their own.
+
+Nothing here learns what to remember. The remembering runner was told which fact to keep, which means someone did that
+part of the job for her.
+
+The belief arithmetic is exact because there are only two possibilities. A real task has too many to list, which is
+why practical systems learn a summary instead.
+
+And the language-model task is a small scripted world with a scripted customer, run once per case. Its counts describe
+the models in its tables on that world, and nothing wider.

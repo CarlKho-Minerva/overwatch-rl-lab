@@ -276,7 +276,7 @@ The principled move (1:12:15): make what you know part of your state, the descri
 >
 > <details><summary>Back from the game: what you just saw</summary>With one open left, nothing you learn can change a later choice, because there is no later choice. The open is worth only its average payout, so the box you know best usually wins. Early in the game the same open of a barely known box was worth more, because what it showed could steer every open after it. This is the value of information, and why nobody tries a new hero in overtime.</details>
 
-**On the island:** No bot plans over what she knows. The planned hidden-wall build gives one runner a memory of what she bumped into this episode, which is a tiny information state.
+**On the island:** No bot plans over what she knows. The hidden-wall build in lesson 11 gives one runner a memory of what she bumped into this episode, which is a tiny information state. That memory took her from 52% of test crossings to 90%.
 
 ### [1:14:06](https://www.youtube.com/watch?v=sGuiWX07sKw&t=4446s) Plan over everything you might learn (Bayes-adaptive bandits)
 Imagine planning hero practice like a chess engine. Win the first game, and here is what you would then believe and play; lose it, and here is the other branch. Nobody does this. The tree explodes.
@@ -341,6 +341,8 @@ Planning over what you have learned, information state search, carries over too 
 
 ## What the island measured for this lecture
 
+If you had to bet before the night on which bot falls least, you would probably bet on the coin. Q-LEARNING takes a random step one move in ten. The two optimists never move at random, but they believe every move they have not tried is wonderful, and at each edge square short of the goal one of those untried moves is a step off a cliff. That sounds like a bot built to fall.
+
 | Bot | Runs | Falls per 100 (95% interval) | Return, first 40 | Return, last 40 | Clean tests |
 |---|---|---|---|---|---|
 | Q-LEARNING (epsilon 0.1) | 11 | 26.5 (22.4 to 30.4) | -57.6 | 7.5 | 11/11 |
@@ -349,32 +351,40 @@ Planning over what you have learned, information state search, carries over too 
 | Q + COUNT BONUS | 10 | 7.1 (6.8 to 7.4) | -46.3 | 37.0 | 10/10 |
 | MONTE CARLO + OPTIMISM | 9 | 97.7 (97.1 to 98.3) | -108.7 | -101.9 | 0/9 |
 
-Against plain Q-learning, falls per 100: optimism -19.28 (-23.28 to -15.11), count bonus -19.40 (-23.37 to -15.22), fading 1.44 (-3.25 to 6.17, inconclusive). MONTE CARLO + OPTIMISM against MONTE CARLO, last-40 return: 0.27 (-0.51 to 1.14), inconclusive. All are exploratory first looks, uncorrected for multiple comparisons; only SARSA against Q-learning was planned. They show the two uncertainty-driven explorers paying a near-fixed bill of falls, then walking the edge row close to the best return of 39, while the coin-flipper kept paying. They do not show regret rates: the strip is a nearly deterministic MDP, not a noisy bandit, and runs were short. Settings were untuned, so fading's poor start (-86.3) belongs to a schedule that began fully random, not to decay in general. The lab's account of Monte Carlo: a beginner never sees the +50, so judging moves by whole endings teaches her to step off, whatever her starting values.
+It went the other way, and not by a little. Against plain Q-learning, falls per 100: optimism -19.28 (-23.28 to -15.11), count bonus -19.40 (-23.37 to -15.22). Each optimist stepped off at each fatal square about once, found out what it costs, and then walked the edge row close to the best return of 39. The coin-flipper kept paying to the end, though her table knew the way: with the coin put away, all 11 of her runs made 10 clean test crossings.
+
+Fading randomness, the island's guess at the schedule Silver calls nearly perfect, did not separate from the coin: 1.44 (-3.25 to 6.17), not yet conclusive. (Settings were untuned, and fading's poor start, -86.3, belongs to a schedule that began fully random, not to decay in general.)
+
+Monte Carlo is the bot optimism did not rescue. MONTE CARLO + OPTIMISM still fell in 97.7 of every 100 episodes, and against plain MONTE CARLO her last-40 return differed by 0.27 (-0.51 to 1.14), not yet conclusive. The lab's account: a beginner never sees the +50, so judging moves by whole endings teaches her to step off, whatever her starting values.
+
+What none of this shows is regret, the score the lecture is built on. The strip is a nearly deterministic MDP, not a noisy bandit, and runs were short. All of these are exploratory first looks, uncorrected for multiple comparisons; only SARSA against Q-learning was planned.
+
+Optimism is a one-off bill. The coin is a subscription.
 
 ## Guess first
 
-<details><summary>Q + OPTIMISM never takes a random move; Q-LEARNING takes one in ten. Which falls more in training?</summary>
-Q-LEARNING, by far: 26.5 falls per 100 against 7.2 (difference -19.28, interval -23.28 to -15.11, exploratory). The optimistic bot tries each fatal edge move about once, because a score of 40 says it might be wonderful, learns it costs -100, and stops.
+<details><summary>Two Tracers get 150 practice runs each beside the drop. One takes a random step one move in ten. The other never moves at random, but believes every move she has not tried is wonderful, the step off the edge included. Which one falls more?</summary>
+The coin-flipper, by far: 26.5 falls per 100 episodes against 7.2 (difference -19.28, interval -23.28 to -15.11, an exploratory look). The believer steps off each edge square about once, because a starting score of 40 says the drop might be the best move on the island. It scores -100, and she never does it again. The coin is not listening, so it keeps paying. The believer is Q + OPTIMISM; the coin-flipper is Q-LEARNING.
 </details>
 
-<details><summary>Give MONTE CARLO (lecture 5) the same optimistic start of 40. Does she stop stepping off?</summary>
-No: 97.7 falls per 100, and her last-40 return differed from plain Monte Carlo by 0.27 (-0.51 to 1.14), inconclusive. Optimism makes her try every move, but Monte Carlo scores a move by the whole episode, and a beginner's episodes all end badly. Optimism decides what she tries, not what she concludes.
+<details><summary>Give that same hopeful start of 40 to MONTE CARLO, the lecture 5 bot that grades each move by how the whole run ended. She already steps off almost every episode. Does the hope cure her?</summary>
+No. She still fell in 97.7 of every 100 episodes, and her last-40 return differed from plain Monte Carlo by 0.27 (-0.51 to 1.14), not yet conclusive. The hope does make her try every move. But each try is graded by its ending, and a beginner's endings are all bad, so every untried move loses its shine after one use. Optimism decides what she tries, not what she concludes.
 </details>
 
-<details><summary>Silver says decaying epsilon can be nearly perfect. Did Q + FADING EXPLORATION beat Q-LEARNING on falls?</summary>
-Not measurably: 27.9 against 26.5, difference 1.44 (-3.25 to 6.17), inconclusive. The good schedule needs the gaps, which no agent knows, and a guessed one can be a disaster (55:58). The island's began fully random, so her first 40 episodes averaged -86.3.
+<details><summary>A third Tracer starts fully random and calms down as she learns: half her moves random by episode 5, a tenth by episode 45. Silver says the right fading schedule is nearly perfect. Does she fall less than the bot who stays one-in-ten random forever?</summary>
+Not measurably: 27.9 falls per 100 against 26.5, a difference of 1.44 (-3.25 to 6.17), not yet conclusive. The right schedule needs the gaps between moves, which no agent knows, so hers is a guess, and Silver warns that a wrong guess can be a disaster (55:58). Starting fully random cost her early: her first 40 episodes averaged -86.3. She is Q + FADING EXPLORATION.
 </details>
 
-<details><summary>Lecture 3 solved known MDPs by dynamic programming. Can you solve a Bernoulli bandit that way, and what is the state?</summary>
-Yes, in principle. The state is the information state: per arm, successes and failures so far. Bayes' rule with a Beta prior gives the transitions exactly, and dynamic programming yields the Gittins index (1:19:37).
+<details><summary>Two drugs, a line of patients, and each patient is cured or not. Lecture 3 solved problems with known rules by dynamic programming. Can you solve this one that way, and if so, what counts as where you are?</summary>
+Yes, in principle. It is a Bernoulli bandit, and where you are is what you know: each drug's count of cures and failures so far. Each patient moves one count up by one, and your belief, a Beta prior updated by Bayes' rule, gives the exact odds of each move. Known rules, so dynamic programming applies. Silver calls the counts the information state, and the answer the Gittins index (1:19:37).
 </details>
 
-<details><summary>UCB1's bonus is sqrt(2 log t / N(a)). What happens to an arm never pulled?</summary>
-With N(a) = 0 the bonus is unbounded, so every arm is pulled once first. Afterwards the bonus shrinks with N(a) but creeps up with log t, so an arm left alone long enough is tried again. The island's count bonus lacks that return visit.
+<details><summary>A row of slot machines, and one you have never touched. UCB1 gives every machine a bonus that shrinks each time you pull it. How big is the untouched machine's bonus? And if you ignore a machine for a very long time, does it ever get another look?</summary>
+Unbounded, and yes. The bonus is sqrt(2 log t / N(a)), and with no pulls N(a) is 0, so the bonus has no ceiling and every machine is pulled once before anything else. After that it shrinks with each pull of that machine but creeps up slowly with total time t, so a machine left alone long enough is tried again. The island's count bonus has no t in it, so it never makes that return visit.
 </details>
 
-<details><summary>Lecture 8's planning plus R-max's heaven: would that bot fall more or less than Q + OPTIMISM?</summary>
-Not run; a prediction. A planner that treats each untried move as heaven heads straight for it, fatal edge moves included, so it should also pay about one fall per fatal move, but sooner, since planning spreads the news without real steps.
+<details><summary>Build a bot that treats every move it has never tried as heaven and, between real steps, plans its way there in its head (lecture 8's planning plus R-max). Does it fall more than Q + OPTIMISM, fewer, or about the same, and when?</summary>
+Not run, so this is a prediction: about the same number, sooner. A planner that treats each untried move as heaven heads straight for it, fatal edge moves included, so it should still pay about one fall per fatal move. But planning spreads the news through its table without real steps, so the bill should arrive earlier. Heaven for the untried is the R-max recipe.
 </details>
 
 ## Cards
@@ -400,7 +410,25 @@ Once is plenty.
 
 ## The thread to partial observability
 
-An information state (1:12:15) is a statistic of the history, `s~ = f(h_t)`, and in the Bayes-adaptive version (1:20:07) it is a posterior, a belief. A POMDP's (partially observable MDP's) belief state is the same object aimed elsewhere: here the hidden thing is a fixed fact (each arm's payout), there it is the current state, which can change. Silver's augmented MDP state (1:35:51), where you are plus what you have learned, has the shape of the hidden-wall build's RUNNER REMEMBERS BUMPS condition (planned and running, no results yet): her memory of this episode's bumps is the smallest information state. Carry forward: when she cannot see something, give her a summary of what she has seen, and value actions partly for what they reveal.
+Everything in this lecture quietly assumed one thing: the agent knows where she is. The slot-machine player has no "where" to get wrong, only which arm to pull. The Tracer on the strip is told her square every step. The only thing hidden is how good each choice is, and that is a fixed fact, waiting to be counted.
+
+Silver's third family writes the counting into the state. A summary of everything that has happened so far is the information state (1:12:15), and in the Bayes-adaptive version (1:20:07) that summary is a posterior: a belief.
+
+<details markdown="1"><summary>The formula, when you want it</summary>
+
+`s~ = f(h_t)`. In words: the information state is some summary, f, of the history h_t, everything that has happened up to step t.
+
+</details>
+
+Now hide something that can move. A POMDP (a partially observable MDP) keeps a belief state too, and it is the same object aimed elsewhere: here the hidden thing is a fixed fact, each arm's payout; there it is the current state itself, which can change. This is where the lecture's tools break. A count bonus counts tries of one move from one square. If that move walks into a wall on some episodes and not on others, the count is mixing two different situations, and no amount of counting pulls them apart.
+
+Silver's augmented MDP state (1:35:51), where you are plus what you have learned, has the shape of the repair, and lesson 11 builds it. Before each episode one square in a column she must cross is shut, and nobody says which. The runner called REMEMBERS BUMPS carries one slot of memory: no bump yet, or the row that stopped her. That is the smallest information state there is.
+
+It was enough. On the strip with no way round, the blind runner got through 52% of her test crossings and the one who remembers bumps 90%: 38 points higher (95% interval 10 to 66), a planned comparison and a real difference by the rule set in advance. Seeing the wall outright added 3 points more (-12 to 23), not yet conclusive. (Where a way round exists, none of the gaps is established: 67%, 50% and 50%.)
+
+One remembered bump is the difference between stuck and through.
+
+Carry forward: when she cannot see something, give her a summary of what she has seen, and value actions partly for what they reveal. That second half is this lecture's overtime rule, and in Sombra's Room you play it yourself. At 50% sure, a ping beats walking in by about 14.7. At 94% it loses about 0.13. Same ping, same cost; what changed is whether the answer could change your room.
 
 ## Experiments the lecture asks for that the island has not run
 

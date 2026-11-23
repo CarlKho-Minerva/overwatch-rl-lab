@@ -300,37 +300,49 @@ Silver leaves to the slides why all this settles on one answer. Take any two gue
 
 ## What the island measured for this lecture
 
+Hand one bot the rulebook and leave the other to wander, and you know who wins before anyone moves. You might also expect the winner's perfect record to prove something grander: that planning is tough, and holds up when things go wrong.
+
+The first part came true. PLANNER stood still for 13 sweeps, then reached the goal in her first episode of every run and scored the maximum, 39. RANDOM WALK fell in 97.4 of every 100 episodes. (Neither bot was in a planned comparison. The only planned one was SARSA against Q-learning on falls, so this table is description, not a test.)
+
 | Bot | Runs | Falls per 100 training episodes (95% interval) | Mean return, first 40 / last 40 | Clean test runs | Steps per episode |
 |---|---|---|---|---|---|
 | PLANNER | 10 | 0.0 (0.0 to 0.0) | 39.0 / 39.0 | 10/10 | 11.0 |
 | RANDOM WALK | 11 | 97.4 (96.9 to 97.9) | -111.3 / -113.3 | n/a | 14.9 |
 
-Neither bot was in a planned comparison (the only planned one was SARSA against Q-learning on falls), so this is description. PLANNER took 13 sweeps, reached the goal in her first episode every run, and scored the maximum. Her 0.0 to 0.0 interval shows she is deterministic, not that planning is robust: her rules had no slips, while the game slipped 0.21 times per 1,000 steps, so a wrong model was never tested. For prediction, DP says the start is worth -114.4 under the random policy; RANDOM WALK averaged -112.7 (standard error 0.46). The gap of 1.7 is several standard errors (my arithmetic), so probably not luck; the island fact sheet does not explain it, and one candidate is that the exact sum ignores the 100-step limit. The exact values also became lecture 4's yardstick (Monte Carlo table error 15.3 after 200 episodes, TD step 0.1 at 85.6).
+The second part is the one to be careful with. Her interval of 0.0 to 0.0 says she is deterministic: she does the same thing every time. It does not say planning is robust. Her rules had no slips in them, while the game slipped 0.21 times per 1,000 steps, so she was never once handed a wrong rulebook and made to cope.
+
+She was never tested. She was just right.
+
+The quieter result sits in the wanderer's row. The same arithmetic, run on the random policy instead of the best one, says the start square is worth -114.4. RANDOM WALK, who never saw that sum, averaged -112.7 (standard error 0.46). Sums done on a whiteboard predicted a bot that blinks at random, to within 1.7.
+
+That 1.7 is still several standard errors (my arithmetic), so it is probably not luck. the island fact sheet does not explain it. One candidate is that the exact sum ignores the 100-step limit, which the real strip enforces.
+
+Those exact values had one more job. They became lecture 4's answer key, the yardstick for bots that have to learn the same numbers from experience. After 200 episodes the Monte Carlo table's typical error was 15.3, and the TD table's, with step 0.1, was 85.6.
 
 ## Guess first
 
-<details><summary>PLANNER's biggest change per sweep was 101, then 49 ten times, 48, then 0.00. Why 13 sweeps and not 1?</summary>
-A sweep lets each square see only as far as its neighbours' current values. The +50 reached the squares beside the goal in sweep one and moved back one column per sweep, so the start, eleven columns away, waited. The last sweep only confirms nothing changed.
+<details><summary>PLANNER has every rule written down before she moves, and the best route is eleven steps. Does one sweep over the board finish her sums, or does she need more than ten?</summary>
+More than ten: 13. Her biggest change per sweep was 101, then 49 ten times, 48, then 0.00. A sweep lets each square see only as far as its neighbours' current values. The +50 reached the squares beside the goal in sweep one and moved back one column per sweep, so the start, eleven columns away, waited its turn. The last sweep changes nothing, which is how she knows to stop. That is value iteration's news travelling backwards.
 </details>
 
-<details><summary>Under the random policy, which is worse: the start, beside the cliff, or the far inland corner?</summary>
-The inland corner: -135.5 against -114.4. Distance from the edge does not save a random walker. She just pays -1 a step for longer, then falls.
+<details><summary>A Tracer blinks in a random direction every step. Would you rather she start beside the cliff, or in the far inland corner, in the back row, as far from the drop as the strip goes?</summary>
+Beside the cliff. Under the random policy the inland corner is worth -135.5, against -114.4 at the start. Distance from the edge does not save a random walker. She just pays -1 a step for longer, then falls anyway. Those numbers are each square's exact value under her policy, worked out from the rules alone.
 </details>
 
-<details><summary>(With lecture 2) To get RANDOM WALK's exact values, which Bellman equation do you iterate?</summary>
-The expectation equation, which averages over the random policy's moves. Iterating the optimality equation (the max) gives the best policy's values, 39 from the start, which describe PLANNER, not a bot moving at random.
+<details><summary>(With lecture 2) You want RANDOM WALK's exact values. On each square, do you take the best move's look ahead, or the average over all four of her moves?</summary>
+The average. That is the Bellman expectation equation, which weighs each move by how often she makes it, a quarter of the time each. Take the best move instead (the optimality equation, the one with the max) and you get 39 from the start. That is PLANNER's number. It describes a bot who plays perfectly, not one moving at random.
 </details>
 
-<details><summary>(With lecture 1) PLANNER and Q-LEARNING both end up crossing. Which solved the reinforcement learning problem as lecture 1 defined it?</summary>
-Q-LEARNING. Lecture 1 split planning (model given) from reinforcement learning (environment unknown, learn by interacting). PLANNER was handed the model, so her result says nothing about a world whose rules nobody wrote down.
+<details><summary>(With lecture 1) PLANNER read the rulebook first. Q-LEARNING learned by falling off. Both end up crossing. Which one solved the reinforcement learning problem as lecture 1 defined it?</summary>
+Q-LEARNING. Lecture 1 split planning, where the model is given, from reinforcement learning, where the world is unknown and you learn by interacting with it. PLANNER was handed the model, so her clean record says nothing about a world whose rules nobody wrote down. Q-LEARNING paid for what she knows in falls, 26.5 per 100 training episodes.
 </details>
 
-<details><summary>In the gridworld, greedy after three sweeps was already optimal. Would PLANNER's table after 6 sweeps give a clean walk from the start?</summary>
-Probably not; not run. With news moving one column per sweep, squares near the start have not seen the goal after 6 sweeps, so their choices rest on step costs alone.
+<details><summary>In Silver's small gridworld, the greedy moves were already the best ones after three sweeps. Stop PLANNER after 6 of her 13 sweeps and make her walk. Does she cross cleanly from the start?</summary>
+Probably not, though nobody ran it. News of the goal moves back one column per sweep, so after 6 sweeps the squares near the start have not heard of it yet, and their choices rest on step costs alone. The start is eleven columns out. (The gridworld got off lightly: no square there is more than three steps from a finishing corner.) That is the risk of acting greedily on a half-finished table.
 </details>
 
-<details><summary>(With lecture 2) If PLANNER's rules said one step in ten slips sideways at random, would her best route still hug the edge?</summary>
-Not run. Value iteration handles randomness as is (the sum over next states gains terms). With -100 waiting, each edge step would risk a fall, so the route would likely move inland.
+<details><summary>(With lecture 2) Rewrite PLANNER's rulebook so that one step in ten slips sideways at random. The best route was eleven steps along the drop. Does she still take it?</summary>
+Probably not, though this was not run either. Value iteration copes with chance as it is: the sum over next states just gains terms. But with -100 waiting below, every edge step now carries some risk of a fall, and she takes eleven of them. The route would likely move inland. A slippery world is still an MDP, lecture 2's model; its chances are just no longer all 0 or 1.
 </details>
 
 ## Cards
@@ -358,7 +370,19 @@ The mapping breaks hardest on the state. DP assumes you can name it. In tau-benc
 
 ## The thread to partial observability
 
-This lecture assumes the agent knows its state and the whole model. The principle of optimality depends on it: behaving optimally from the next state only makes sense if that state summarises everything that matters. The row-only bot shows the cost of a state that does not (47.1 steps per episode, unable to tell forward from back). In the hidden-wall build, running now, a square at column 6 is shut at random each episode, so the next square depends on something the runner is not told. A planner there would plan over beliefs (her guess about which square is shut, updated by bumps), the standard extension of value iteration (not from the lecture). Carry forward: a value function is a cache keyed by state, and is only as good as that state.
+Every sum in this lecture starts from the same sentence: you are on this square. Not roughly here, not probably here. Here, with the whole rulebook for here written down.
+
+That is a bigger assumption than it looks. The principle of optimality says a best plan is a best first move, then a best plan from wherever you land. "From wherever you land" only works if the square you land on summarises everything that matters about what comes next. If two different situations look like the same square, a plan that reads only the square must do the same thing in both, even when they need different moves.
+
+The row-only bot already paid for this. Told only her row, she could not tell forward from back, and dithered along the edge for 47.1 steps an episode against 18.6 for the full table.
+
+Lesson 11 breaks it on purpose. Before each episode one square on the runner's way is shut, and nobody tells her which (on the usual strip, a square at column 6, in the edge row or the second row). Now her next square depends on something she may not be told, and three Q-learning runners differ only in how much of it they get.
+
+On the short strip, with no way round, BLIND reached the goal in 52% of her test crossings, REMEMBERS BUMPS in 90%, SEES THE WALL in 94%. One remembered bump was a real difference by the rule set in advance: 38 points, with a 95% interval of 10 to 66. Seeing on top of remembering is not yet conclusive, and on the long strip, where she can go round, no gap was established. In a simulation by the rules alone, going from 200 training episodes to 1,000 did nothing for the blind runner on the short strip: 47%, then 48%.
+
+She did not lack practice. She lacked a state.
+
+More sweeps would not have saved her either. A value function is a cache keyed by state, and it is only as good as that state. The standard fix, which this lecture does not cover, is to plan over beliefs instead: her guess about which square is shut, updated by bumps. Lesson 11's game, Sombra's Room, runs value iteration over beliefs for two rooms, and its best plan is to ping while you are between 6% and 94% sure and walk in outside that.
 
 ## Experiments the lecture asks for that the island has not run
 

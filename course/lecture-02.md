@@ -346,41 +346,53 @@ The slides go further than he does aloud. Unspoken, on the slides only, are the 
 
 Of the three, the camera view is the one that looks most like your game.
 
-**On the island:** Not run yet. The hidden-wall build is planned and running, with no results.
+**On the island:** One of these extensions did get run, later: lesson 11 hides a shut square from the runner, which makes the strip partially observable. With no row that is always open, the blind runner got through 52% of her test crossings, the one who remembers bumps 90%, and the one who sees the wall 94%.
 
 ## What the island measured for this lecture
+
+A table of 48 squares knows nothing about Tracer's body. It does not know that she slides a little after she stops running, or that ten of her are sharing one server. So when you solve that table for a bot moving at random and it says the start square is worth -114.4, you would expect the real game to land somewhere in the neighbourhood. Near it, maybe. Not on top of it.
 
 | Bot | Lecture role | Paper value, start square | Measured | Falls per 100 (95% interval) |
 |---|---|---|---|---|
 | RANDOM WALK | fixed policy, so an MRP | -114.4 (time limit ignored) | mean -112.7 (standard error 0.46), 2,308 episodes, goal by luck in 1.0% | 97.4 (96.9 to 97.9), 11 runs |
 | PLANNER | value iteration on the optimality equation | 39 | 39.0 in the first and last 40 episodes; first goal in episode 1 | 0.0 (0.0 to 0.0), 10 runs |
 
-The random walker scored 1.7 points above the paper value, more than three times the standard error, so sampling noise alone is an unlikely cause. The paper value leaves out the 100-step limit, which caps the longest wanderings; that is one candidate, untested. The PLANNER, planning from the rules alone, matched the best return every episode. Neither is one of the night's comparisons; only SARSA against Q-learning (falls) was planned in advance. Not shown: that the format fits a world with real dice, or how fast a bot learns these values.
+The arithmetic, done before a single bot moved, called her score to within 1.7 points.
+
+RANDOM WALK averaged -112.7, which puts her 1.7 points above the paper value. That is close enough to make the written-down strip look like a fair description of the real one, and not quite close enough to stop there. With 2,308 episodes, luck typically moves the average by about 0.46 (the standard error), and 1.7 is more than three times that. So sampling noise alone is an unlikely cause. The paper value leaves out the 100-step limit, which caps the longest wanderings. That is one candidate, and it is untested.
+
+The PLANNER is the dull half of the table, in the best way. Planning from the rules alone, she matched the best return every episode, starting with episode 1, and in 10 runs she never fell.
+
+Three things this does not settle:
+
+1. **Whether either result is a finding of the night.** Neither is one of the night's comparisons; only SARSA against Q-learning (falls) was planned in advance.
+2. **Whether the format survives real dice.** The strip has almost none, so this does not show that the format fits a world with real dice.
+3. **How fast a bot learns these values.** That is lecture 4's question.
 
 ## Guess first
 
-<details><summary>Under the random walk, which is worse to stand on: the start square beside the drop, or the far inland corner?</summary>
-The inland corner, -135.5 against -114.4. Inland she wanders longer, paying 1 a step, and falls anyway. Value belongs to a square and a policy together.
+<details><summary>A Tracer who moves completely at random can start right beside the drop or in the far inland corner, three rows back. Which start is worse for her?</summary>
+The inland corner: -135.5, against -114.4 beside the drop. It feels backwards. But a random walker falls sooner or later from almost anywhere. Beside the edge she falls fast and pays few step costs first; inland she wanders longer, paying 1 a step, and falls anyway. Value belongs to a square and a policy together, never to the square alone.
 </details>
 
-<details><summary>Lecture 1 split planning (you have the rules) from learning (you only have experience). The PLANNER reached the goal in episode 1; SARSA's median first goal was episode 11. Which side explains the gap?</summary>
-Planning. The PLANNER was handed the transition and reward tables, the model in lecture 1's terms, and solved the optimality equation before her first step. SARSA had to discover the same facts by falling.
+<details><summary>Same strip, same night. The PLANNER reaches the goal in her very first episode; SARSA's median first goal is episode 11. Lecture 1 split planning (you have the rules) from learning (you only have experience). Which side of that split buys the ten-episode head start?</summary>
+Planning. The PLANNER was handed the transition and reward tables, the model in lecture 1's terms, and solved the optimality equation before her first step. SARSA had to discover the same facts by falling. (Reading the rulebook is a lot cheaper than learning it by dying.)
 </details>
 
-<details><summary>Lecture 1 separated the environment's state from the agent's state. Is Q, ROW ONLY's state Markov?</summary>
-No. Two squares in the same row have different futures but look identical to her. She dithers: 47.1 steps per episode against 18.6 with the full table.
+<details><summary>Q, ROW ONLY is told her row and nothing else, like a minimap that shows how far you are from the edge but not how far along the strip. Lecture 1 separated the environment's state from the agent's state. Is her state Markov?</summary>
+No. Two squares in the same row have different futures but look identical to her. Forward and back both seem to lead to the place she is already in, so she dithers: 47.1 steps per episode, against 18.6 with the full table. What she is told, the agent's state, is missing a part of the environment's state that decides what happens next.
 </details>
 
-<details><summary>Silver warns that undiscounted cycles can give infinite returns. The island uses discount 1 and has back-and-forth cycles. Are its returns finite?</summary>
-Yes. Every episode ends at the goal, in a fall, or at 100 steps, and Silver says undiscounted is fine when every sequence terminates.
+<details><summary>The island never discounts: a point at step 90 is worth as much as a point now. A bot can also shuffle forward and back, round and round. Silver warns that loops with no discount can add up to infinity. Can a return on the island run off to infinity?</summary>
+No. Every episode ends: at the goal, in a fall, or when 100 steps pass. A bot that tries to shuffle forever pays 1 a step until the clock stops her, so every total is finite. Silver says undiscounted is fine when every sequence terminates, and the island's clock makes sure each one does. (The -1 per step does the job a discount would.)
 </details>
 
-<details><summary>From the inland corner behind the start square, does the PLANNER have one best route or several?</summary>
-Several. She needs three moves toward the edge and eleven forward, and inland squares are never dangerous, so the order does not change the return. From the start square there is only one: eleven moves forward.
+<details><summary>Put the PLANNER in the inland corner right behind the start, three rows back. The goal is at the far end of the edge row. Does she have exactly one best route, or several that tie?</summary>
+Several. She needs three moves toward the edge and eleven forward, and inland squares are never dangerous, so the order does not change the return. From the start square there is only one: eleven moves forward, since any detour adds steps. This is Silver's point that an MDP can have more than one optimal policy.
 </details>
 
-<details><summary>Can the optimality equation for the island be solved with one matrix inverse, like the random walker's values?</summary>
-No. The max over actions makes it non-linear, with no closed form in general. The PLANNER iterated, 13 sweeps.
+<details><summary>The random walker's values came out of one matrix inverse: one equation per square, all solved at once. The PLANNER wants the best values instead. Can she get them the same one-shot way?</summary>
+No. Her equation takes the best move at each square instead of the average, and that max makes it non-linear, with no closed form in general (no formula that gives the answer in one go). So she swept it over the squares again and again, each pass a little better, until the largest change was under 0.001. That took 13 sweeps. Silver calls this iteration; her kind is value iteration.
 </details>
 
 ## Cards
@@ -406,7 +418,17 @@ And it breaks at full observability. The customer's real goal sits in instructio
 
 ## The thread to partial observability
 
-This lecture assumes the state is fully observed and says so in its first minutes. Three spoken moments point past it. At 02:33 Silver claims "any partially observed problem can be completely converted into an MDP." At 11:35 he shows how: put what you need, a counter, into the state. At 1:33:34 he describes a state that includes the observations seen so far, a belief without the word. The slides finish it: the history is always Markov, and so is a belief. On the island every bot was blind to the step clock, and the planned hidden-wall build makes the gap deliberate, with RUNNER REMEMBERS BUMPS carrying the smallest possible belief. Carry one rule forward: when your state is not Markov, add memory until it is.
+Every bot in this lecture played in spectator mode. After each move she was told exactly which square she stood on, with nothing hidden. You have never had that in a match. Silver says so in his first minutes: he is starting with the nice case, where the state is fully observed.
+
+Then he spends the hour hinting that it will not last. At 02:33 he claims "any partially observed problem can be completely converted into an MDP." At 11:35 he shows the trick: if the state is missing something that matters, such as a counter, put it in. At 1:33:34 he describes a state that includes the observations seen so far, a belief without the word. The slides finish it: the history is always Markov, and so is a belief.
+
+The island broke the nice case once already, quietly. Every bot was blind to the step clock.
+
+Lesson 11 breaks it on purpose. One square on her way is shut, a different one each time, and nobody tells her which. On the short strip, where there is no way round, RUNNER BLIND, told only her square, reached the goal in 52% of her test crossings. RUNNER REMEMBERS BUMPS carries the smallest possible belief, no bump yet or the row that stopped her, and reached it in 90%: 38 points higher, with a 95% interval of 10 to 66. RUNNER SEES THE WALL reached 94%, and whether seeing beats remembering is not yet conclusive.
+
+One remembered bump was the difference between stuck and through.
+
+Carry one rule forward: when your state is not Markov, add memory until it is.
 
 ## Experiments the lecture asks for that the island has not run
 

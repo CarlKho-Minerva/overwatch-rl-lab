@@ -305,37 +305,51 @@ Often and recent both get their share of the blame.
 
 ## What the island measured for this lecture
 
+If all you had was the lecture, you would bet on TD. Silver races the two methods on his random walk, TD wins, and he calls it usually the more efficient of the two.
+
+On the island, Monte Carlo won at both checkpoints, and not by a little.
+
 | Typical error against exact values (weighted by visits) | TD(0), step 0.1 | TD(0), step 0.5 | Every-visit Monte Carlo |
 |---|---|---|---|
 | After 10 episodes | 112.7 | 100.5 | 25.9 |
 | After 200 episodes | 85.6 | 46.5 | 15.3 |
 
-All three tables followed the same walker from a start of zero. Monte Carlo was closest at both checkpoints, and the faster TD table beat the slower. the island fact sheet gives no intervals, and this comparison was not planned (the only planned comparison was SARSA against Q-learning on falls), so it is a first look. The likely reason is the start. In Silver's walk the guess of 0.5 is at most a third from the truth; here zero is about 100 points too high for most squares, and TD is the method he calls sensitive to starting values. With discount 1, each square must learn its value from neighbours that also start at zero: the -100 of a fall enters only beside the edge, and each inland square takes only part of a partly learned neighbour per visit, so the bad news crawls inward square by square, as PLANNER's good news moved one column per sweep. A plain Monte Carlo average (the island fact sheet does not give its step) swaps the zero for a real return of about -100 on the first visit. Step 0.5 beating 0.1 fits: the error was mostly starting bias, not noise. This does not show Monte Carlo is better in general, or how they compare once the start is forgotten (the lecture says TD usually wins). The exact values ignore the 100-step limit, so even a perfect table would not score zero.
+All three tables followed the same walker from a start of zero, and the bold TD table beat the cautious one. (Treat it as a first look. The fact sheet gives no intervals, and this comparison was not planned: the only one named before the night was SARSA against Q-learning on falls.)
+
+The likely culprit is the start. In Silver's walk every guess begins at 0.5, at most a third from the truth. Here every guess begins at zero, about 100 points too high for most squares, and TD is the method he calls sensitive to starting values.
+
+Watch how the bad news has to travel. With discount 1, each square learns its value from its neighbours, and its neighbours also start at zero. The -100 of a fall gets in only beside the edge. Each inland square then takes only part of a partly learned neighbour per visit, so the news crawls inward square by square, the way PLANNER's good news moved one column per sweep.
+
+Monte Carlo skips the crawl. Its plain running average (a step of 1/k on the k-th visit) swaps the zero for a real return of about -100 on the very first visit.
+
+Step 0.5 beating 0.1 fits the same story. If the error had been mostly noise, the small, careful step should have come out ahead. It was mostly starting bias, and the big step forgets the start faster.
+
+What this does not show: that Monte Carlo is better in general, or how the two compare once the start is forgotten. The lecture says TD usually wins then, and the island has not checked. The exact values also ignore the 100-step limit, so even a perfect table would not score zero.
 
 ## Guess first
 
-<details><summary>AB example, replayed forever: does Monte Carlo give V(A) = 0 or 0.75? And TD(0)?</summary>
-Monte Carlo gives 0: the one return seen from A was 0. TD(0) gives 0.75: A always went to B with reward 0, and B is worth 0.75. TD answers for the best-fitting model, Monte Carlo for the returns.
+<details><summary>Eight replays, watched forever. Once you go from A to B, scoring 0 both times. Six times you start in B and score 1, and once in B you score 0. Does Monte Carlo say A is worth 0 or 0.75? Does TD(0) agree?</summary>
+Monte Carlo says 0 and TD(0) says 0.75, so they disagree. The one return Monte Carlo ever saw from A was 0, and it only averages returns. TD(0) sees that A always led to B with reward 0, and B is worth 0.75, so A must be too. TD answers for the best-fitting model of what it saw, Monte Carlo for the returns. Silver calls that model-fitting certainty equivalence, and both answers legitimate.
 </details>
 
-<details><summary>RANDOM WALK's first episode: she steps straight off the edge from the start for -101. What does each table now hold for the start square?</summary>
-TD step 0.5: -50.5 (half way from 0 to -101). TD step 0.1: -10.1. A plain Monte Carlo average: -101, its only sample. That is the island result in small: from zero, Monte Carlo jumps to the scale of the truth and TD creeps.
+<details><summary>RANDOM WALK's very first move is straight off the edge from the start: -101, episode over. All three tables began at zero. What number does each one now write on the start square?</summary>
+Bold TD (step 0.5) writes -50.5, half way from 0 to -101. Cautious TD (step 0.1) writes -10.1. Monte Carlo writes -101, because a plain average of one sample is that sample. That is the whole island result in small: from zero, Monte Carlo jumps to the scale of the truth and TD creeps toward it. This is what Silver means by TD being sensitive to its starting values.
 </details>
 
-<details><summary>Lecture 3's PLANNER and the TD(0) table both bootstrap. Which needs her to walk, and what does that mean for the far inland corner?</summary>
-TD does. PLANNER averages over all four moves with the known rules, so every square updates every sweep. TD updates only squares she stands on, so a rarely reached corner learns slowly. Bootstrapping is shared; sampling is the difference.
+<details><summary>Lecture 3's PLANNER and the TD(0) table both fix a guess with a guess. RANDOM WALK rarely reaches the far inland corner before she falls. Which of the two still learns that corner's value quickly?</summary>
+PLANNER. She has the rules, so she averages over all four moves and every square updates on every sweep, walked on or not. TD updates only the squares RANDOM WALK actually stands on, so a corner she rarely reaches learns slowly. Both bootstrap. What separates them is sampling: TD learns from the one step that happened, not from every step that could.
 </details>
 
-<details><summary>From lecture 2: is R + gamma times the TRUE next value an unbiased target, and is R + gamma V(next)?</summary>
-The first is unbiased: the Bellman expectation equation says the value equals expected reward plus discounted true next value. The second is biased, because V is the current estimate, which could be all zeros.
+<details><summary>(With lecture 2) Two callouts for what a square is worth: the reward you just got plus the TRUE value of the next square, or the same reward plus your table's guess for it, R + gamma V(next). Which is right on average?</summary>
+Only the first. Lecture 2's Bellman expectation equation says a square's value is exactly the expected reward plus the discounted true value of the next square, so that target is unbiased. The second leans, because V is your current estimate, which could be all zeros. That lean is called bias, and it is what TD pays for its low variance.
 </details>
 
-<details><summary>True or false: TD(lambda) with lambda 1 is exactly Monte Carlo.</summary>
-True only with offline updates, applied at episode end: then the total matches every-visit Monte Carlo. Online, values change mid-episode and the two differ slightly, unless a 2014 variant of the trace is used.
+<details><summary>Turn the lambda dial all the way to 1. Is TD(lambda) now exactly Monte Carlo, yes or no?</summary>
+Only if you wait. With the updates applied at the end of the episode, the total change matches every-visit Monte Carlo. Applied as you go, the values shift mid-episode and the two differ slightly, unless a 2014 variant of the trace is used. Silver calls the first kind offline updates and the second online.
 </details>
 
-<details><summary>A bot told only her row cannot tell forward from back. Predicting values with that blurred state, would TD(0) or Monte Carlo cope better?</summary>
-Silver says Monte Carlo: it still finds the expected return given what it is told, while TD(0) leans on a Markov property the blurred state breaks. Not run for prediction; Q, ROW ONLY was a control bot, dithering at 47.1 steps per episode.
+<details><summary>A bot told only her row cannot tell forward from back: every square in her row looks the same to her. Ask TD(0) and Monte Carlo to learn values from that blurred view. Which copes better?</summary>
+Monte Carlo, Silver says. It still finds the expected return given what it is told, while TD(0) leans on the next state carrying everything that matters, which the blurred view breaks. That assumption is the Markov property. The island has not run this for prediction: Q, ROW ONLY was a control bot, and she dithered at 47.1 steps per episode.
 </details>
 
 ## Cards
@@ -361,7 +375,19 @@ Where it breaks: Silver's guarantees are for a table and a fixed policy. A conve
 
 ## The thread to partial observability
 
-At [1:04:24] Silver says TD exploits the Markov property, and that when states are aliased (different situations look the same), Monte Carlo can be the better choice. At [1:05:00] he describes the partially observed MDP: a real MDP underneath, of which the agent sees only part, some cards and not others. Monte Carlo still finds the expected return given what it sees, even for "a blind robot"; TD(0) does not work well. So lambda is also a dial for how far to trust the state. The hidden-wall build (planned and running, no results yet) is this case: a blind runner sees one square where there are two situations. Carry forward: bootstrapping assumes the state is complete, and a memory of the episode can turn a blurred observation back into something closer to a state.
+Two moments in a match can look exactly alike on your screen: same corner, same health, same empty hallway. In one of them an invisible Sombra is standing behind you. Judge a spot only by what you can see, and both moments get the same number, when one of them deserves a much worse one.
+
+Everything in this lecture assumes you are never in that position. TD fixes a guess with the guess for the next state, which is only fair if the next state carries everything that matters for the future. That is the Markov property from the AB example, and TD leans on it hard.
+
+Silver says what happens when it fails (1:04:24). When different situations look the same (he calls them aliased), Monte Carlo can be the better choice. A student asks whether an MDP even applies then, and he describes the partially observed MDP (1:05:00): a real MDP running underneath, of which the agent sees only part, some cards and not others. Monte Carlo still finds the expected return given what it is shown, even for "a blind robot". TD(0) does not work well.
+
+So lambda is also a dial for how far to trust the state.
+
+Lesson 11 runs this case. Before each episode one square on Tracer's way is shut, a different one each time, and nobody tells her which. Three kinds of Q-learning runner (lecture 5's method, which bootstraps like TD) differed only in what they were told. On the short strip, with no way round, the one told only her square got through 52% of her test crossings. The one who remembers a single bump got through 90%, and the one shown the wall 94%. That first gap, 38 points, was a real difference by the rule set before the runs. (Remembering against seeing is not yet conclusive: the interval includes zero. On the long strip, where a way round exists, none of the gaps was established.)
+
+In the simulation by the rules alone, five times the training moved the blind runner from 47% to 48%. What she lacks is not practice.
+
+Carry forward: bootstrapping assumes the state is complete, and a memory of the episode can turn a blurred observation back into something closer to a state.
 
 ## Experiments the lecture asks for that the island has not run
 

@@ -339,6 +339,12 @@ The left column holds lecture 3's planning methods, called dynamic programming (
 
 ## What the island measured for this lecture
 
+Before the night, two bets looked safe.
+
+The first was the cliff slide's unspoken point: Q-LEARNING, who rates the edge row as if she will never stumble, should fall more than SARSA, who counts her own stumbles in. The second was barely a bet at all. MONTE CARLO had been the most accurate scorekeeper on the island in lecture 4, so at worst she should be a slow learner.
+
+Ten Tracers spent the night finding out.
+
 | Bot | Runs | Falls per 100 training episodes (95% interval) | Mean return, last 40 | Distance from edge, last 40 (m) | Runs with 10 clean test crossings |
 |---|---|---|---|---|---|
 | SARSA | 16 | 16.3 (15.3 to 17.4) | 22.3 | 3.88 | 13/16 |
@@ -347,32 +353,46 @@ The left column holds lecture 3's planning methods, called dynamic programming (
 | SARSA LAMBDA | 14 | 11.8 (10.5 to 13.2) | 22.4 | 5.06 | 13/14 |
 | MONTE CARLO | 10 | 98.3 (97.7 to 98.8) | -102.2 | 0.18 | 0/10 |
 
-The one comparison planned before the night was SARSA against Q-LEARNING on falls: -10.14 per 100 (95% interval -14.18 to -5.83, p under 0.001, 16 and 11 runs). The rest are first looks, uncorrected for the number of comparisons: SARSA stood 1.82 m further from the edge (1.38 to 2.23) and earned 14.86 more (5.43 to 23.42); EXPECTED SARSA, a variant not in this lecture, fell 13.30 less than Q-LEARNING (-17.50 to -8.96); MONTE CARLO earned 124.55 less than SARSA (-128.57 to -119.83) and never reached the goal. A beginner never sees the +50, and stepping off at once (-101) beats wandering then falling, so judging moves by whole endings teaches her to step off; TD bots lean on unknown squares valued at zero. What this does not show: one step size and epsilon per method, 150 episodes, one night, no GLIE bot, so nothing tests Silver's convergence theorems; MONTE CARLO's failure concerns constant-step, fixed-epsilon Monte Carlo, not GLIE Monte Carlo control.
+The first bet came in, and it was the one that counted. SARSA against Q-LEARNING on falls was the only comparison written down before the night, and the difference was -10.14 falls per 100 episodes (95% interval -14.18 to -5.83, p under 0.001, 16 and 11 runs). In words: give each of them a hundred tries at the crossing, and about ten more of Q-LEARNING's end at the bottom of the drop.
+
+Everything else is a first look, not planned and not corrected for how many comparisons were made. Treat these as leads:
+
+1. **SARSA walked inland and earned more.** She stood 1.82 m further from the edge (1.38 to 2.23), close to a whole 2 m square, and earned 14.86 more (5.43 to 23.42).
+2. **The extra beat Q-LEARNING too.** EXPECTED SARSA, a variant not in this lecture, fell 13.30 less than Q-LEARNING (-17.50 to -8.96).
+3. **MONTE CARLO jumped.** She earned 124.55 less than SARSA (-128.57 to -119.83) and never reached the goal.
+
+So the second bet lost, and badly. Here is why. A beginner never sees the +50, so every ending she has seen hurts, and of those, stepping off at once (-101) hurts less than wandering for a while and then falling. A method that judges each move by how the whole episode ended learns, from that evidence, to step off.
+
+MONTE CARLO was not confused. She learned exactly what her endings taught her, and every ending she had seen was bad.
+
+The TD bots escape because they judge a move by the next square's score, and a square they know nothing about is valued at zero, which looks far better than -101. "Forward into the unknown" keeps beating "off the edge".
+
+What none of this shows: each method ran at one step size and one epsilon, for 150 episodes, on one night, and no bot was GLIE, so nothing here tests Silver's convergence theorems. MONTE CARLO's failure belongs to constant-step, fixed-epsilon Monte Carlo, not to the GLIE Monte Carlo control he proves converges. (Same family name, different method.)
 
 ## Guess first
 
-<details><summary>SARSA and Q-LEARNING both take one random step in ten all run. Which falls more while learning?</summary>
-Q-LEARNING: 26.5 per 100 against 16.3, the night's planned comparison (difference -10.14, interval -14.18 to -5.83). Her edge scores assume she never stumbles, so she keeps walking the edge and her random steps take her over. SARSA's scores include her stumbles, so she moves inland.
+<details><summary>Two Tracers, identical except for one line of arithmetic, both stumble one step in ten all night. Which one goes over the edge more while learning?</summary>
+Q-LEARNING, 26.5 times per 100 episodes against SARSA's 16.3. That was the night's one planned comparison (difference -10.14, interval -14.18 to -5.83). Her edge scores assume she never stumbles, so she keeps walking the edge row and her random steps carry her over. SARSA's scores have her stumbles baked in, so she drifts inland. One learns about the walker she could be, the other about the walker she is: off-policy and on-policy.
 </details>
 
-<details><summary>Switch exploring off for the test crossings. Whose table gives the more reliable crossing?</summary>
-Q-LEARNING: 11 of 11 runs crossed cleanly every time, against 13 of 16 for SARSA. Her target was always greedy, so her table describes the best route; SARSA's describes a stumbling walker.
+<details><summary>Now take the dice away. Exploring is off, and each bot makes ten test crossings straight from her table. Whose table walks you across cleanly more often: the one who fell more, or the one who fell less?</summary>
+The one who fell more. Q-LEARNING crossed cleanly every time in 11 of 11 runs, SARSA in 13 of 16. Q-LEARNING's target was always the best move, so her table described the best route all along; she just could not walk it while stumbling. SARSA's table describes a walker who stumbles, which is not quite the right map once the stumbling stops. That is the payoff of learning off-policy.
 </details>
 
-<details><summary>Lecture 3's PLANNER walked greedily on state values V. Why can't a learning bot do the same with a V learned from experience?</summary>
-Greedy choice on V means asking where each move lands, which needs the rules PLANNER had. Q already scores each move, so greedy choice is reading the largest entry [09:53].
+<details><summary>Lecture 3's PLANNER scored every square by how good it was to stand there (its state values, V) and picked each step by where it would land. Hand a learning bot the same kind of square scores, learned from experience. Can she pick her steps the same way?</summary>
+No. To pick a key from square scores she has to know where each key lands, and that is the rulebook PLANNER had and she does not. Put the score on the move instead, one number per square and key, and choosing is just reading off the biggest entry (09:53). Silver calls that score Q, the action value.
 </details>
 
-<details><summary>In lecture 4, Monte Carlo was the most accurate predictor on the island. Will MONTE CARLO be the best controller?</summary>
-No: 98.3 falls per 100 and no goal in any run. Predicting a fixed walker is not choosing moves from your own early estimates. Early returns show only falls and timeouts, and stepping off at once is the least bad, so she learns to jump.
+<details><summary>In lecture 4, Monte Carlo was the best scorekeeper on the island, closest to the true values at every check. Now she picks her own moves. Does she make it across?</summary>
+No, not once: 98.3 falls per 100 and no goal in any run. Scoring a fixed walker is a different job from choosing moves on your own early guesses. Early on she sees only falls and timeouts, never the +50, and of those endings stepping off at once is the least bad. Judging every move by its whole ending, she learns to jump. Silver's names for the two jobs: prediction and control.
 </details>
 
-<details><summary>Q + FADING EXPLORATION uses epsilon = 1/(1 + episode/5) with a floor of 0.01. Is she GLIE?</summary>
-Not strictly: the floor means she never becomes fully greedy. Her falls against Q-LEARNING differed by 1.44 per 100 (-3.25 to 6.17), inconclusive.
+<details><summary>Q + FADING EXPLORATION starts with most of her steps random and rolls the dice less each episode, epsilon = 1/(1 + episode/5), but never below a floor of 0.01. Is that the explore-forever, lock-in-eventually schedule Silver asks for?</summary>
+Not strictly. She does explore forever, but the floor means she never becomes fully greedy, so she never locks in. GLIE, greedy in the limit with infinite exploration, needs both halves. Her falls against Q-LEARNING differed by 1.44 per 100 (-3.25 to 6.17), not yet conclusive either way.
 </details>
 
-<details><summary>Using RANDOM WALK's 2,308 logged episodes, you estimate the greedy route's value by off-policy Monte Carlo. What do the weights look like?</summary>
-Each step's ratio is 4 when the random move matches the greedy one and 0 otherwise. Nearly every episode gets weight 0; an exact 11-step match gets about 4.2 million (arithmetic). That is the variance Silver calls useless.
+<details><summary>You have RANDOM WALK's 2,308 logged episodes of stumbling about, and you want the greedy route's value from those replays alone, by off-policy Monte Carlo. Picture the weight each replay gets. What does the pile look like?</summary>
+Nearly all zeros, plus a lottery ticket. Each step's ratio is 4 when her random move happens to match the greedy one and 0 otherwise, and the ratios multiply across the episode. Nearly every episode gets weight 0; an exact 11-step match, if one ever turned up, would get 4 to the 11th, about 4.2 million (arithmetic). That is the importance-sampling variance Silver calls useless.
 </details>
 
 ## Cards
@@ -398,7 +418,17 @@ Where the mapping breaks: the state is the whole conversation, and there is no Q
 
 ## The thread to partial observability
 
-Every table here is indexed by the true state, and every convergence result assumes the agent sees it. Exploration is information gathering: in the two-doors example the agent's beliefs can be wrong, and only trying the doors fixes them [15:28]. The eligibility trace is a memory of recent history, used for credit, never for choosing a move. On the island, Q, ROW ONLY sees only her row, so different squares look identical to her; she fell 42.5 times per 100 against 26.5 for full Q-LEARNING and dithered along the edge. The hidden-wall build being run now asks whether a small memory of bumps can stand in for a state she is not told. Carry forward: these guarantees hold only when the table's index is the full state.
+Every bot on this page is told exactly which square she is standing on. That one fact is holding up more of the lecture than it looks.
+
+The tables keep their scores by true square, and every guarantee Silver proves assumes the agent can see which square she is on. Even exploring is about information: in the two-doors example the chooser's beliefs about the doors can be wrong, and only trying the doors fixes them (15:28). The eligibility trace is a memory of recent history, but it is used only to hand out credit, never to choose a move.
+
+So what happens when she is told less? Q, ROW ONLY is Q-learning told only her row, how far she is from the edge, and nothing about how far along. Different squares look identical to her, forward and back both seem to lead where she already is, and she dithers along the edge: 47.1 steps an episode against 18.6, and 42.5 falls per 100 against 26.5 for full Q-LEARNING.
+
+Lesson 11 asks whether a little memory can stand in for what she is not told. All three of its runners are this lecture's Q-learning bot. Before each episode one square on the way is shut, a different one each time, and nobody says which. On the short strip, where there is no way round, the runner told only her square got through 52% of her test crossings. The one who remembers where she bumped got through 90%, and the one shown the wall 94%.
+
+One remembered bump was the difference between stuck and through: 38 points over the blind runner (interval 10 to 66), a real difference by the rule set in advance. Remembering against seeing is not yet separated, and on the long strip, where a way round exists, no gap between the three was established.
+
+Carry this forward: every guarantee on this page holds only when the thing the table looks up, here her square, is the whole state.
 
 ## Experiments the lecture asks for that the island has not run
 

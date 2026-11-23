@@ -152,7 +152,7 @@ The game now asks which is hurt more when the world changes: a learner with an o
 >
 > <details><summary>Back from the game: what you just saw</summary>The red balls moved. The old gap is shut and a new one opened on the far row. Now both bots are out of date. The replaying bot's memory still says the old gap leads through. The plain bot's values say the same thing in another form, as numbers on each pad. Which mistake costs more shows in race 3 at the next stop, in the two totals on the right. <em>In an agent:</em> When the users change and the simulator does not, the agent keeps rehearsing for users who are gone.</details>
 
-**On the island:** the model is nearly exact, so this failure is hard to provoke. The hidden-wall build being run now shuts a square at random each episode, which makes a world that a table knowing only her square cannot model. There are no results yet.
+**On the island:** the model is nearly exact, so this failure is hard to provoke. The hidden-wall build in lesson 11 shuts a square at random each episode, which makes a world that a table knowing only her square cannot model. The runner told only her square got through 52% of her test crossings; the one who also remembered her bumps got through 90%.
 
 ### [51:18](https://www.youtube.com/watch?v=ItMutbeOHtc&t=3078s) Dyna-Q: Recall, but for her memory
 Picture a Tracer whose Recall rewinds her memory instead of her body, with no cooldown. After every real step she jumps back to a moment she has already lived, replays it in her head, and learns from it again.
@@ -311,6 +311,10 @@ Dyna-2 did best.
 
 ## What the island measured for this lecture
 
+Give a bot twenty imagined moves for every real one and you would expect a better bot at everything: sooner to the goal, fewer falls, ahead at the end.
+
+As far as these runs can tell, she did none of the three. She did something in between, and by a lot.
+
 | All finished runs | DYNA-Q | Q-LEARNING |
 |---|---|---|
 | Runs | 9 | 11 |
@@ -321,32 +325,44 @@ Dyna-2 did best.
 | Steps per training episode | 12.9 | 18.6 |
 | Runs with 10 clean test crossings | 9/9 | 11/11 |
 
-Over the first 40 episodes DYNA-Q's mean return was 25.98 higher (95% interval 15.53 to 36.25, p 0.0007), and she used 851.48 fewer real steps per run (1,942.33 against 2,793.82; interval -1,019.15 to -673.20). By the last 40 the gap of 7.59 is inconclusive (interval -3.19 to 18.58), as is the fall difference of -2.11 (interval -9.06 to 4.49): falls come from the random step, which planning cannot stop. All Dyna comparisons are exploratory, uncorrected for multiple comparisons; only SARSA against Q-learning on falls was planned. One planning budget (20) was tried, and a nearly exact model says nothing about Silver's wrong-model case. On speed: 25.6 real steps a second against about 2.2 for the earlier single-bot build came from double running speed and ten bots at once; imagined updates add learning per step, not steps.
+Both bots first touched the goal at episode 13 (the median). Then DYNA-Q pulled away. Over the first 40 episodes her mean return was 25.98 higher (95% interval 15.53 to 36.25, p 0.0007), and she used 851.48 fewer real steps per run: 1,942.33 against 2,793.82 (interval -1,019.15 to -673.20). That is close to a third less walking for the same 150 episodes, while the news from the goal travelled back through her head.
+
+Then Q-LEARNING caught up. By the last 40 episodes the gap of 7.59 is not yet conclusive (interval -3.19 to 18.58), and neither is the fall difference of -2.11 (interval -9.06 to 4.49). The falls have a plain reason: they come from the random step, which planning cannot stop.
+
+Thinking changes how fast she learns. It does not change the dice.
+
+What these runs do not show:
+
+1. **A tested result.** All Dyna comparisons are exploratory, uncorrected for multiple comparisons; only SARSA against Q-learning on falls was planned.
+2. **How much thinking is enough.** One planning budget (20) was tried.
+3. **Silver's wrong-model case.** Her model is nearly exact, and a nearly exact model says nothing about it.
+
+(Nor did the thinking make the night fast. 25.6 real steps a second against about 2.2 for the earlier single-bot build came from double running speed and ten bots at once; imagined updates add learning per step, not steps.)
 
 ## Guess first
 
-<details><summary>DYNA-Q and Q-LEARNING both take a random step one time in ten. Will the bot that thinks between steps fall clearly less?</summary>
-No clear difference: 24.4 against 26.5 falls per 100, and the interval for the difference (-9.06 to 4.49) includes zero, so inconclusive. Late falls come from the random step itself. Silver treats exploration as separate from planning (50:03).
+<details><summary>Both bots take a random step one time in ten, beside a drop. DYNA-Q also thinks through 20 moves after every real one. Does she fall clearly less?</summary>
+Not clearly. She fell 24.4 times per 100 episodes against 26.5, and the interval for the difference (-9.06 to 4.49) includes zero, so it is not yet conclusive. Late falls come from the random step itself, and no amount of thinking changes the dice. That random step is exploration, and Silver treats it as a question separate from planning (50:03).
 </details>
 
-<details><summary>Will DYNA-Q reach the goal for the first time in fewer episodes than Q-LEARNING?</summary>
-No: the median first goal was episode 13 for both. Her model replays only moves she has made, and before the first arrival none carried the +50. The gain comes after, when the news spreads backward in her head.
+<details><summary>DYNA-Q gets 20 practice moves in her head for every real one. Does she reach the goal for the first time sooner than Q-LEARNING?</summary>
+No. The median first goal was episode 13 for both. Her model replays only moves she has made, and before the first arrival none of them carried the +50. You cannot rehearse a win you have never had. The gain comes after, when the news spreads backward in her head. Silver flags the same catch in Dyna-Q: little signal before the first goal (1:00:59).
 </details>
 
-<details><summary>Lecture 4: on the AB data, batch Monte Carlo gave V(A) = 0 and batch TD gave 0.75. Which does planning with the counted table model agree with in the long run?</summary>
-TD. Lecture 4's slides say TD converges to the maximum likelihood Markov model, which is exactly this lecture's counted model. Silver's eight samples gave V(A) = 1 by chance; with many samples it settles at 0.75. He says TD built this model implicitly (31:19).
+<details><summary>Lecture 4's eight episodes of A and B, replayed until the numbers settle: Monte Carlo says A is worth 0, TD says 0.75. Count the same episodes into a table and plan on it long enough. Which one does the table agree with?</summary>
+TD. Planning on the counted table is what TD was doing all along without writing it down; Silver says TD built this model implicitly (31:19). Lecture 4's slides give it a name: TD converges to the maximum likelihood Markov model, the one that makes the data you saw most likely, which is exactly this counted table. His eight samples gave V(A) = 1 by chance. With many samples it settles at 0.75.
 </details>
 
-<details><summary>Lecture 5: MONTE CARLO control learned to step off the edge. Would simple Monte Carlo search with uniform random rollouts from the start square step off too?</summary>
-Probably. The start square is worth -114.4 under the random policy, worse than -101 for stepping off, so random rollouts after a forward move would likely score below the jump (not run). Full MCTS escapes in the limit as its tree policy replaces random play (1:27:28).
+<details><summary>Lecture 5's MONTE CARLO bot learned to jump off the edge. Now a search on the start square tries each first move in imagined games of random play, and keeps the best. Does it jump too?</summary>
+Probably, though the island has not run it. Under random play the start square is worth -114.4, worse than the -101 of stepping off, so imagined games after a forward step would likely score below the jump. Random play walks the edge so badly that falling at once looks cheap. This is simple Monte Carlo search with uniform random rollouts. Full MCTS escapes in the limit, as its tree policy replaces the random play (1:27:28).
 </details>
 
-<details><summary>Halfway through a run an edge-row square becomes a wall. Which recovers faster: DYNA-Q, or DYNA-Q+ with a bonus for moves untried in a while?</summary>
-DYNA-Q+. Plain DYNA-Q's model still says the old route works, so her imagined updates keep recommending it until real bumps fix the model. The bonus sends DYNA-Q+ to neglected moves sooner. This is Silver's blocking maze (1:01:09), not run here.
+<details><summary>Halfway through a run, a square on her usual route turns into a wall. DYNA-Q+ gets a small bonus for moves she has not tried in a while; DYNA-Q does not. Which finds her way again first?</summary>
+DYNA-Q+. Plain DYNA-Q's model still says the old route works, so her imagined updates keep recommending it until real bumps fix the model. The bonus sends DYNA-Q+ to neglected moves sooner. Thinking harder about an old map does not draw the new door on it. This is Silver's blocking maze (1:01:09), and it has not been run here.
 </details>
 
-<details><summary>Lectures 4 and 5 showed bootstrapping often beats waiting for the full return. On the strip, should TD search beat Monte Carlo search?</summary>
-Likely. Many paths reach the same square, which Silver says is where TD search helps most: a value learned along one path is reused by another (1:33:45). He notes exceptions, and the island has run no search. On the island the TD bots learned where Monte Carlo control did not, which points the same way.
+<details><summary>Many paths on the strip lead to the same square. One search learns only when an imagined game ends; the other corrects each guess from the next, like the bots of lectures 4 and 5. Which should win?</summary>
+Likely the one that corrects as it goes, TD search. Where many paths reach the same square, a value learned along one path is already there when the next one arrives, which Silver says is where TD search helps most (1:33:45). He notes exceptions, and the island has run no search. But on the island the TD bots learned where Monte Carlo control did not, which points the same way. Learning a guess from a guess is called bootstrapping.
 </details>
 
 ## Cards
@@ -376,7 +392,22 @@ One point holds exactly. A real tool call with side effects cannot be undone, so
 
 ## The thread to partial observability
 
-Silver assumes the states and actions are known (16:53), and the model predicts the next state from the current one, which works only if the state holds everything that matters for what comes next. Asked about learning your own features (25:47), he agrees raw inputs may be a poor state. Three things carry forward. A model indexed by the wrong state is wrong in a way more data will not fix: in the hidden-wall build, a square-only table would see column 6 sometimes block and sometimes not (no results yet). Reasoning about model uncertainty, the Bayesian route he skipped, is already a belief: a probability over which world you are in. And Dyna-2's short-term memory has the shape of the RUNNER REMEMBERS BUMPS condition: a small memory of this episode standing in for what cannot be seen.
+Your map in your head says the left door opens onto a long sightline. This fight the enemy Mei has walled it off, and from spawn you cannot tell. Last fight she walled the right one.
+
+A model that knows only where you stand has one entry for that door. More games make it more precise about how often the door is blocked, and never about whether it is blocked now.
+
+A model indexed by the wrong state is wrong in a way more data will not fix.
+
+Silver's lecture leans on the entry being enough. He assumes the states and actions are known (16:53), and his model predicts the next state from the current one, which works only if the state holds everything that matters for what comes next. Asked about learning your own features (25:47), he agrees raw inputs may be a poor state.
+
+Lesson 11 ran this on the island. Before each episode one square is shut at random (on the long strip, the square at column 6 in the edge row or the second row), and nobody tells Tracer which.
+
+On the short strip, with no way round, the runner told only her square got through 52% of her test crossings. The one who remembered which row had stopped her got through 90%. The one shown the wall got through 94%, a gap over remembering that is not yet conclusive. On the long strip, where she can always go round, none of the gaps is conclusive yet (67%, 50% and 50%).
+
+Two more pieces of this lecture point the same way:
+
+1. **Model uncertainty is a belief.** The Bayesian route he skipped keeps a probability over which world you are in. Lesson 11 calls that a belief, and its game, Sombra's Room, makes you hold one.
+2. **Dyna-2's short-term memory is the remembered bump.** It has the shape of the RUNNER REMEMBERS BUMPS condition: a small memory of this episode standing in for what cannot be seen.
 
 ## Experiments the lecture asks for that the island has not run
 

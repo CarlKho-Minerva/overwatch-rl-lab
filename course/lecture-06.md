@@ -311,7 +311,9 @@ The game's last stop asks what this best fit looks like when the features are pl
 
 ## What the island measured for this lecture
 
-Three Q-learning bots, same settings (alpha 0.5, epsilon 0.1), told different amounts about where they stand.
+Put money on it before you look: the player with the best information wins. Three Q-learning bots with the same settings (alpha 0.5, epsilon 0.1) walk the same strip. One is told her exact square, one her row and which quarter of the strip she is in, one only her row. More information should mean better play.
+
+Half of that bet pays.
 
 | | Q-LEARNING (48 squares) | Q, 16 COARSE STATES | Q, ROW ONLY |
 |---|---|---|---|
@@ -322,32 +324,42 @@ Three Q-learning bots, same settings (alpha 0.5, epsilon 0.1), told different am
 | Runs with 10 clean test crossings | 11/11 | 10/10 | 3/10 |
 | Steps per training episode | 18.6 | 17.6 | 47.1 |
 
-Against the full table, the 16-group bot fell less, -10.15 per 100 (interval -15.99 to -4.13, p 0.0074), and the row-only bot fell more, 15.97 (10.62 to 21.32), with a late return lower by 83.48 (interval -107.47 to -60.97 for the difference). All are exploratory first looks, uncorrected for the number of comparisons (only SARSA against Q-learning was planned). Grouping helped where grouped squares behave alike (the edge is the same along the strip) and hurt where it erased what she needed (which way the goal is). The 16-group bot's late-return edge over the full table has no interval, so it is not a result. Not tested: learned or overlapping features, a network, replay, least squares, divergence.
+The bot who knew least did play worst. Against the full table, the row-only bot fell more, a difference of 15.97 per 100 (10.62 to 21.32), and her late return was lower by 83.48 (interval -107.47 to -60.97 for the difference). Tested with exploring switched off, only 3 of her 10 runs crossed cleanly ten times out of ten.
+
+The bot who knew most did not play best. The 16-group bot fell less than the full table, -10.15 per 100 (interval -15.99 to -4.13, p 0.0074), and found the goal for the first time at a median of episode 5 instead of 13.
+
+The only thing that differed was the lumping. Grouping helped where the grouped squares behave alike: the edge is just as deadly one square along, so one fall teaches three squares. It hurt where it erased what she needed. The row-only bot cannot tell which way the goal is, so a step forward and a step back look identical to her.
+
+What it does not show:
+
+1. **Not a planned test.** All of these are exploratory first looks, uncorrected for the number of comparisons (only SARSA against Q-learning was planned).
+2. **Not a win on return, yet.** The 16-group bot's late-return edge over the full table has no interval, so it is not a result.
+3. **Not the hard cases.** Learned or overlapping features, a network, replay, least squares and divergence were not tested.
 
 ## Guess first
 
-<details><summary>Q, ROW ONLY knows her row but not her column. Does she fall more often or less often than the full-table bot?</summary>
-More: 42.5 falls per 100 episodes against 26.5. She learns "not toward the edge in row 0" fast, since it holds in every column. But forward and back look identical to her, so she paces the edge row for 47.1 steps an episode, and each random exploratory move there is another chance to fall (that link is an inference, not a separate measurement).
+<details><summary>Q, ROW ONLY always knows how close the edge is and never knows how close the goal is. Next to the bot who knows her exact square, does she fall more often or less?</summary>
+More: 42.5 falls per 100 episodes against 26.5. She learns "not toward the edge in row 0" fast, since it holds in every column. But a step forward and a step back look identical to her, so she paces the edge row for 47.1 steps an episode, and each random exploratory move there is another chance to fall (that link is an inference, not a separate measurement). Grouping squares like this is state aggregation, and here it grouped away the one thing she needed.
 </details>
 
-<details><summary>Q, 16 COARSE STATES first reaches the goal at a median of episode 5. Before or after the full table?</summary>
-Before: the full table's median is 13. Each update moves a weight shared by three squares, so one experience teaches three places. The generalisation is correct here because neighbouring columns really are alike.
+<details><summary>The full-table bot first reaches the goal at a median of episode 13. Q, 16 COARSE STATES sees each row in blocks of three squares. Does she get there sooner or later?</summary>
+Sooner: a median of episode 5. Each update moves a weight shared by three squares, so one experience teaches three places. The sharing is right here, because neighbouring columns really are alike: the edge is just as deadly one square along. Silver calls this generalisation.
 </details>
 
-<details><summary>Lecture 4 compared Monte Carlo and TD targets. With a neural network, which keeps a convergence guarantee for prediction?</summary>
-Monte Carlo. The return is an unbiased sample, so the update is true stochastic gradient descent and reaches a local optimum. The TD target uses the network's own estimate and can diverge with non-linear approximators. Bootstrapping still usually learns faster, so Silver looks for safe TD variants.
+<details><summary>Swap the table for a neural network and ask it to score one fixed way of playing. One learner waits for the end of each run; the other trusts its own next guess. Which one is still guaranteed to settle?</summary>
+The one that waits, Monte Carlo. The return is an unbiased sample, so the update is true stochastic gradient descent and reaches a local optimum. The one that trusts its guess, lecture 4's TD, has a target that leans on the network's own estimate, and it can diverge with non-linear approximators. Building a guess on a guess, bootstrapping, still usually learns faster, which is why Silver goes looking for safe TD variants.
 </details>
 
-<details><summary>Lecture 5's SARSA and Q-learning, both on linear features: which can diverge?</summary>
-Q-learning, because it is off-policy. Linear SARSA only chatters. The 16-group bot is off-policy Q-learning on linear features and stayed stable, which fits: a cross means divergence is possible, and one-hot grouping is a well-behaved case.
+<details><summary>Put lecture 5's SARSA and Q-learning on a weighted sum of features and let both choose moves. One of them can send its weights off to infinity. Which one?</summary>
+Q-learning. It learns about the best move while trying others, which makes it off-policy, and Silver's table of ticks and crosses gives it a cross. Linear SARSA only chatters: near the answer, a little away, back again. The 16-group bot is off-policy Q-learning on linear features and stayed stable, which fits: a cross means divergence is possible, not certain, and one-hot grouping is a well-behaved case.
 </details>
 
-<details><summary>Give Q, ROW ONLY experience replay, so she trains many times on each step. Does she stop pacing?</summary>
-No. Replay converges to the least squares fit for her features, and her features cannot separate forward from back. More passes squeeze out what the features can express, never more. Only a better description of position fixes her.
+<details><summary>Give Q, ROW ONLY experience replay: she keeps every step and trains on each one many times over. Does she stop pacing the edge?</summary>
+No. Replay converges to the least squares fit for her features, and her features cannot separate forward from back. More passes squeeze out everything the features can express, and never anything more. Only a better description of where she stands fixes her. That is Silver's point at the mountain car: good features are where your knowledge goes in.
 </details>
 
-<details><summary>Lecture 3's PLANNER solved the strip in 13 sweeps. Why not run her on Go?</summary>
-Each sweep visits every state, and Go has about 10 to the 170: the table would not fit and the sweeps would not finish. She also needs the rules written down. Approximation answers the first problem; model-free targets the second.
+<details><summary>Lecture 3's PLANNER solved the strip in 13 sweeps. Hand her a Go board instead. How far does she get?</summary>
+Nowhere. Each sweep visits every state, and Go has about 10 to the 170: the table would not fit and the sweeps would not finish. She also needs the rules written down. Approximation answers the first problem. Learning from experience instead of from written rules, called model-free, answers the second.
 </details>
 
 ## Cards
@@ -375,7 +387,21 @@ The tables still have a warning for you. Learning from logs of older agent versi
 
 ## The thread to partial observability
 
-State aggregation is partial observability chosen by the designer. Q, ROW ONLY's next square depends on a column she is not told, so from her side the world is no longer Markov. The lecture assumes features summarise a fully observed state. DQN's input stacks the last 4 frames, a short history where one frame would not show motion (that reason is not stated in the lecture). Carry forward: an approximator can only be as good as what its inputs tell apart, and the final lesson's fix is memory, not more weights. The hidden-wall build, planned and running now, tests this by hiding one fact from the runner and, in one condition, letting her remember her bumps.
+Both smaller bots on this page play with part of the map blacked out, and the designer did it to them on purpose.
+
+That is all state aggregation is: partial observability chosen by hand. Whether a step forward reaches the goal or just costs Q, ROW ONLY a step depends on her column, and nobody tells her the column. So from her side the world is no longer Markov. What she is shown is not enough to predict what happens next.
+
+The lecture quietly assumes the opposite: its features summarise a state the agent can fully see. DQN is where the seam shows. Its input stacks the last 4 frames, a short history where one frame would not show motion (that reason is not stated in the lecture).
+
+Lesson 11 pulls on that seam. One square on the strip is shut, a different one each episode, and the runner is not told which. With no way round, the blind runner reached the goal in 52% of her test crossings. Give her one slot of memory, the row of the square that stopped her, and it was 90%: 38 points higher (95% interval 10 to 66 points), a real difference by the rule set in advance. Told the wall's row outright, she reached 94%, and the gap between seeing and remembering is not yet conclusive. Where a way round existed, none of the gaps was established.
+
+Practice does not rescue her either. In the lesson's simulation by the rules alone, on the strip with no way round, the blind runner reached the goal 47% of the time after 200 training episodes and 48% after 1,000. What she lacks is not practice.
+
+The same lesson tries it on a local language model, where "more weights" can be taken literally. Shown only the latest message, gemma4:12b got 6 of 24 cases right, and gemma4:31b, the bigger model, 12 of 24. The smaller one with a short note to itself got 23 of 24. (One small scripted world, one run per case, nothing wider.)
+
+An approximator can only be as good as what its inputs tell apart.
+
+The fix for a missing fact is memory, not more weights.
 
 ## Experiments the lecture asks for that the island has not run
 
